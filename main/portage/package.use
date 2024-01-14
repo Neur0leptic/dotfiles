@@ -1,0 +1,209 @@
+# SYSTEM PACKAGES #
+sys-apps/portage native-extensions ipc # these are needed
+dev-lang/perl -minimal # you can't use perl installation scripts with minimal
+sys-devel/gcc nptl cxx # these are defaults for gcc
+sys-libs/glibc multiarch # this increases performance
+dev-libs/ncurses tinfo # needed to recognize terminal
+net-misc/dhcpcd embedded # for minimal dhcpcd
+app-arch/xz-utils extra-filters	# needed for kernel
+sys-firmware/intel-microcode split-ucode # needed for microcode
+sys-kernel/gentoo-sources symlink experimental # needed to optimize for our cpu
+media-video/pipewire pipewire-alsa sound-server # needed for sound to work
+sys-auth/seatd server # for wayland login
+sys-apps/util-linux su pam suid # for root login
+sys-fs/ntfs3g fuse mount-ntfs # for external hdd
+sys-fs/fuse suid
+net-misc/curl http2 ssl openssl curl_ssl_openssl imap smtp # for git sync
+dev-vcs/git curl # for git sync
+sys-apps/systemd-utils tmpfiles udev # dependency
+dev-libs/glib mime # not recommended to disable by package
+dev-lang/python ensurepip ssl sqlite ncurses readline # needed as dependency
+net-vpn/wireguard-tools wg-quick
+sys-process/procps ncurses
+gui-libs/xdg-desktop-portal-hyprland elogind
+sys-apps/grep egrep-fgrep pcre
+sys-apps/busybox savedconfig
+sys-kernel/linux-firmware savedconfig redistributable compress-xz
+sys-apps/net-tools hostname
+sys-fs/e2fsprogs tools
+dev-cpp/sdbus-c++ elogind
+
+# DEFAULT APPS (these are default apps for Gentoo)#
+app-alternatives/awk gawk
+app-alternatives/bzip2 lbzip2
+app-alternatives/gzip pigz
+app-alternatives/sh dash
+app-alternatives/tar gnu
+app-alternatives/yacc bison
+app-alternatives/lex reflex
+app-alternatives/bc gnu
+app-alternatives/cpio gnu
+
+# FONT RENDERING (these are basically needed for all apps) #
+media-libs/freetype harfbuzz png adobe-cff brotli bzip2 cleartype-hinting
+media-libs/harfbuzz experimental truetype glib introspection icu graphite cairo
+x11-libs/cairo X glib
+x11-libs/pango X
+dev-libs/libpcre2 pcre16 unicode
+
+# CLANG ENVIRONMENT (needed for compiling firefox or other PGO programs) #
+sys-devel/clang-runtime compiler-rt sanitize
+sys-devel/clang-common default-compiler-rt default-lld
+sys-libs/compiler-rt-sanitizers profile orc
+sys-libs/libunwind static-libs
+
+## WORLD PACKAGES ##
+
+# neovim uses luajit by default so we select it#
+app-editors/neovim lua_single_target_luajit
+dev-lua/luv lua_single_target_luajit -lua_single_target_lua5-4
+dev-lua/mpack lua_targets_luajit lua_single_target_luajit
+dev-lua/lpeg lua_targets_luajit lua_single_target_luajit
+dev-lua/lua-cjson internal-fpconv
+
+# packages we install #
+sys-apps/xdg-desktop-portal screencast geolocation
+media-gfx/imv freeimage jpeg png
+media-libs/freeimage webp
+media-sound/mpd opus
+media-video/ffmpeg svt-av1 dav1d vpx opus encode libass sdl x264 gpl X pulseaudio openssl network nvenc vorbis -vulkan alsa cuda x265 libplacebo 
+media-libs/libvpx postproc highbitdepth
+media-libs/dav1d 10bit 8bit
+media-video/mpv cli libplacebo lua nvenc uchardet iconv -vulkan lua_single_target_luajit libmpv
+media-libs/libplacebo lcms shaderc -vulkan
+net-libs/libtorrent-rasterbar dht
+media-gfx/imagemagick jpeg png webp
+www-client/librewolf eme-free jumbo-build openh264 dbus
+app-office/libreoffice gtk dbus
+media-sound/ncmpcpp taglib
+mail-client/neomutt notmuch sasl
+
+# Dependencies #
+app-alternatives/ninja samurai
+net-libs/nodejs icu ssl
+dev-libs/libtomcrypt tomsfastmath
+dev-lang/ruby ssl
+dev-qt/qtgui egl libinput udev dbus
+app-text/qpdf ssl
+x11-libs/libxkbcommon X
+gui-libs/wlroots tinywl
+media-libs/mesa X gles2 llvm osmesa proprietary-codecs wayland vaapi -d3d9 -debug -gles1 -lm-sensors -opencl (-selinux) -test -unwind -valgrind -vdpau -vulkan -vulkan-overlay -xa -zink -zstd
+media-libs/libpng apng
+media-libs/libglvnd X
+app-text/xmlto text
+x11-libs/gtk+ X
+media-libs/libepoxy X egl
+dev-libs/boost zlib nls icu
+app-crypt/gpgme cxx
+app-text/poppler utils lcms cxx jpeg
+media-libs/libsdl2 video sound gles2
+media-video/ffmpegthumbnailer jpeg png
+dev-libs/nettle gmp # brave gnutls dependency
+dev-lang/rust nightly # eww dependency
+
+x11-libs/libdrm udev
+media-libs/libva-compat drm egl opengl X
+media-libs/gst-plugins-base egl gbm gles2 opengl
+media-libs/gst-plugins-bad egl opengl gles2 vaapi
+app-crypt/libsecret crypt
+
+# Python Compat #
+media-libs/vapoursynth python_single_target_python3_11
+media-video/ffsubsync python_targets_python3_11
+media-video/subliminal python_targets_python3_11
+net-misc/gallery-dl python_targets_python3_11
+dev-libs/gobject-introspection python_single_target_python3_11
+dev-python/beautifulsoup4 python_targets_python3_11
+net-mail/notmuch python_targets_python3_11
+sys-libs/talloc python_single_target_python3_11
+dev-python/soupsieve python_targets_python3_11
+dev-python/html5lib python_targets_python3_11
+dev-python/lxml python_targets_python3_11
+dev-python/gpep517 python_targets_python3_11
+dev-python/hatchling python_targets_python3_11
+dev-python/editables python_targets_python3_11
+dev-python/packaging python_targets_python3_11
+dev-python/pathspec python_targets_python3_11
+dev-python/pluggy python_targets_python3_11
+dev-python/calver python_targets_python3_11
+dev-python/setuptools python_targets_python3_11
+dev-python/setuptools-scm python_targets_python3_11
+dev-python/flit-core python_targets_python3_11
+dev-python/cython python_targets_python3_11
+dev-python/six python_targets_python3_11
+dev-python/webencodings python_targets_python3_11
+dev-python/jaraco-text python_targets_python3_11
+dev-python/more-itertools python_targets_python3_11
+dev-python/nspektr python_targets_python3_11
+dev-python/ordered-set python_targets_python3_11
+dev-python/platformdirs python_targets_python3_11
+dev-python/tomli python_targets_python3_11
+dev-python/wheel python_targets_python3_11
+dev-python/certifi python_targets_python3_11
+dev-python/typing-extensions python_targets_python3_11
+dev-python/pyparsing python_targets_python3_11
+dev-python/jaraco-context python_targets_python3_11
+dev-python/jaraco-functools python_targets_python3_11
+dev-python/installer python_targets_python3_11
+dev-python/pygments python_targets_python3_11
+dev-python/jinja python_targets_python3_11
+dev-python/markupsafe python_targets_python3_11
+dev-python/trove-classifiers python_targets_python3_11
+dev-python/auditok python_targets_python3_11
+dev-python/faust-cchardet python_targets_python3_11
+dev-python/ffmpeg-python python_targets_python3_11
+dev-python/future python_targets_python3_11
+dev-python/pysubs2 python_targets_python3_11
+dev-python/srt python_targets_python3_11
+dev-python/tqdm python_targets_python3_11
+dev-python/appdirs python_targets_python3_11
+dev-python/babelfish python_targets_python3_11
+dev-python/chardet python_targets_python3_11
+dev-python/click python_targets_python3_11
+dev-python/urllib3 python_targets_python3_11
+dev-python/PySocks python_targets_python3_11
+dev-python/trove-classifiers python_targets_python3_11
+dev-python/numpy python_targets_python3_11
+dev-python/meson-python python_targets_python3_11
+dev-python/pyproject-metadata python_targets_python3_11
+dev-util/meson python_targets_python3_11
+dev-python/fastjsonschema python_targets_python3_11
+dev-python/rich python_targets_python3_11
+dev-python/colorama python_targets_python3_11
+dev-python/markdown-it-py python_targets_python3_11
+dev-python/poetry-core python_targets_python3_11
+dev-python/lark python_targets_python3_11
+dev-python/linkify-it-py python_targets_python3_11
+dev-python/mdurl python_targets_python3_11
+dev-python/uc-micro-py python_targets_python3_11
+dev-python/mako python_targets_python3_11
+dev-python/webrtcvad python_targets_python3_11
+dev-python/requests python_targets_python3_11
+dev-python/charset-normalizer python_targets_python3_11
+dev-python/idna python_targets_python3_11
+dev-python/decorator python_targets_python3_11
+dev-python/dogpile-cache python_targets_python3_11
+dev-python/enzyme python_targets_python3_11
+dev-python/guessit python_targets_python3_11
+dev-python/pysrt python_targets_python3_11
+dev-python/pytz python_targets_python3_11
+dev-python/rarfile python_targets_python3_11
+dev-python/stevedore python_targets_python3_11
+dev-python/pbr python_targets_python3_11
+dev-python/rebulk python_targets_python3_11
+dev-python/python-dateutil python_targets_python3_11
+dev-python/pyyaml python_targets_python3_11
+
+# NEW FLAGS #
+net-mail/isync ssl
+dev-libs/gmime crypt
+media-gfx/qrencode png
+app-text/libwpd tools
+dev-libs/xmlsec nss
+media-libs/openh264 plugin
+media-libs/libass fontconfig
+media-fonts/fontawesome otf
+dev-python/rarfile compressed
+
+# AV1-Encoding #
+media-libs/vapoursynth vspipe shared

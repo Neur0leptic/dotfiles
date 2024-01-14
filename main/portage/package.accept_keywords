@@ -1,0 +1,45 @@
+gui-apps/wf-recorder **
+gui-libs/wlroots **
+media-gfx/imv **
+x11-themes/sweet-dark-gtk-theme **
+net-news/newsboat **
+media-libs/libplacebo **
+media-video/mpv **
+sys-apps/xdg-desktop-portal **
+media-sound/ncmpcpp **
+mail-client/mutt-wizard **
+mail-client/neomutt **
+mail-mta/msmtp **
+#app-text/zathura **
+#app-text/zathura-pdf-mupdf **
+media-video/pipewire **
+media-video/wireplumber **
+dev-libs/libinput **
+dev-libs/wayland **
+dev-libs/wayland-protocols **
+dev-util/wayland-scanner **
+media-libs/libdisplay-info **
+x11-libs/libdrm **
+x11-libs/libxkbcommon **
+x11-libs/pixman **
+media-libs/svt-av1 **
+
+virtual/rust **
+dev-lang/rust **
+
+media-video/ffmpeg **
+media-libs/vapoursynth **
+media-plugins/vapoursynth-l-smash-works **
+media-libs/libvmaf **
+dev-cpp/highway **
+media-libs/l-smash **
+media-libs/ffmpegsource **
+media-libs/nv-codec-headers **
+
+app-shells/zsh-completions **
+
+gui-apps/mpvpaper **
+
+sys-apps/busybox **
+sys-kernel/linux-firmware **
+
