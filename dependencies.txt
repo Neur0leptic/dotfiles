@@ -1,0 +1,71 @@
+# COMPRESSION #
+app-arch/p7zip
+app-arch/unrar
+
+# SOME PROGRAMS #
+app-editors/neovim
+app-office/libreoffice
+net-news/newsboat
+mail-client/mutt-wizard
+www-client/lynx
+
+# SHELL & LF #
+app-misc/jq
+app-shells/fzf
+app-shells/gentoo-zsh-completions
+app-shells/zoxide
+app-shells/zsh
+app-shells/zsh-completions
+app-text/zathura
+app-text/zathura-pdf-mupdf
+dev-python/pip
+gui-apps/wl-clipboard
+media-fonts/noto-emoji
+sys-apps/bat
+sys-apps/eza
+sys-apps/mlocate
+app-text/wgetpaste
+x11-misc/ydotool
+sys-process/dcron
+
+# NTFS & APPIMAGES #
+
+# MONITORING #
+sys-process/btop
+
+# Network Connection #
+net-vpn/wireguard-tools
+
+# HYPRLAND #
+x11-misc/dunst
+x11-themes/sweet-dark-gtk-theme::local
+
+# DWL #
+dev-libs/bemenu
+gui-apps/foot
+
+# BROWSERS #
+www-client/brave-bin
+www-client/librewolf
+
+# MULTIMEDIA #
+media-video/ffmpeg
+media-video/ffmpegthumbnailer
+media-video/ffsubsync
+media-video/mediainfo
+media-video/mpv
+media-gfx/imagemagick
+media-gfx/imv
+media-sound/mpc
+media-sound/mpd
+media-sound/ncmpcpp
+media-video/subliminal
+gui-apps/wf-recorder
+gui-apps/grim
+gui-apps/slurp
+gui-apps/swappy
+
+# DATA HOARDING #
+net-misc/gallery-dl
+net-misc/yt-dlp
+net-p2p/rtorrent
