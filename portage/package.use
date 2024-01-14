@@ -9,7 +9,7 @@ app-arch/xz-utils extra-filters	# needed for kernel
 sys-firmware/intel-microcode split-ucode # needed for microcode
 sys-kernel/gentoo-sources symlink experimental # needed to optimize for our cpu
 media-video/pipewire pipewire-alsa sound-server # needed for sound to work
-sys-auth/seatd server # for wayland login
+sys-auth/seatd builtin server # for wayland login
 sys-apps/util-linux su pam suid # for root login
 sys-fs/ntfs3g fuse mount-ntfs # for external hdd
 sys-fs/fuse suid
@@ -86,7 +86,7 @@ dev-lang/ruby ssl
 dev-qt/qtgui egl libinput udev dbus
 app-text/qpdf ssl
 x11-libs/libxkbcommon X
-gui-libs/wlroots tinywl
+gui-libs/wlroots drm libinput liftoff session tinywl
 media-libs/mesa X gles2 llvm osmesa proprietary-codecs wayland vaapi -d3d9 -debug -gles1 -lm-sensors -opencl (-selinux) -test -unwind -valgrind -vdpau -vulkan -vulkan-overlay -xa -zink -zstd
 media-libs/libpng apng
 media-libs/libglvnd X
