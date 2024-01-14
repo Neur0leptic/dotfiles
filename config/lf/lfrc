@@ -1,0 +1,175 @@
+set shellopts '-eu'
+set ifs "\n"
+set shell dash
+set scrolloff 10
+set icons
+set period 1
+set previewer ~/.config/lf/preview.sh
+set cleaner ~/.config/lf/clean.sh
+set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
+set autoquit true
+set promptfmt "\033[1;37m%d\033[0m"
+
+cmd open ${{
+    case $(file --mime-type "$(readlink -f $f)" -b) in
+        text/*|application/json|inode/x-empty|application/x-subrip) $EDITOR $fx;;
+	image/gif|video/x-msvideo) mpv $fx;;
+	image/*) dash -c '
+	    dir="$0"
+	    selected_file="$1"
+	    passed=0
+	    selected_and_after=""
+	    before=""
+	    for file in "$dir"/*.jpg "$dir"/*.jpeg "$dir"/*.png "$dir"/*.webp; do
+		[ "$file" = "$selected_file" ] && passed=1
+		[ $passed -eq 1 ] && selected_and_after="$selected_and_after $file" || before="$before $file"
+	    done
+	    imv -f $selected_and_after $before' "$PWD" "$fx"
+	;;
+	*) for f in $fx; do setsid -f $OPENER $f >/dev/null 2>&1; done;;
+    esac
+}}
+
+cmd mkdir $mkdir -p "$@"
+
+cmd extract ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	printf "%s\n\t" "$fx"
+	printf "extract?[y/N]"
+	read ans
+	[ $ans = "y" ] && {
+		case $fx in
+			*.tar.bz2)   tar xjf $fx     ;;
+			*.tar.gz)    tar xzf $fx     ;;
+			*.bz2)       bunzip2 $fx     ;;
+			*.rar)       unrar e $fx     ;;
+			*.gz)        gunzip $fx      ;;
+			*.tar)       tar xf $fx      ;;
+			*.tbz2)      tar xjf $fx     ;;
+			*.tgz)       tar xzf $fx     ;;
+			*.zip)       unzip $fx       ;;
+			*.Z)         uncompress $fx  ;;
+			*.7z)        7z x $fx        ;;
+			*.tar.xz)    tar xf $fx      ;;
+		esac
+	}
+}}
+
+cmd bulkrename ${{
+tmpfile_old="$(mktemp)"
+tmpfile_new="$(mktemp)"
+tmpfile_ext="$(mktemp)"
+
+[ -n "$fs" ] && fs=$(basename -a $fs | sort -fV) || fs=$(find . -maxdepth 1 -type f | cut -c 3- | sort -fV)
+
+for f in $fs; do
+    echo "${f%.*}" >> "$tmpfile_old"
+    echo "${f##*.}" >> "$tmpfile_ext"
+done
+
+cp "$tmpfile_old" "$tmpfile_new"
+$EDITOR "$tmpfile_new"
+
+[ "$(wc -l < "$tmpfile_old")" -eq "$(wc -l < "$tmpfile_new")" ] || { rm -f "$tmpfile_old" "$tmpfile_new" "$tmpfile_ext"; exit 1; }
+
+exec 3<"$tmpfile_old"
+exec 4<"$tmpfile_ext"
+exec 5<"$tmpfile_new"
+
+while IFS= read -r old_name <&3 && IFS= read -r ext <&4 && IFS= read -r new_name <&5; do
+    [ "$old_name" = "$new_name" ] || [ -e "$new_name.$ext" ] || mv -- "$old_name.$ext" "$new_name.$ext"
+done
+
+rm -f "$tmpfile_old" "$tmpfile_new" "$tmpfile_ext"
+lf -remote "send $id unselect"
+}}
+
+cmd delete ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	printf "%s\n\t" "$fx"
+	printf "delete?[y/N]"
+	read ans
+	[ $ans = "y" ] && rm -rf -- $fx
+}}
+
+cmd moveto ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    echo "Move to where?"
+    dest="$(cat "$XDG_CONFIG_HOME/shell/bm_dirs" | fzf | cut -f2)" &&
+    for x in $fx; do
+        eval mv -iv \"$x\" \"$dest\"
+    done
+}}
+
+cmd copyto ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    echo "Copy to where?"
+    dest="$(cat "$XDG_CONFIG_HOME/shell/bm_dirs" | fzf | cut -f2)" &&
+    for x in $fx; do
+        eval cp -ivr \"$x\" \"$dest\"
+    done
+}}
+
+cmd upload ${{
+    uploader.sh a $fx
+    lf -remote "send $id unselect"
+}}
+
+cmd on-select &{{
+    lf -remote "send $id set statfmt \"$(eza -ld --color=always --color-scale=size --color-scale-mode=fixed --no-quotes --smart-group --total-size --no-user --no-permissions "$f")\""
+}}
+
+cmd z %{{
+	result="$(zoxide query --exclude $PWD $@ | sed 's/\\/\\\\/g;s/"/\\"/g')"
+	lf -remote "send $id cd \"$result\""
+}}
+
+cmd zi ${{
+	result="$(zoxide query -i | sed 's/\\/\\\\/g;s/"/\\"/g')"
+	lf -remote "send $id cd \"$result\""
+}}
+
+cmd mimecopy ${{
+    MIME_TYPE=$(file --mime-type -b "$f")
+    echo $MIME_TYPE
+    wl-copy --type "$MIME_TYPE" < "$f"
+    echo $f
+    lf -remote "send $id unselect"
+}}
+
+# Bindings
+map <c-f> $lf -remote "send $id select \"$(fzf)\""
+map J $lf -remote "send $id cd $(eval echo $(cat "$XDG_CONFIG_HOME/shell/bm_dirs" | fzf | cut -f2))"
+map gh
+map g top
+map D delete
+map E extract
+map C copyto
+map M moveto
+map <c-c> mimecopy
+map <c-n> push :mkdir<space>""<left>
+map <c-r> reload
+map <c-s> set hidden!
+map <enter> shell
+map x $$f
+map X !$f
+map o &mimeopen "$f"
+map O $mimeopen --ask "$f"
+map U upload
+
+map A :rename; cmd-end # at the very end
+map c push A<c-u> # new rename
+map I :rename; cmd-home # at the very beginning
+map i :rename # before extension
+map a :rename; cmd-right # after extension
+map B bulkrename
+
+map <c-e> down
+map <c-y> up
+map V push :!nvim<space>
+
+map W $setsid -f $TERMINAL >/dev/null 2>&1
+
+map Y $printf "%s" "$fx" | wl-copy
