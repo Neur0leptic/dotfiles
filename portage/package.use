@@ -69,7 +69,7 @@ media-sound/mpd opus
 media-video/ffmpeg svt-av1 dav1d vpx opus encode libass sdl x264 gpl X pulseaudio openssl network nvenc vorbis -vulkan alsa cuda x265 libplacebo 
 media-libs/libvpx postproc highbitdepth
 media-libs/dav1d 10bit 8bit
-media-video/mpv cli libplacebo lua nvenc uchardet iconv -vulkan lua_single_target_luajit libmpv
+media-video/mpv egl cli libplacebo lua nvenc uchardet iconv -vulkan lua_single_target_luajit libmpv
 media-libs/libplacebo lcms shaderc -vulkan
 net-libs/libtorrent-rasterbar dht
 media-gfx/imagemagick jpeg png webp
