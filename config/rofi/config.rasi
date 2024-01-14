@@ -1,9 +1,0 @@
-configuration {
-  display-drun: "Applications:";
-  display-window: "Windows:";
-  drun-display-format: "{icon} {name}";
-  font: "Roboto Flex 11";
-  kb-row-select: "Tab";
-  kb-element-next: "Control+space";
-}
-@theme ".local/share/rofi/themes/my_theme.rasi"

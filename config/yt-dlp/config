@@ -1,7 +1,0 @@
---sponsorblock-mark all
---sponsorblock-remove all
---ignore-errors
---no-abort-on-error
---audio-quality best
---external-downloader=aria2c
---no-check-certificates
