@@ -66,10 +66,10 @@ sys-apps/xdg-desktop-portal screencast geolocation
 media-gfx/imv freeimage jpeg png
 media-libs/freeimage webp
 media-sound/mpd opus
-media-video/ffmpeg svt-av1 dav1d vpx opus encode libass sdl x264 gpl X pulseaudio openssl network nvenc vorbis -vulkan alsa cuda x265 libplacebo 
+media-video/ffmpeg svt-av1 dav1d vpx opus encode libass sdl x264 gpl X pulseaudio openssl network vaapi -nvenc vorbis -vulkan alsa -cuda x265 libplacebo 
 media-libs/libvpx postproc highbitdepth
 media-libs/dav1d 10bit 8bit
-media-video/mpv egl cli libplacebo lua nvenc uchardet iconv -vulkan lua_single_target_luajit libmpv
+media-video/mpv egl cli libplacebo lua opengl -nvenc uchardet iconv -vulkan lua_single_target_luajit libmpv
 media-libs/libplacebo lcms shaderc -vulkan
 net-libs/libtorrent-rasterbar dht
 media-gfx/imagemagick jpeg png webp
@@ -99,7 +99,7 @@ app-text/poppler utils lcms cxx jpeg
 media-libs/libsdl2 video sound gles2
 media-video/ffmpegthumbnailer jpeg png
 dev-libs/nettle gmp # brave gnutls dependency
-dev-lang/rust nightly # eww dependency
+dev-lang/rust
 
 x11-libs/libdrm udev
 media-libs/libva-compat drm egl opengl X
