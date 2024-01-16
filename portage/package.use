@@ -27,6 +27,7 @@ sys-kernel/linux-firmware savedconfig redistributable compress-xz
 sys-apps/net-tools hostname
 sys-fs/e2fsprogs tools
 dev-cpp/sdbus-c++ elogind
+sys-libs/llvm-libunwind static-libs
 
 # DEFAULT APPS (these are default apps for Gentoo)#
 app-alternatives/awk gawk
