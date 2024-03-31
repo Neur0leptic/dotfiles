@@ -16,3 +16,4 @@ application/x-extension-shtml=librewolf.desktop
 application/xhtml+xml=librewolf.desktop
 application/x-extension-xhtml=librewolf.desktop
 application/x-extension-xht=librewolf.desktop
+x-scheme-handler/mpv=mpv-scheme-handler.desktop

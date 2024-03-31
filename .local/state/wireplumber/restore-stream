@@ -1,0 +1,17 @@
+[restore-stream]
+Audio/Sink:node.name:auto_null:channelMap=FL;FR;
+Audio/Sink:node.name:auto_null:channelVolumes=1.0;1.0;
+Audio/Sink:node.name:auto_null:mute=false
+Audio/Sink:node.name:auto_null:volume=1.0
+Output/Audio:application.name:PipeWire\sALSA\s\olibrewolf\c:channelMap=FL;FR;
+Output/Audio:application.name:PipeWire\sALSA\s\olibrewolf\c:channelVolumes=1.0;1.0;
+Output/Audio:application.name:PipeWire\sALSA\s\olibrewolf\c:mute=false
+Output/Audio:application.name:PipeWire\sALSA\s\olibrewolf\c:volume=1.0
+Output/Audio:media.role:Game:channelMap=FL;FR;
+Output/Audio:media.role:Game:channelVolumes=1.0;1.0;
+Output/Audio:media.role:Game:mute=false
+Output/Audio:media.role:Game:volume=1.0
+Output/Audio:media.role:Movie:channelMap=FL;FR;
+Output/Audio:media.role:Movie:channelVolumes=1.0;1.0;
+Output/Audio:media.role:Movie:mute=false
+Output/Audio:media.role:Movie:volume=1.0

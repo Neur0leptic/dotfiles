@@ -1,4 +1,4 @@
-HISTFILE="$XDG_DATA_HOME/history"
+HISTFILE="${XDG_DATA_HOME}/history"
 
 setopt append_history
 setopt inc_append_history
@@ -17,35 +17,36 @@ setopt completeinword
 setopt nobgnice
 setopt nohup
 
-HISTSIZE=5000
-SAVEHIST=5000
+HISTSIZE="5000"
+SAVEHIST="5000"
 
-source "$HOME/.config/shell/aliasrc"
+source "${HOME}/.config/shell/aliasrc"
 
 bindkey -v
-export KEYTIMEOUT=1
+export KEYTIMEOUT="1"
 bindkey -v '^?' backward-delete-char
 
 autoload -U compinit
 compinit
 
-fpath=(/usr/share/zsh/site-functions $fpath)
+fpath=(/usr/share/zsh/site-functions ${fpath})
 
 function zle-keymap-select {
-  [[ $KEYMAP == vicmd || $KEYMAP == visual ]] && echo -ne '\e[2 q' || echo -ne '\e[6 q'
+	[[ "${KEYMAP}" == vicmd || "${KEYMAP}" == visual ]] && echo -ne '\e[2 q' || echo -ne '\e[6 q'
 }
 zle -N zle-keymap-select
 echo -ne '\e[6 q'
-preexec() { echo -ne '\e[6 q' ;}
+preexec() { echo -ne '\e[6 q'; }
+trap 'echo -ne "\e[6 q"' INT SIGINT SIGTERM EXIT ERR
 
 fzf-history-widget-with-date() {
-  initial_query="$LBUFFER"
+  initial_query="${LBUFFER}"
   setopt noglobsubst noposixbuiltins pipefail 2>/dev/null
   entry=$(fc -lir 1 |
           sed -E 's/^[[:space:]]+[0-9]+\*?[[:space:]]+//' |
           awk '{cmd=$0; $1=$2=$3=""; sub(/^[ \t]+/, ""); if (!seen[$0]++) print cmd}' |
-          fzf --query="$initial_query" +s)
-  [ -n "$entry" ] && LBUFFER=${entry#* * * }
+          fzf --query="${initial_query}" +s)
+  [ -n "${entry}" ] && LBUFFER=${entry#* * * }
   zle redisplay
 }
 
@@ -53,10 +54,10 @@ zle -N fzf-history-widget-with-date
 bindkey '^R' fzf-history-widget-with-date
 
 fzf-cd-bookmark() {
-    selection=$(cat "$XDG_CONFIG_HOME/shell/bm_dirs" | fzf | cut -f2)
-    eval cd "$selection"
-        for precmd_func in $precmd_functions; do
-            $precmd_func
+    selection="$(cat "${XDG_CONFIG_HOME}/shell/bm_dirs" | fzf | cut -f2)"
+    eval cd "${selection}"
+        for precmd_func in ${precmd_functions}; do
+            "${precmd_func}"
         done
     zle reset-prompt
 }
@@ -64,13 +65,13 @@ fzf-cd-bookmark() {
 zle -N fzf-cd-bookmark
 bindkey '^J' fzf-cd-bookmark
 
-source "$ZDOTDIR/powerlevel10k/powerlevel10k.zsh-theme"
+source "${ZDOTDIR}/powerlevel10k/powerlevel10k.zsh-theme"
 
-source "$ZDOTDIR/.p10k.zsh"
+source "${ZDOTDIR}/.p10k.zsh"
 
-source "$ZDOTDIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source "${ZDOTDIR}/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
-source "$ZDOTDIR/fzf-tab/fzf-tab.plugin.zsh"
+source "${ZDOTDIR}/fzf-tab/fzf-tab.plugin.zsh"
 
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
@@ -78,4 +79,4 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 -T --color=always --group-di
 
 eval "$(zoxide init zsh)"
 
-source "$ZDOTDIR/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" 2>/dev/null
+source "${ZDOTDIR}/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" 2> "/dev/null"

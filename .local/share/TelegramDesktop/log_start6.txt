@@ -1,0 +1,8 @@
+[2024.03.28 14:36:48] Launched version: 4015000, install beta: [FALSE], alpha: 0, debug mode: [FALSE]
+[2024.03.28 14:36:48] Executable dir: /usr/bin/, name: telegram-desktop
+[2024.03.28 14:36:48] Initial working dir: /home/neuroleptic/
+[2024.03.28 14:36:48] Working dir: /home/neuroleptic/.local/share/TelegramDesktop/
+[2024.03.28 14:36:48] Command line: telegram-desktop
+[2024.03.28 14:36:48] Executable path before check: /usr/bin/telegram-desktop
+[2024.03.28 14:36:48] Logs started
+[2024.03.28 14:36:48] App ID: org.telegram.desktop

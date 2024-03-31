@@ -1,19 +1,57 @@
 #!/bin/zsh
 
-export PATH="$PATH:$HOME/.local/bin"
+export PATH="${PATH}:${HOME}/.local/bin:/usr/local/texlive/2023/bin/x86_64-linux"
 
 setopt PROMPT_SP
 
 export BROWSER="librewolf"
 export EDITOR="nvim"
 
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_CACHE_HOME="$HOME/.cache"
-export XDG_DOWNLOAD_DIR="$HOME/downloads"
-export XDG_VIDEOS_DIR="$HOME/videos"
-export NOTMUCH_CONFIG="$XDG_CONFIG_HOME/notmuch-config"
-export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+export XDG_CONFIG_HOME="${HOME}/.config"
+export XDG_DATA_HOME="${HOME}/.local/share"
+export XDG_CACHE_HOME="${HOME}/.cache"
+export XDG_DOWNLOAD_DIR="${HOME}/downloads"
+export XDG_VIDEOS_DIR="${HOME}/videos"
+export NOTMUCH_CONFIG="${XDG_CONFIG_HOME}/notmuch-config"
+export ZDOTDIR="${XDG_CONFIG_HOME}/zsh"
+export CUDA_CACHE_PATH="${XDG_CACHE_HOME}/nv"
+export GNUPGHOME="${XDG_DATA_HOME}/gnupg"
+export PASSWORD_STORE_DIR="${XDG_DATA_HOME}/pass"
 export FZF_DEFAULT_OPTS="--layout=reverse --height 80%"
+export BEMENU_OPTS="-i \
+        --nb '#0A0A0A' \
+        --nf '#9A9A9A' \
+        -l '15' \
+        --fn 'IBM Plex Mono 11' \
+        --hf '#40E0D0' \
+        --tf '#FF5A7D' \
+        --tb '#0A0A0A' \
+        --sb '#0A0A0A' \
+        --fb '#0A0A0A' \
+        --hb '#0A0A0A' \
+        --ab '#0A0A0A' \
+        --af '#9A9A9A' \
+        -s -C -T -n \
+        -M '0' -W '0' -B '0' -R '0' --ch 0 --cw 0 \
+        --fixed-height"
+export BEMENU_BACKEND="wayland"
 
-[ "$(tty)" = "/dev/tty1" ] && ! pidof -s Hyprland >/dev/null 2>&1 && exec "$XDG_CONFIG_HOME/hypr/start.sh"
+export QT_SCREEN_SCALE_FACTORS="1;1"
+export LIBVA_DRIVER_NAME="i915"
+export __GLX_VENDOR_LIBRARY_NAME="intel"
+export _JAVA_AWT_WM_NONREPARENTING="1"
+export ANV_QUEUE_THREAD_DISABLE="1"
+export QT_QPA_PLATFORM="wayland"
+export QT_QPA_PLATFORMTHEME="qt6ct"
+export CLUTTER_BACKEND="wayland"
+export SDL_VIDEODRIVER="wayland"
+export XDG_SESSION_TYPE="wayland"
+export XDG_CURRENT_DESKTOP="dwl"
+export XDG_SESSION_DESKTOP="dwl"
+export MOZ_ENABLE_WAYLAND="1"
+export MOZ_DBUS_REMOTE="1"
+
+export XDG_RUNTIME_DIR="/tmp/dwl"
+mkdir -p "${XDG_RUNTIME_DIR}"
+
+[ "$(tty)" = "/dev/tty1" ] && ! pidof -s dwl > "/dev/null" 2>&1 && dbus-run-session dwl

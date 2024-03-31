@@ -1,0 +1,24 @@
+station wlan0 connect
+station wlan0 connect "Vodafone-D8DD"
+station wlan0 get-networks
+station wlan0 scan
+station wlan0 get-networks
+station wlan0 connect Sunay
+station wlan0 connect "Sunay"
+station wlan0 connect "TP-LINK_00AC"
+station wlan0 scan
+station wlan0 get-networks
+station wlan0 connect "Sunay"
+station wlan0 get-networks
+station wlan0 connect "Sunay"
+station wlan0 "
+station wlan0 scan
+station wlan0 get-networks
+station wlan0 connect "TurkTelekom_Z3UNC"
+station wlan0 get-networks
+station wlan0 connect "TurkTelekom_Z3UNC"
+station wlan0 connect "Vodafone-D8DD"
+device list
+station wlan0 scan
+station wlan0 get-networks
+station wlan0 connect "Vodafone-D8DD"

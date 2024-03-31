@@ -4,9 +4,9 @@ app-arch/unrar
 
 # SOME PROGRAMS #
 app-editors/neovim
-app-office/libreoffice
-net-news/newsboat
-mail-client/mutt-wizard
+# app-office/libreoffice
+# net-news/newsboat
+# mail-client/mutt-wizard
 www-client/lynx
 
 # SHELL & LF #
@@ -34,10 +34,10 @@ sys-process/dcron
 sys-process/btop
 
 # Network Connection #
-net-vpn/wireguard-tools
+# net-vpn/wireguard-tools
 
 # HYPRLAND #
-x11-misc/dunst
+# x11-misc/dunst
 x11-themes/sweet-dark-gtk-theme::local
 
 # DWL #
@@ -45,27 +45,26 @@ dev-libs/bemenu
 gui-apps/foot
 
 # BROWSERS #
-www-client/brave-bin
-www-client/librewolf
+# www-client/librewolf
 
 # MULTIMEDIA #
-media-video/ffmpeg
-media-video/ffmpegthumbnailer
-media-video/ffsubsync
-media-video/mediainfo
-media-video/mpv
-media-gfx/imagemagick
-media-gfx/imv
-media-sound/mpc
-media-sound/mpd
-media-sound/ncmpcpp
-media-video/subliminal
-gui-apps/wf-recorder
-gui-apps/grim
-gui-apps/slurp
-gui-apps/swappy
+# media-video/ffmpeg
+# media-video/ffmpegthumbnailer
+# media-video/ffsubsync
+# media-video/mediainfo
+# media-video/mpv
+# media-gfx/imagemagick
+# media-gfx/imv
+# media-sound/mpc
+# media-sound/mpd
+# media-sound/ncmpcpp
+# media-video/subliminal
+# gui-apps/wf-recorder
+# gui-apps/grim
+# gui-apps/slurp
+# gui-apps/swappy
 
 # DATA HOARDING #
-net-misc/gallery-dl
-net-misc/yt-dlp
-net-p2p/rtorrent
+# net-misc/gallery-dl
+# net-misc/yt-dlp
+# net-p2p/rtorrent

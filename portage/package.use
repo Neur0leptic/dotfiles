@@ -3,7 +3,7 @@ sys-apps/portage native-extensions ipc # these are needed
 dev-lang/perl -minimal # you can't use perl installation scripts with minimal
 sys-devel/gcc nptl cxx # these are defaults for gcc
 sys-libs/glibc multiarch # this increases performance
-dev-libs/ncurses tinfo # needed to recognize terminal
+sys-libs/ncurses tinfo -minimal # needed to recognize terminal
 net-misc/dhcpcd embedded # for minimal dhcpcd
 app-arch/xz-utils extra-filters	# needed for kernel
 sys-firmware/intel-microcode split-ucode # needed for microcode
@@ -23,11 +23,12 @@ sys-process/procps ncurses
 gui-libs/xdg-desktop-portal-hyprland elogind
 sys-apps/grep egrep-fgrep pcre
 sys-apps/busybox savedconfig
-sys-kernel/linux-firmware savedconfig redistributable compress-xz
+sys-kernel/linux-firmware savedconfig redistributable
 sys-apps/net-tools hostname
 sys-fs/e2fsprogs tools
 dev-cpp/sdbus-c++ elogind
 sys-libs/llvm-libunwind static-libs
+sys-devel/llvm binutils-plugin
 
 # DEFAULT APPS (these are default apps for Gentoo)#
 app-alternatives/awk gawk
@@ -52,7 +53,9 @@ sys-devel/clang-runtime compiler-rt sanitize
 sys-devel/clang-common default-compiler-rt default-lld
 sys-libs/compiler-rt-sanitizers profile orc
 sys-libs/libunwind static-libs
-
+sys-libs/libcxx static-libs
+sys-libs/libcxxabi static-libs
+sys-libs/libxcrypt system
 ## WORLD PACKAGES ##
 
 # neovim uses luajit by default so we select it#
@@ -67,17 +70,21 @@ sys-apps/xdg-desktop-portal screencast geolocation
 media-gfx/imv freeimage jpeg png
 media-libs/freeimage webp
 media-sound/mpd opus
-media-video/ffmpeg svt-av1 dav1d vpx opus encode libass sdl x264 gpl X pulseaudio openssl network vaapi -nvenc vorbis -vulkan alsa -cuda x265 libplacebo 
+media-video/ffmpeg dav1d vulkan vpx opus encode libass sdl x264 gpl X pulseaudio openssl network vaapi -nvenc vorbis -vulkan alsa -cuda x265 libplacebo
 media-libs/libvpx postproc highbitdepth
 media-libs/dav1d 10bit 8bit
-media-video/mpv egl cli libplacebo lua opengl -nvenc uchardet iconv -vulkan lua_single_target_luajit libmpv
-media-libs/libplacebo lcms shaderc -vulkan
+media-video/mpv egl cli lua uchardet iconv lua_single_target_luajit lcms wayland vaapi pipewire
+media-libs/libplacebo lcms glslang -shaderc -vulkan opengl llvm-libunwind unwind
 net-libs/libtorrent-rasterbar dht
 media-gfx/imagemagick jpeg png webp
-www-client/librewolf eme-free jumbo-build openh264 dbus
+www-client/librewolf llvm_slot_17 eme-free jumbo-build openh264 dbus -pgo -drm
 app-office/libreoffice gtk dbus
 media-sound/ncmpcpp taglib
 mail-client/neomutt notmuch sasl
+net-wireless/iwd client
+gui-apps/foot grapheme-clustering
+media-libs/fcft harfbuzz libutf8proc
+net-im/telegram-desktop fonts qt6
 
 # Dependencies #
 app-alternatives/ninja samurai
@@ -88,7 +95,7 @@ dev-qt/qtgui egl libinput udev dbus
 app-text/qpdf ssl
 x11-libs/libxkbcommon X
 gui-libs/wlroots drm libinput liftoff session tinywl
-media-libs/mesa X gles2 llvm osmesa proprietary-codecs wayland vaapi -d3d9 -debug -gles1 -lm-sensors -opencl (-selinux) -test -unwind -valgrind -vdpau -vulkan -vulkan-overlay -xa -zink -zstd
+media-libs/mesa X gles2 llvm osmesa proprietary-codecs wayland vaapi -d3d9 -debug -gles1 -lm-sensors -opencl (-selinux) -test -unwind -valgrind -vdpau -vulkan -vulkan-overlay -xa -zink -zstd llvm_slot_17
 media-libs/libpng apng
 media-libs/libglvnd X
 app-text/xmlto text
@@ -101,19 +108,25 @@ media-libs/libsdl2 video sound gles2
 media-video/ffmpegthumbnailer jpeg png
 dev-libs/nettle gmp # brave gnutls dependency
 dev-lang/rust
-
+media-libs/libtgvoip alsa
 x11-libs/libdrm udev
 media-libs/libva-compat drm egl opengl X
 media-libs/gst-plugins-base egl gbm gles2 opengl
 media-libs/gst-plugins-bad egl opengl gles2 vaapi
 app-crypt/libsecret crypt
-
+sys-libs/zlib minizip
+dev-qt/qtgui jpeg png
+dev-qt/qtnetwork ssl
+dev-qt/qtwidgets png
+dev-qt/qtcore icu
+dev-qt/qtbase gui widgets opengl network
+app-arch/libarchive bzip2
 # Python Compat #
 media-libs/vapoursynth python_single_target_python3_11
 media-video/ffsubsync python_targets_python3_11
 media-video/subliminal python_targets_python3_11
 net-misc/gallery-dl python_targets_python3_11
-dev-libs/gobject-introspection python_single_target_python3_11
+dev-libs/gobject-introspection
 dev-python/beautifulsoup4 python_targets_python3_11
 net-mail/notmuch python_targets_python3_11
 sys-libs/talloc python_single_target_python3_11
@@ -167,7 +180,8 @@ dev-python/trove-classifiers python_targets_python3_11
 dev-python/numpy python_targets_python3_11
 dev-python/meson-python python_targets_python3_11
 dev-python/pyproject-metadata python_targets_python3_11
-dev-util/meson python_targets_python3_11
+# move dev-util/meson dev-build/meson
+dev-build/meson python_targets_python3_11
 dev-python/fastjsonschema python_targets_python3_11
 dev-python/rich python_targets_python3_11
 dev-python/colorama python_targets_python3_11

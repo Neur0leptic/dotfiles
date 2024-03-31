@@ -16,10 +16,10 @@ map i recolor
 map p print
 map g goto top
 
-set default-bg "#595959"
-set default-fg "#000000"
+set default-bg "#2E2E2E"
+set default-fg "#A5A5A5"
 
-set recolor-darkcolor "#000000"
-set recolor-lightcolor "#595959"
+set recolor-darkcolor "#A5A5A5"
+set recolor-lightcolor "#2E2E2E"
 
 set recolor

@@ -25,7 +25,7 @@ alias \
 	ls="eza --group-directories-first --color=always --icons --no-quotes -s name" \
 	lsf="eza -f --group-directories-first --color=always --icons --no-quotes -s name" \
 	lsd="eza -D --group-directories-first --color=always --icons --no-quotes -s name" \
-	lst="eza -lh --group-directories-first --color=always --color-scale --icons --no-quotes --smart-group -s time --total-size --no-user --no-permissions" \
+	lst="eza -lh --group-directories-first --color=always --icons --no-quotes --smart-group -s time --total-size --no-user --no-permissions" \
 	chrome="nvim .librewolf/*/chrome/userChrome.css" \
 	grep="grep --color=auto" \
 	diff="diff --color=auto" \

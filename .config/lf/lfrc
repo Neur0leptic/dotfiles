@@ -2,31 +2,31 @@ set shellopts '-eu'
 set ifs "\n"
 set shell dash
 set scrolloff 10
-set icons
-set period 1
+set icons true
+set sixel true
 set previewer ~/.config/lf/preview.sh
-set cleaner ~/.config/lf/clean.sh
 set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
 set autoquit true
 set promptfmt "\033[1;37m%d\033[0m"
 
 cmd open ${{
-    case $(file --mime-type "$(readlink -f $f)" -b) in
-        text/*|application/json|inode/x-empty|application/x-subrip) $EDITOR $fx;;
-	image/gif|video/x-msvideo) mpv $fx;;
+    case $(file --mime-type "$(readlink -f "${f}")" -b) in
+        text/*|application/json|inode/x-empty|application/x-subrip) "${EDITOR}" "${fx}";;
+	image/gif|video/x-msvideo) mpv "${fx}";;
 	image/*) dash -c '
-	    dir="$0"
-	    selected_file="$1"
-	    passed=0
+	    dir="${0}"
+	    selected_file="${1}"
+	    passed="0"
 	    selected_and_after=""
 	    before=""
-	    for file in "$dir"/*.jpg "$dir"/*.jpeg "$dir"/*.png "$dir"/*.webp; do
-		[ "$file" = "$selected_file" ] && passed=1
-		[ $passed -eq 1 ] && selected_and_after="$selected_and_after $file" || before="$before $file"
+	    for file in $(find "${dir}" -mindepth "1" -maxdepth "1" -type "f" -regex ".*\.\(jpg\|jpeg\|png\|webp\|PNG\|JPG\|JPEG\)" | sort -V)
+	    do
+		[ "${file}" = "${selected_file}" ] && passed="1"
+		[ "${passed}" = "1" ] && selected_and_after="${selected_and_after} ${file}" || before="${before} ${file}"
 	    done
-	    imv -f $selected_and_after $before' "$PWD" "$fx"
+	    imv -f ${selected_and_after} ${before}' "${PWD}" "${fx}"
 	;;
-	*) for f in $fx; do setsid -f $OPENER $f >/dev/null 2>&1; done;;
+	*) for f in "${fx}"; do setsid -f "${OPENER}" "${f}" > "/dev/null" 2>&1; done;;
     esac
 }}
 
@@ -117,10 +117,6 @@ cmd upload ${{
     lf -remote "send $id unselect"
 }}
 
-cmd on-select &{{
-    lf -remote "send $id set statfmt \"$(eza -ld --color=always --color-scale=size --color-scale-mode=fixed --no-quotes --smart-group --total-size --no-user --no-permissions "$f")\""
-}}
-
 cmd z %{{
 	result="$(zoxide query --exclude $PWD $@ | sed 's/\\/\\\\/g;s/"/\\"/g')"
 	lf -remote "send $id cd \"$result\""
@@ -137,6 +133,10 @@ cmd mimecopy ${{
     wl-copy --type "$MIME_TYPE" < "$f"
     echo $f
     lf -remote "send $id unselect"
+}}
+
+cmd on-select &{{
+    lf -remote "send $id set statfmt \"$(eza -ld --color=always --color-scale=size --color-scale-mode=fixed --no-quotes --smart-group --total-size --no-user --no-permissions "$f")\""
 }}
 
 # Bindings
