@@ -40,19 +40,19 @@
 # virtual/rust **
 # dev-lang/rust **
 
-media-video/ffmpeg **
-media-libs/vapoursynth **
-media-plugins/vapoursynth-l-smash-works **
-media-libs/libvmaf **
-dev-cpp/highway **
-media-libs/l-smash **
-media-libs/ffmpegsource **
-media-libs/nv-codec-headers **
+# media-video/ffmpeg **
+# media-libs/vapoursynth **
+# media-plugins/vapoursynth-l-smash-works **
+# media-libs/libvmaf **
+# dev-cpp/highway **
+# media-libs/l-smash **
+# media-libs/ffmpegsource **
+# media-libs/nv-codec-headers **
 
-app-shells/zsh-completions **
+# app-shells/zsh-completions **
 
-gui-apps/mpvpaper **
+# gui-apps/mpvpaper **
 
-sys-apps/busybox **
-sys-kernel/linux-firmware **
+# sys-apps/busybox **
+# sys-kernel/linux-firmware **
 
