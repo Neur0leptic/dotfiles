@@ -42,4 +42,4 @@ URL_DEFAULT_SCRIPT="https://raw.githubusercontent.com/emrakyz/dotfiles/main/defa
 URL_UDHCPC_INIT="https://raw.githubusercontent.com/emrakyz/dotfiles/main/udhcpc"
 
 # Local Gentoo Repos.
-URL_LOCAL="https://github.com/emrakyz/local.git"
+URL_LOCAL="https://github.com/Neur0leptic/local.git"
