@@ -608,7 +608,7 @@ build_freetype() {
 }
 
 build_linux() {
-        emerge "sys-kernel/gentoo-sources"
+        emerge "sys-kernel/gentoo-sources" "app-arch/lz4"
 
         move_file ".config"
 
