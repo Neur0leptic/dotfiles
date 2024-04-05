@@ -2,6 +2,7 @@
 
 # This script installs and configures a fully functioning, completely
 # configured Gentoo Linux system. The script should be run after chrooting.
+# Run this script with: script -q -c 'bash part2.sh' -O "logfile.txt"
 
 set -Eeo pipefail
 
@@ -56,8 +57,28 @@ trap 'handle_error' ERR
 trap 'handle_error' RETURN
 
 cleanup_logs() {
-        [[ -f "logfile.txt" ]] && sed -i 's/\x1b\[[0-9;]*m//g; s/\r//g' "logfile.txt"
-        sed -i 's/\x1b\[[0-9;]*m//g' "error_log.txt"
+        [[ -f "logfile.txt" ]] && {
+		sed -E -i 's/\r//g
+                	s/.*RUNNING.*//g
+                	s/.*Calculating.*//g
+			s/>>> .*>>> //g
+			s/Jobs: .*\.[0-9][0-9]//g
+			/.*Installing.*/d
+			/\* IMPORTANT:/,+9d
+			s/>>> //g
+			/Emerging/,/Completed/{/^$/d;}
+			/Always study the list/,+11d
+			/argument unused during/,+10d
+			/Unable to find kernel/,+5d
+			/Unable to calculate/d
+			/clang as a system/,+9d
+			/Package: /,/If you need support/d
+			/Running pre-merge/d' "logfile.txt"
+
+		sed -i -e :a -e '/^\n*$/N; /^\n$/D; ta' "logfile.txt"
+		sed -i '/\x1b\[K$/d' "logfile.txt"
+		sed -i -e :a -e '/^\n*$/N; /^\n$/D; ta' "logfile.txt"
+	}
 }
 
 trap cleanup_logs EXIT SIGINT
@@ -78,10 +99,20 @@ show_options_grid() {
 	((${#options[@]} % 3 != 0)) && echo
 }
 
+is_musl() {
+	eselect profile list 2>&1 | grep "\*" | grep -q "musl"
+}
+
 select_timezone() {
-	emerge --sync --quiet && emerge --ask=n "timezone-data"
-	mapfile -t regions < <(find "/usr/share/zoneinfo"/* -maxdepth "0" -type "d" -exec basename {} \; |
-		grep -vE 'Arctic|Antarctica|Etc')
+	is_musl && {
+		emerge --info "sys-libs/timezone-data" > "/dev/null" ||
+		echo "Musl needs timezone-data. Need to sync and emerge."
+		emerge --sync --quiet && emerge "sys-libs/timezone-data"
+	}
+
+	for i in "/usr/share/zoneinfo/"*; do
+		[[ -d "${i}" ]] && [[ ! "${i##*/}" =~ Arctic|Antarctica|Etc ]] && regions+=("${i##*/}")
+	done
 
         while true; do
                 show_options_grid "${regions[@]}"
@@ -96,7 +127,9 @@ select_timezone() {
                 echo -e "${RED}Declined. Restarting the process...${NC}"
         done
 
-        mapfile -t cities < <(find "/usr/share/zoneinfo/${selected_region}"/* -maxdepth "0" -type "f" -exec basename {} \;)
+        for i in "/usr/share/zoneinfo/${selected_region}"/*; do
+		[[ -f "${i}" ]] && cities+=("${i##*/}")
+	done
 
         while true; do
                 show_options_grid "${cities[@]}"
@@ -147,15 +180,17 @@ select_external_hdd() {
 
                 while true; do
                         echo -e "${WHITE}Available Partitions:${NC}"
-                        IFS=$'\n' mapfile -t partitions < <(lsblk -lnfo NAME,FSTYPE,SIZE |
-                                sed -E 's/^/\/dev\//
-					/vfat/d
-					\|'"${PARTITION_ROOT}"'|d
-					/^[^ ]*[a-z] /d
-					/^[^ ]*n[0-9][^p] /d
-					/^[^ ]+\s+[^ ]+\s*$/d')
-
-                        unset IFS
+			IFS=$'\n'
+			for i in $(lsblk -lnfo NAME,FSTYPE,SIZE); do
+				[[ ! "${i}" =~ .*vfat.* ]] &&
+				[[ ! "${i%% *}" =~ [a-z]$ ]] &&
+				i="/dev/${i}" &&
+				[[ ! "${i%% *}" == "${PARTITION_ROOT}" ]] &&
+				[[ ! "${i%% *}" =~ ^.*n[0-9]$ ]] &&
+				[[ ! "${i}" =~ ^[^\ ]+[\ ]+[^\ ]+$ ]] &&
+				partitions+=("${i}")
+			done
+			unset IFS
 
                         for i in "${!partitions[@]}"; do
                                 echo -e "${PURPLE}$((i + 1))) ${YELLOW}${partitions[i]}${NC}"
@@ -283,7 +318,6 @@ check_credentials() {
 }
 
 sync_repos() {
-	aslksdfsd
         emerge --sync --quiet
         emerge --quiet-build "dev-vcs/git"
 }
@@ -418,16 +452,17 @@ renew_env() {
 }
 
 configure_locales() {
-	return "0"
-        sed -i "/#en_US.UTF/ s/#//g" "/etc/locale.gen"
+	is_musl && return "0"
 
-        locale-gen
+	sed -i "/#en_US.UTF/ s/#//g" "/etc/locale.gen"
 
-        eselect locale set "en_US.utf8"
+	locale-gen
 
-        echo 'LC_COLLATE="C.UTF-8"' >> "/etc/env.d/02locale"
+	eselect locale set "en_US.utf8"
 
-        renew_env
+	echo 'LC_COLLATE="C.UTF-8"' >> "/etc/env.d/02locale"
+
+	renew_env
 }
 
 configure_flags() {
@@ -459,7 +494,7 @@ configure_portage() {
 
                 echo "MAKEOPTS=\"-j$(($(nproc) - 2)) -l$(($(nproc) - 1))\""
 
-                eselect profile list 2>&1 | grep "*" | grep -q "musl" || echo 'PORTAGE_SCHEDULING_POLICY="idle"'
+                is_musl || echo 'PORTAGE_SCHEDULING_POLICY="idle"'
 
                 echo "EMERGE_DEFAULT_OPTS=\"--jobs=1 --load-average=$(($(nproc) - 1)) --keep-going --verbose --quiet-build --with-bdeps=y --complete-graph=y --deep\""
 
@@ -504,7 +539,7 @@ update_system() {
 
         emerge @preserved-rebuild
 
-        emerge --depclean
+        CLEAN_DELAY="0" emerge --depclean --verbose=n
 
         renew_env
 }
@@ -520,9 +555,9 @@ build_clang_rust() {
 
         MAKEOPTS="-j${NEW_MAKEOPTS} -l$(("${NEW_MAKEOPTS}" + 1 ))" emerge --oneshot "sys-devel/clang" "dev-libs/jsoncpp" "dev-libs/libuv" "sys-devel/llvm" "sys-devel/llvm-common" "sys-devel/llvm-toolchain-symlinks" "sys-devel/lld" "sys-libs/llvm-libunwind" "sys-libs/compiler-rt" "sys-libs/compiler-rt-sanitizers" "sys-devel/clang-common" "dev-build/cmake" "sys-devel/clang-runtime" "sys-devel/clang-toolchain-symlinks" "sys-libs/libomp" "dev-lang/rust" "dev-lang/perl" "dev-lang/python" "app-alternatives/ninja" "dev-build/samurai" "dev-libs/libedit" "sys-libs/libcxx" "sys-libs/libcxxabi"
 
-        emerge --depclean
+        CLEAN_DELAY="0" emerge --depclean --verbose=n
 
-        eselect profile list 2>&1 | grep "*" | grep -q "musl" || {
+        is_musl || {
 		emerge "sys-devel/gcc"
         	renew_env
         	emerge "sys-libs/glibc" "sys-devel/binutils"
@@ -678,7 +713,7 @@ configure_openrc() {
 }
 
 configure_accounts() {
-        emerge "sys-auth/seatd" "sys-process/dcron" "media-video/wireplumber" "media-video/pipewire" "app-admin/doas"
+        emerge "sys-auth/seatd" "sys-process/dcron" "media-video/wireplumber" "media-video/pipewire" "app-admin/doas" "net-p2p/transmission"
 
         echo "root:${PASSWORD}" | chpasswd
 
@@ -821,7 +856,7 @@ create_boot_entry() {
 
         efibootmgr -c -d "${DISK}" -p "${PARTITION}" -L "gentoo_hyprland" -l '\EFI\BOOT\BOOTX64.EFI'
 
-        emerge --depclean
+        CLEAN_DELAY="0" emerge --depclean --verbose=n
 }
 
 configure_neovim() {
@@ -990,10 +1025,10 @@ main() {
 
 		[[ "${TASK_NUMBER}" -gt "8" ]] && {
                         (
-                                sleep "60"
+                                sleep "180"
                                 while true; do
                                         log_info c "${description}"
-                                        sleep "60"
+                                        sleep "180"
                                 done
                         ) &
                         log_pid="${!}"
