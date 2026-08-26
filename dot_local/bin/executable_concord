@@ -1,0 +1,210 @@
+#!/bin/bash
+
+SELF="${HOME}/.local/bin/concord"
+REAL_CONCORD="/usr/bin/concord"
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+XDG_BIN_HOME="${XDG_BIN_HOME:-$HOME/.local/bin}"
+
+CONCORD_STATE_DIR="$XDG_STATE_HOME/concord"
+CONCORD_CREDENTIALS="$CONCORD_STATE_DIR/credentials.toml"
+LEGACY_CREDENTIAL="$XDG_CONFIG_HOME/concord/credential"
+LIBREWOLF_DIR="${LIBREWOLF_DIR:-$XDG_DATA_HOME/librewolf}"
+[ -d "$LIBREWOLF_DIR" ] || LIBREWOLF_DIR="$HOME/.librewolf"
+
+WIREGUARD_BIN="$XDG_BIN_HOME/wireguard.sh"
+[ -x "$WIREGUARD_BIN" ] || WIREGUARD_BIN="$(command -v wireguard.sh 2>/dev/null || true)"
+
+case "${1:-}" in
+    --version|--check-config)
+        exec "$REAL_CONCORD" "$@"
+        ;;
+esac
+
+has_tty() {
+    [ -t 0 ] && [ -t 1 ]
+}
+
+in_wireguard_exclude() {
+    grep -q '/wireguard-exclude' /proc/self/cgroup 2>/dev/null
+}
+
+terminal_bin() {
+    if command -v kitty >/dev/null 2>&1; then
+        command -v kitty
+        return 0
+    fi
+    if command -v foot >/dev/null 2>&1; then
+        command -v foot
+        return 0
+    fi
+    return 1
+}
+
+if ! has_tty; then
+    terminal=$(terminal_bin) || {
+        printf 'ERROR: No terminal found (kitty or foot)\n' >&2
+        exit 1
+    }
+    [ -n "$WIREGUARD_BIN" ] || {
+        printf 'ERROR: wireguard.sh not found\n' >&2
+        exit 1
+    }
+    exec "$terminal" "$WIREGUARD_BIN" exclude "$SELF" "$@"
+fi
+
+if ! in_wireguard_exclude; then
+    if [ -n "$WIREGUARD_BIN" ]; then
+        exec "$WIREGUARD_BIN" exclude "$SELF" "$@"
+    fi
+    printf 'WARNING: wireguard.sh not found; starting Concord without VPN exclude\n' >&2
+fi
+
+check_token() {
+    local token="$1" status
+    [ -z "$token" ] && return 1
+    status=$(curl -sS -o /dev/null -w "%{http_code}" \
+        -H "Authorization: $token" \
+        https://discord.com/api/v9/users/@me 2>/dev/null) || return 1
+    [ "$status" = "200" ]
+}
+
+toml_escape() {
+    local value="$1"
+    value=${value//\\/\\\\}
+    value=${value//"/\\"}
+    value=${value//$'\r'/}
+    value=${value//$'\n'/}
+    printf '%s' "$value"
+}
+
+save_token() {
+    local token="$1" escaped tmp
+    [ -z "$token" ] && return 1
+
+    mkdir -p "$CONCORD_STATE_DIR" || return 1
+    chmod 700 "$CONCORD_STATE_DIR" 2>/dev/null || true
+
+    escaped=$(toml_escape "$token")
+    tmp=$(mktemp "$CONCORD_STATE_DIR/credentials.toml.XXXXXX") || return 1
+    {
+        printf 'selected_account = "default"\n\n'
+        printf '[[accounts]]\n'
+        printf 'id = "default"\n'
+        printf 'token = "%s"\n' "$escaped"
+    } > "$tmp"
+    chmod 600 "$tmp"
+    mv "$tmp" "$CONCORD_CREDENTIALS"
+}
+
+read_concord_token() {
+    [ -f "$CONCORD_CREDENTIALS" ] || return 1
+    awk -F '"' '/^[[:space:]]*token[[:space:]]*=/{ print $2; exit }' "$CONCORD_CREDENTIALS"
+}
+
+read_legacy_token() {
+    tr -d '"\r\n' < "$LEGACY_CREDENTIAL" 2>/dev/null
+}
+
+find_discord_db() {
+    local profile_dir db
+    for profile_dir in "$LIBREWOLF_DIR"/*.default*; do
+        [ -d "$profile_dir" ] || continue
+        db="$profile_dir/storage/default/https+++discord.com/ls/data.sqlite"
+        if [ -f "$db" ]; then
+            printf '%s\n' "$db"
+            return 0
+        fi
+    done
+    return 1
+}
+
+read_librewolf_token() {
+    local db="$1" tmp token
+    [ -z "$db" ] && return 1
+    tmp=$(mktemp) || return 1
+    cp "$db" "$tmp" 2>/dev/null || {
+        rm -f "$tmp"
+        return 1
+    }
+    token=$(sqlite3 "file:$tmp?mode=ro" \
+        "SELECT json_extract(value,'\$') FROM data WHERE key='token';" 2>/dev/null | tr -d '"\r\n')
+    rm -f "$tmp"
+    [ -n "$token" ] && printf '%s\n' "$token"
+}
+
+open_librewolf() {
+    if ! command -v librewolf >/dev/null 2>&1; then
+        return 1
+    fi
+    if pgrep -x librewolf >/dev/null 2>&1; then
+        librewolf --new-tab "https://discord.com" >/dev/null 2>&1 &
+    else
+        librewolf "https://discord.com" >/dev/null 2>&1 &
+    fi
+}
+
+poll_librewolf_token() {
+    local old_token="$1" waited=0 timeout=300 db token
+
+    open_librewolf || true
+    printf 'Please log in to Discord in Librewolf (waiting up to 5 min)...\n'
+
+    while [ "$waited" -lt "$timeout" ]; do
+        db=$(find_discord_db)
+        if [ -n "$db" ] && command -v inotifywait >/dev/null 2>&1; then
+            inotifywait -q -e modify -t 5 "$db" >/dev/null 2>&1 || true
+            waited=$((waited + 5))
+        else
+            sleep 2
+            waited=$((waited + 2))
+        fi
+
+        db=$(find_discord_db)
+        [ -n "$db" ] || continue
+        token=$(read_librewolf_token "$db")
+        if [ -n "$token" ] && [ "$token" != "$old_token" ] && check_token "$token"; then
+            save_token "$token" || return 1
+            printf 'Token updated successfully.\n'
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+resolve_token() {
+    local token old_token db
+
+    token=$(read_concord_token)
+    old_token="$token"
+    if check_token "$token"; then
+        save_token "$token"
+        return 0
+    fi
+
+    token=$(read_legacy_token)
+    if check_token "$token"; then
+        save_token "$token"
+        return 0
+    fi
+
+    db=$(find_discord_db)
+    if [ -n "$db" ]; then
+        token=$(read_librewolf_token "$db")
+        if check_token "$token"; then
+            save_token "$token"
+            return 0
+        fi
+    fi
+
+    poll_librewolf_token "$old_token"
+}
+
+if ! resolve_token; then
+    printf 'WARNING: Could not prepare a verified Discord token; Concord will show its login screen.\n' >&2
+fi
+
+exec "$REAL_CONCORD" "$@"

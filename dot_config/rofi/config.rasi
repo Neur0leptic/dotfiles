@@ -1,0 +1,8 @@
+configuration {
+  display-drun: "";
+  display-window: "";
+  drun-display-format: "{icon} {name}";
+  kb-row-select: "Tab";
+  kb-element-next: "Control+space";
+}
+@theme "~/.config/rofi/theme.rasi"

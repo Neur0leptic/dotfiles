@@ -1,0 +1,26 @@
+[".local/share/icons/candy-icons"]
+type = "archive"
+url = "https://github.com/EliverLara/candy-icons/archive/83512fbcadcb7e1015ebbe1729a1894946b021be.tar.gz"
+exact = true
+stripComponents = 1
+checksum.sha256 = "1de25126c50da4edf4b49623993c1ca5f626d5be1020e5bd1b1c683cd724721b"
+
+[".config/zsh/fast-syntax-highlighting"]
+type = "git-repo"
+url = "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
+refreshPeriod = "168h"
+
+[".config/zsh/fzf-tab"]
+type = "git-repo"
+url = "https://github.com/Aloxaf/fzf-tab.git"
+refreshPeriod = "168h"
+
+[".config/zsh/powerlevel10k"]
+type = "git-repo"
+url = "https://github.com/romkatv/powerlevel10k.git"
+refreshPeriod = "168h"
+
+[".config/zsh/zsh-autosuggestions"]
+type = "git-repo"
+url = "https://github.com/zsh-users/zsh-autosuggestions.git"
+refreshPeriod = "168h"

@@ -1,0 +1,1 @@
+-- Hyprland's automatic preferred-mode monitor configuration is used.

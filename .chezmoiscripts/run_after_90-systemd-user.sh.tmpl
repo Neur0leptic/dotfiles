@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+if ! command -v systemctl >/dev/null 2>&1 || [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+  exit 0
+fi
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  exit 0
+fi
+
+systemctl --user daemon-reload
+
+{{ if .features.mail -}}
+if [ -f "{{ .chezmoi.homeDir }}/.config/systemd/user/email-check.timer" ]; then
+  systemctl --user enable --now email-check.timer
+fi
+{{ else -}}
+systemctl --user disable --now email-check.timer >/dev/null 2>&1 || true
+{{ end -}}

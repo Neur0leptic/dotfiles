@@ -1,0 +1,13 @@
+{
+  "editor": "nvim",
+  "sortby": "popularity",
+  "bottomup": true,
+  "sudoloop": true,
+  "devel": true,
+  "cleanAfter": true,
+  "provides": true,
+  "pgpfetch": true,
+  "upgrademenu": true,
+  "diffmenu": true,
+  "removemake": "yes"
+}

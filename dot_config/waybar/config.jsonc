@@ -1,0 +1,102 @@
+{
+    "include": ["~/.config/waybar/generated.jsonc"],
+    "layer": "top",
+    "position": "top",
+    "height": 32,
+    "spacing": 4,
+    "margin": 6,
+
+    "modules-left": ["custom/updates", "hyprland/workspaces", "hyprland/window", "tray"],
+    "modules-center": ["mpris"],
+    "hyprland/workspaces": {
+        "format": "{id}",
+        "on-click": "activate",
+        "on-scroll-up": "hyprctl dispatch workspace e+1",
+        "on-scroll-down": "hyprctl dispatch workspace e-1"
+    },
+
+    "custom/updates": {
+	"exec": "~/.local/bin/check_updates.sh",
+	"interval": 300,
+	"return-type": "text"
+    },
+    "hyprland/window": {
+        "format": "{}",
+        "max-length": 35
+    },
+
+    "mpris": {
+        "format": "{player_icon} {title} - {artist}",
+        "format-paused": " {title}",
+        "format-stopped": "",
+        "player-icons": { "default": "▶", "spotify": "", "firefox": "󰈹", "mpv": "" },
+        "max-length": 35,
+        "on-click": "playerctl play-pause"
+    },
+
+    "custom/custom": {
+        "exec": "~/.local/bin/waybar_custom.sh",
+        "return-type": "json",
+        "interval": 30,
+	"on-click": "kitty --class fullscreen -e ~/.local/bin/weather.sh "
+    },
+
+    "custom/system": {
+        "exec": "~/.local/bin/waybar_ram.sh",
+        "return-type": "json",
+        "interval": 30,
+	"on-click": "kitty --class fullscreen -e btop",
+	"tooltip": "{tooltip_text}"
+    },
+
+    "network": {
+        "format-wifi": "󰤨 {signalStrength}%",
+        "format-ethernet": "󰈀",
+        "format-disconnected": "󰤭",
+        "tooltip-format": "{ifname}: {ipaddr}",
+	"on-click": "kitty --class floating -e impala"
+    },
+    "wireplumber": {
+	"format": "{icon} {volume}%",
+	"format-muted": "󰝟 ",
+	"format-icons": ["󰕿", "󰖀", "󰕾"],
+	"on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+	"on-click-right": "pavucontrol",
+	"on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+",
+	"on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-",
+	"scroll-step": 5,
+	"max-volume": 150,
+	"tooltip-format": "{node_name}: {volume}%",
+	"on-click": "kitty --class floating -e wiremix"
+    },
+    "battery": {
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "states": { "warning": 30, "critical": 15 }
+    },
+
+    "clock": {
+        "format": " {:%H:%M}",
+        "format-alt": " {:%a %d %b}",
+        "tooltip-format": "<tt>{calendar}</tt>"
+    },
+    "bluetooth": {
+	"format": " {status}",
+	"format-disabled": "󰂲",
+	"format-off": "󰂲",
+	"format-on": "",
+	"format-connected": "󰂱 {device_alias}",
+	"format-connected-battery": "󰂱 {device_alias}",
+	"tooltip-format": "{controller_alias}\t{controller_address}\n\n{num_connections} bağlı",
+	"tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
+	"tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+	"tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
+	"on-click": "kitty --class floating -e bluetui",
+	"max-length": 35
+    },
+    "tray": {
+        "icon-size": 14,
+        "spacing": 6
+    }
+}

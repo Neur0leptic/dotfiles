@@ -1,0 +1,248 @@
+#!/bin/sh
+# fonts manifest: {{ include "docs/fonts-manifest.tsv" | sha256sum }}
+set -eu
+
+umask 022
+
+for command_name in bsdtar cat curl date dirname fc-cache fc-conflist fc-scan \
+  find grep install mkdir mktemp mv rm sha256sum sort wc; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'portable-fonts: required command not found: %s\n' "$command_name" >&2
+    exit 1
+  fi
+done
+
+data_home="${XDG_DATA_HOME:-${HOME}/.local/share}"
+cache_home="${XDG_CACHE_HOME:-${HOME}/.cache}"
+state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
+font_root="${data_home}/fonts"
+target="${font_root}/portable"
+download_dir="${cache_home}/chezmoi/portable-fonts"
+backup_root="${state_home}/chezmoi/font-backups"
+lock="${state_home}/chezmoi/portable-fonts.lock"
+stage=
+work=
+
+mkdir -p "$font_root" "$download_dir" "$backup_root"
+if ! mkdir "$lock" 2>/dev/null; then
+  printf 'portable-fonts: another install is running; lock exists: %s\n' "$lock" >&2
+  exit 1
+fi
+
+cleanup() {
+  [ -z "${stage:-}" ] || rm -rf -- "$stage"
+  [ -z "${work:-}" ] || rm -rf -- "$work"
+  rm -rf -- "$lock"
+}
+trap cleanup EXIT HUP INT TERM
+
+stage=$(mktemp -d "${font_root}/.portable-stage.XXXXXX")
+work=$(mktemp -d "${download_dir}/.work.XXXXXX")
+
+manifest="${work}/manifest.tsv"
+cat > "$manifest" <<'PORTABLE_FONTS_MANIFEST'
+{{ include "docs/fonts-manifest.tsv" -}}
+PORTABLE_FONTS_MANIFEST
+
+checksum_ok() {
+  expected=$1
+  file=$2
+  actual=$(sha256sum "$file")
+  actual=${actual%% *}
+  [ "$actual" = "$expected" ]
+}
+
+expected_count=954
+while IFS='|' read -r kind id version source checksum destination; do
+  [ "$kind" = optional-local ] || continue
+  persistent_source="${font_root}/${source}"
+  if ! checksum_ok "$checksum" "$persistent_source" 2>/dev/null; then
+    for candidate in "${target}/${destination}" \
+      "${backup_root}"/portable-*/"${destination}"; do
+      if [ -f "$candidate" ] && checksum_ok "$checksum" "$candidate"; then
+        mkdir -p "$(dirname "$persistent_source")"
+        install -m 0644 "$candidate" "$persistent_source"
+        break
+      fi
+    done
+  fi
+  if checksum_ok "$checksum" "$persistent_source" 2>/dev/null; then
+    expected_count=$((expected_count + 1))
+  fi
+done < "$manifest"
+
+manifest_hash=$(sha256sum "$manifest")
+manifest_hash=${manifest_hash%% *}
+if [ -f "${target}/MANIFEST.tsv" ] && \
+  checksum_ok "$manifest_hash" "${target}/MANIFEST.tsv"; then
+  existing_count=$(find "$target" -type f \
+    \( -name '*.otf' -o -name '*.ttf' -o -name '*.ttc' \) -print | wc -l)
+  optional_targets_ok=true
+  while IFS='|' read -r kind id version source checksum destination; do
+    [ "$kind" = optional-local ] || continue
+    persistent_source="${font_root}/${source}"
+    if checksum_ok "$checksum" "$persistent_source" 2>/dev/null && \
+      ! checksum_ok "$checksum" "${target}/${destination}" 2>/dev/null; then
+      optional_targets_ok=false
+    fi
+  done < "$manifest"
+  if [ "$existing_count" -eq "$expected_count" ] && \
+    [ "$optional_targets_ok" = true ]; then
+    fc-cache -f
+    printf 'portable-fonts: already current (%s font files)\n' "$existing_count"
+    exit 0
+  fi
+fi
+
+artifact_path() {
+  wanted=$1
+  while IFS='|' read -r kind id version url checksum destination; do
+    case "$kind" in
+      ''|'#'*) continue ;;
+    esac
+    if [ "$id" = "$wanted" ]; then
+      printf '%s/%s-%s\n' "$download_dir" "$id" "$version"
+      return 0
+    fi
+  done < "$manifest"
+  return 1
+}
+
+while IFS='|' read -r kind id version url checksum destination; do
+  case "$kind" in
+    ''|'#'*) continue ;;
+    optional-local) continue ;;
+  esac
+
+  artifact="${download_dir}/${id}-${version}"
+  if ! checksum_ok "$checksum" "$artifact" 2>/dev/null; then
+    temporary="${work}/${id}.download"
+    printf 'portable-fonts: downloading %s %s\n' "$id" "$version"
+    curl --fail --location --retry 3 --connect-timeout 15 \
+      --silent --show-error --output "$temporary" "$url"
+    if ! checksum_ok "$checksum" "$temporary"; then
+      printf 'portable-fonts: checksum mismatch: %s\n' "$id" >&2
+      exit 1
+    fi
+    mv "$temporary" "$artifact"
+  fi
+done < "$manifest"
+
+for id in ibm-plex-mono jetbrains-mono monaspace nerd-font-symbols dejavu-sans-mono; do
+  mkdir -p "${stage}/nerd-fonts/${id}"
+  bsdtar -xf "$(artifact_path "$id")" -C "${stage}/nerd-fonts/${id}"
+done
+
+mkdir -p "${work}/roboto-flex" "${stage}/roboto-flex"
+bsdtar -xf "$(artifact_path roboto-flex)" -C "${work}/roboto-flex"
+install -m 0644 \
+  "${work}/roboto-flex/roboto-flex-fonts/fonts/variable/RobotoFlex[GRAD,XOPQ,XTRA,YOPQ,YTAS,YTDE,YTFI,YTLC,YTUC,opsz,slnt,wdth,wght].ttf" \
+  "${stage}/roboto-flex/RobotoFlex-VF.ttf"
+
+mkdir -p "${work}/font-awesome" "${stage}/font-awesome"
+bsdtar -xf "$(artifact_path font-awesome)" -C "${work}/font-awesome"
+install -m 0644 "${work}/font-awesome/fontawesome-free-7.3.1-desktop/otfs/"*.otf \
+  "${stage}/font-awesome/"
+install -m 0644 "${work}/font-awesome/fontawesome-free-7.3.1-desktop/LICENSE.txt" \
+  "${stage}/font-awesome/LICENSE.txt"
+
+mkdir -p "${work}/liberation" "${stage}/liberation"
+bsdtar -xf "$(artifact_path liberation)" -C "${work}/liberation"
+install -m 0644 "${work}/liberation/usr/share/fonts/liberation/"*.ttf \
+  "${stage}/liberation/"
+install -m 0644 "${work}/liberation/usr/share/licenses/ttf-liberation/LICENSE" \
+  "${stage}/liberation/LICENSE"
+
+mkdir -p "${work}/noto-core" "${stage}/noto"
+bsdtar -xf "$(artifact_path noto-core)" -C "${work}/noto-core"
+install -m 0644 "${work}/noto-core/usr/share/fonts/noto/"* \
+  "${stage}/noto/"
+install -m 0644 "${work}/noto-core/usr/share/licenses/noto-fonts/LICENSE" \
+  "${stage}/noto/LICENSE"
+
+while IFS='|' read -r kind id version url checksum destination; do
+  case "$kind" in
+    file|license)
+      mkdir -p "$(dirname "${stage}/${destination}")"
+      install -m 0644 "$(artifact_path "$id")" "${stage}/${destination}"
+      ;;
+  esac
+done < "$manifest"
+
+while IFS='|' read -r kind id version source checksum destination; do
+  [ "$kind" = optional-local ] || continue
+  local_source="${font_root}/${source}"
+  [ -f "$local_source" ] || local_source="${target}/${destination}"
+  if [ -f "$local_source" ] && checksum_ok "$checksum" "$local_source"; then
+    mkdir -p "$(dirname "${stage}/${destination}")"
+    install -m 0644 "$local_source" "${stage}/${destination}"
+  else
+    printf 'portable-fonts: optional local font unavailable: %s\n' "$id" >&2
+  fi
+done < "$manifest"
+
+install -m 0644 "$manifest" "${stage}/MANIFEST.tsv"
+
+font_count=0
+families="${work}/families.txt"
+: > "$families"
+while IFS= read -r font_file; do
+  fc-scan --format '%{family[0]}\n' "$font_file" >> "$families"
+  font_count=$((font_count + 1))
+done <<EOF
+$(find "$stage" -type f \( -name '*.otf' -o -name '*.ttf' -o -name '*.ttc' \) -print | sort)
+EOF
+
+case "$font_count" in
+  954|955) ;;
+  *)
+    printf 'portable-fonts: expected 954 or 955 font files, found %s\n' "$font_count" >&2
+    exit 1
+    ;;
+esac
+
+for family in \
+  'BlexMono Nerd Font Mono' \
+  'JetBrainsMono Nerd Font Mono' \
+  'MonaspiceNe Nerd Font Mono' \
+  'Symbols Nerd Font Mono' \
+  'DejaVuSansM Nerd Font Mono' \
+  'Roboto Flex' \
+  'Noto Sans' \
+  'Noto Serif' \
+  'Noto Sans Mono' \
+  'Noto Sans CJK JP' \
+  'Noto Serif CJK JP' \
+  'Noto Color Emoji' \
+  'Liberation Sans' \
+  'Font Awesome 7 Free' \
+  'EB Garamond'; do
+  if ! grep -Fx "$family" "$families" >/dev/null; then
+    printf 'portable-fonts: required family missing: %s\n' "$family" >&2
+    exit 1
+  fi
+done
+
+old_target=
+if [ -e "$target" ]; then
+  old_target="${backup_root}/portable-$(date +%Y%m%d-%H%M%S)-$$"
+  mv "$target" "$old_target"
+fi
+
+if ! mv "$stage" "$target"; then
+  [ -z "$old_target" ] || mv "$old_target" "$target"
+  exit 1
+fi
+stage=
+
+if [ -n "$old_target" ]; then
+  find "$backup_root" -mindepth 1 -maxdepth 1 -type d -name 'portable-*' \
+    ! -path "$old_target" -exec rm -rf -- {} +
+fi
+
+fc-cache -f
+config_home="${XDG_CONFIG_HOME:-${HOME}/.config}"
+if ! fc-conflist | grep -F "${config_home}/fontconfig/fonts.conf" >/dev/null; then
+  printf 'portable-fonts: user fontconfig is not enabled; enable 50-user.conf\n' >&2
+fi
+printf 'portable-fonts: installed %s verified font files in %s\n' "$font_count" "$target"

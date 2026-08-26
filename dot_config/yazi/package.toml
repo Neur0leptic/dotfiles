@@ -1,0 +1,49 @@
+[[plugin.deps]]
+use = "yazi-rs/plugins:full-border"
+rev = "044c3cc"
+hash = "f281261ff04ad7ec867c3f802a50835f"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:mount"
+rev = "044c3cc"
+hash = "46cbdc05596a3ecd730b288e28c7079d"
+
+[[plugin.deps]]
+use = "boydaihungst/mediainfo"
+rev = "73a3658"
+hash = "fa787a8ef785f2976ea2861f62b8c6c4"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:git"
+rev = "044c3cc"
+hash = "5bb0bfab901d3601c370eafdd66edd31"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:mime-ext"
+rev = "044c3cc"
+hash = "3bcc00df11efc3ae5d15f2dba860be7"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:toggle-pane"
+rev = "044c3cc"
+hash = "5b2fbef7d1513ce38ff72623a071a5e"
+
+[[plugin.deps]]
+use = "imsi32/yatline"
+rev = "c5d4b48"
+hash = "e6e98d12b1648d1894c2b560d85eeaa7"
+
+[[plugin.deps]]
+use = "imsi32/yatline-githead"
+rev = "929e52c"
+hash = "8282baf02fcd6aac00ccad2276775358"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:piper"
+rev = "044c3cc"
+hash = "45a533508a9840cc5a10cf6129f63e6a"
+
+[[flavor.deps]]
+use = "yazi-rs/flavors:catppuccin-mocha"
+rev = "20b47bf"
+hash = "ce320f877fe709b189433941aba747c4"

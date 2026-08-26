@@ -1,0 +1,15 @@
+dot_config/aerc/encrypted_private_accounts.conf.asc
+dot_config/aerc/encrypted_private_aerc.conf.asc
+dot_config/aerc/encrypted_private_email-check.conf.asc
+dot_config/keepassxc/encrypted_private_keepassxc.ini.asc
+dot_config/network_scan/encrypted_private_known_macs.asc
+dot_config/private_concord/encrypted_private_credential.asc
+dot_config/private_keepass/encrypted_private_pass.gpg.asc
+dot_config/private_mpv/scripts/encrypted_private_autosub.lua.asc
+dot_config/systemd/user/encrypted_private_signal-http.service.asc
+dot_config/transmission-daemon/encrypted_private_settings.json.asc
+dot_config/transmission/encrypted_private_settings.json.asc
+dot_local/bin/encrypted_private_executable_system.sh.asc
+dot_local/bin/encrypted_private_executable_waybar_custom.sh.asc
+dot_local/bin/encrypted_private_executable_weather.sh.asc
+dot_local/bin/encrypted_private_executable_wlsunset.sh.asc

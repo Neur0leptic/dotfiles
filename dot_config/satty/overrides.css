@@ -1,0 +1,96 @@
+/* Catppuccin Mocha Theme for Satty */
+
+/* Ana pencere arka planı */
+window {
+    background-color: #1e1e2e;
+}
+
+/* Toolbar arka planı */
+.toolbar {
+    background-color: #181825;
+    border-bottom: 1px solid #313244;
+}
+
+/* Butonlar */
+button {
+    background-color: #313244;
+    color: #cdd6f4;
+    border-radius: 8px;
+    border: 1px solid #45475a;
+    padding: 8px;
+    margin: 4px;
+}
+
+button:hover {
+    background-color: #45475a;
+    border-color: #585b70;
+}
+
+button:active {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+}
+
+/* Seçili buton */
+button.selected,
+button:checked {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+    border-color: #89b4fa;
+}
+
+/* Renk seçici */
+.color-button {
+    border-radius: 50%;
+    border: 2px solid #45475a;
+}
+
+.color-button:hover {
+    border-color: #cdd6f4;
+}
+
+/* Slider'lar (kalınlık ayarı) */
+scale slider {
+    background-color: #89b4fa;
+}
+
+scale trough {
+    background-color: #313244;
+    border-radius: 4px;
+}
+
+/* Text entry */
+entry {
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+entry:focus {
+    border-color: #89b4fa;
+}
+
+/* Tooltips */
+tooltip {
+    background-color: #181825;
+    color: #cdd6f4;
+    border: 1px solid #313244;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+/* Scrollbar */
+scrollbar {
+    background-color: #181825;
+}
+
+scrollbar slider {
+    background-color: #313244;
+    border-radius: 4px;
+}
+
+scrollbar slider:hover {
+    background-color: #45475a;
+}

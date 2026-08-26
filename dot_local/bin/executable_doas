@@ -1,0 +1,12 @@
+#!/bin/sh
+# Redirect doas to sudo (or vice versa) based on what is available on the system.
+# Allows scripts to use "doas" regardless of which privilege escalation tool is installed.
+
+if [ -x /usr/bin/doas ]; then
+    exec /usr/bin/doas "$@"
+elif [ -x /usr/bin/sudo ]; then
+    exec /usr/bin/sudo "$@"
+else
+    echo "doas-wrapper: neither doas nor sudo found" >&2
+    exit 1
+fi

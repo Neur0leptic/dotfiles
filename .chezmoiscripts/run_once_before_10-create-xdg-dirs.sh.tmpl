@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+mkdir -p \
+  "{{ .chezmoi.homeDir }}/Desktop" \
+  "{{ .chezmoi.homeDir }}/Documents" \
+  "{{ .chezmoi.homeDir }}/Downloads" \
+  "{{ .chezmoi.homeDir }}/Music" \
+  "{{ .chezmoi.homeDir }}/Pictures" \
+  "{{ .chezmoi.homeDir }}/Public" \
+  "{{ .chezmoi.homeDir }}/Templates" \
+  "{{ .chezmoi.homeDir }}/Videos"

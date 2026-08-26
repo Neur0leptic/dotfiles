@@ -1,0 +1,34 @@
+{
+    "modules-right": [
+{{- if .features.wireguard }}
+        "custom/vpn",
+{{- end }}
+        "custom/custom",
+        "custom/system",
+        "bluetooth",
+        "network",
+        "backlight",
+        "wireplumber",
+        "battery",
+        "clock"
+    ],
+{{- if .features.wireguard }}
+    "custom/vpn": {
+        "exec": "~/.local/bin/waybar_vpn.sh",
+        "return-type": "json",
+        "interval": 5,
+        "on-click": "~/.local/bin/wireguard.sh"
+    },
+{{- end }}
+    "backlight": {
+{{- if eq .machine "main" }}
+        "device": "intel_backlight",
+{{- end }}
+        "format": "{icon} {percent}%",
+        "format-icons": ["󰃞", "󰃟", "󰃠"],
+        "on-scroll-up": "brightnessctl set 5%+",
+        "on-scroll-down": "brightnessctl set 5%-",
+        "scroll-step": 5,
+        "tooltip-format": "Brightness: {percent}%"
+    }
+}

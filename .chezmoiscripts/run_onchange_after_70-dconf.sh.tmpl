@@ -1,0 +1,40 @@
+#!/bin/sh
+set -eu
+
+if ! command -v dconf >/dev/null 2>&1; then
+  exit 0
+fi
+
+dconf load / <<'EOF'
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+cursor-size=28
+cursor-theme='default'
+font-antialiasing='grayscale'
+font-hinting='slight'
+font-name='Roboto Flex 12'
+font-rgba-order='rgb'
+gtk-theme='Neurowave'
+icon-theme='candy-icons'
+text-scaling-factor=1.0
+toolbar-icons-size='large'
+toolbar-style='both-horiz'
+
+[org/gnome/desktop/sound]
+event-sounds=true
+input-feedback-sounds=false
+
+[org/gtk/settings/file-chooser]
+date-format='regular'
+location-mode='path-bar'
+show-hidden=true
+show-size-column=true
+show-type-column=true
+sidebar-width=140
+sort-column='modified'
+sort-directories-first=false
+sort-order='descending'
+type-format='category'
+window-position=(0, 0)
+window-size=(1920, 1080)
+EOF

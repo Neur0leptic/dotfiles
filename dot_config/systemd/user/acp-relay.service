@@ -1,0 +1,21 @@
+[Unit]
+Description=OpenCode ACP Relay — persistent daemon + HTTP OpenAI-compatible API
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=%h/.hermes/bin/acp_relay.py
+Restart=always
+RestartSec=3
+RestartMaxDelaySec=30
+RestartSteps=3
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

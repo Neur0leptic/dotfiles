@@ -1,0 +1,47 @@
+[general]
+fullscreen = true
+early-exit = true
+initial-tool = "line"
+copy-command = "wl-copy"
+annotation-size-factor = 1
+output-filename = "$HOME/screenshot/ss_%Y%m%d_%H%M%S.png"
+save-after-copy = false
+default-hide-toolbars = true
+primary-highlighter = "block"
+disable-notifications = true
+
+[font]
+family = "Liberation Sans"
+style = "Bold"
+
+# Catppuccin Mocha Color Palette
+[color-palette]
+palette = [
+    "#f38ba8",  # Red
+    "#fab387",  # Peach
+    "#f9e2af",  # Yellow
+    "#a6e3a1",  # Green
+    "#89b4fa",  # Blue
+    "#cba6f7",  # Mauve
+]
+
+custom = [
+    "#f5c2e7",  # Pink
+    "#94e2d5",  # Teal
+    "#89dceb",  # Sky
+    "#b4befe",  # Lavender
+]
+
+# Klavye Kısayolları
+[keybinds]
+pointer = "p"
+crop = "c"
+line = "l"
+arrow = "a"
+rectangle = "r"
+text = "t"
+marker = "m"
+blur = "b"
+brush = "d"        # d = draw
+ellipse = "e"
+highlight = "h"

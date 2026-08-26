@@ -1,0 +1,6 @@
+[Unit]
+Description=Check mail via aerc
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/email_notifier.sh

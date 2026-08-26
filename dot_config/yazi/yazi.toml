@@ -1,0 +1,15 @@
+[mgr]
+show_hidden = false
+sort_by = "natural"
+sort_dir_first = true
+linemode = "none"
+
+[opener]
+image = [
+  { run = 'imv -f -n "%s" "$(dirname "%s")"', block = true, desc = "imv" }
+]
+
+[open]
+prepend_rules = [
+  { mime = "image/*", use = "image" }
+]

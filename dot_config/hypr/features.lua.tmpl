@@ -1,0 +1,23 @@
+local startup = {}
+
+local function load_feature(name)
+    local feature = require("features." .. name)
+    for _, command in ipairs(feature.startup or {}) do
+        table.insert(startup, command)
+    end
+end
+
+{{ if .features.mail -}}
+load_feature("mail")
+{{ end -}}
+{{ if .features.keepass -}}
+load_feature("keepass")
+{{ end -}}
+{{ if .features.wireguard -}}
+load_feature("wireguard")
+{{ end -}}
+{{ if .features.hermes -}}
+load_feature("hermes")
+{{ end -}}
+
+return { startup = startup }

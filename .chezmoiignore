@@ -1,0 +1,67 @@
+README.md
+docs/**
+
+# Repository metadata is never installed into $HOME.
+.gitignore
+
+{{- if ne .chezmoi.os "linux" }}
+.config/**
+.local/bin/**
+{{- end }}
+
+# Desktop-specific sources remain in Git but are only applied when selected.
+{{- if ne .desktop "hyprland" }}
+.config/hypr/**
+.config/swayidle/**
+.config/waybar/**
+{{- end }}
+
+# Only the selected physical-machine variant is applied.
+{{- if ne .machine "main" }}
+.config/hypr/machines/main/**
+{{- end }}
+{{- if ne .machine "generic" }}
+.config/hypr/machines/generic/**
+{{- end }}
+
+# GPU variants are synchronized through Git but only one is active locally.
+{{- if ne .gpuProfile "nvidia" }}
+.config/hypr/gpus/nvidia.lua
+.config/mpv/gpus/nvidia.conf
+{{- end }}
+{{- if ne .gpuProfile "intel-x220" }}
+.config/hypr/gpus/intel-x220.lua
+.config/mpv/gpus/intel-x220.conf
+{{- end }}
+{{- if ne .gpuProfile "modern-amd-intel" }}
+.config/hypr/gpus/modern-amd-intel.lua
+.config/mpv/gpus/modern-amd-intel.conf
+{{- end }}
+
+{{- if not .features.mail }}
+.config/aerc/**
+.config/hypr/features/mail.lua
+.config/systemd/user/email-check.service
+.config/systemd/user/email-check.timer
+.local/bin/email_notifier.sh
+{{- end }}
+
+{{- if not .features.keepass }}
+.config/hypr/features/keepass.lua
+.config/keepass/**
+.config/keepassxc/**
+.local/bin/kp.py
+.local/bin/kprofi.sh
+{{- end }}
+
+{{- if not .features.wireguard }}
+.config/hypr/features/wireguard.lua
+.local/bin/waybar_vpn.sh
+{{- end }}
+
+{{- if not .features.hermes }}
+.config/hypr/features/hermes.lua
+.config/systemd/user/acp-relay.service
+.config/systemd/user/hermes-gateway.service
+.local/bin/hermes-launch.sh
+{{- end }}

@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+if command -v timer >/dev/null 2>&1; then
+  exit 0
+fi
+
+if ! command -v go >/dev/null 2>&1; then
+  printf '%s\n' 'timer was not installed because Go is unavailable.' >&2
+  exit 0
+fi
+
+mkdir -p "{{ .chezmoi.homeDir }}/.local/bin"
+GOBIN="{{ .chezmoi.homeDir }}/.local/bin" \
+  go install github.com/caarlos0/timer@v1.3.0

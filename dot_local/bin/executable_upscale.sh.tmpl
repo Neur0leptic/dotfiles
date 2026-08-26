@@ -1,0 +1,23 @@
+{{- $validGPUProfiles := list "nvidia" "intel-x220" "modern-amd-intel" -}}
+{{- if not (has .gpuProfile $validGPUProfiles) -}}
+{{- fail (printf "invalid gpuProfile %q" .gpuProfile) -}}
+{{- end -}}
+#!/bin/dash
+
+{{ if eq .gpuProfile "intel-x220" -}}
+printf '%s\n' 'upscale.sh requires Vulkan and is unsupported on Intel HD Graphics 3000.' >&2
+exit 1
+{{ else -}}
+in="${1}"
+dir="$(dirname "${in}")"
+name="$(basename "${in}" | sed 's/\.[^.]*$//')"
+
+realesrgan-ncnn-vulkan -i "${in}" \
+        -o "${dir}/${name}_4x.png" \
+        -s "4" \
+        -t "0" \
+        -n "realesrgan-x4plus" \
+{{ if eq .gpuProfile "nvidia" }}        -g "0" \
+{{ end }}        -j "1:2:2" \
+        -f "png"
+{{ end -}}

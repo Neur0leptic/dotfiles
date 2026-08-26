@@ -1,0 +1,1 @@
+-- Intel HD Graphics 3000 uses the login-session i965 VA-API override.

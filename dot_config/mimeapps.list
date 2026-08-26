@@ -1,0 +1,24 @@
+[Default Applications]
+application/pdf=org.pwmt.zathura.desktop
+text/plain=text.desktop
+image/png=imv.desktop
+image/jpeg=imv.desktop
+image/webp=imv.desktop
+image/gif=imv.desktop
+
+x-scheme-handler/https=librewolf.desktop
+x-scheme-handler/http=librewolf.desktop
+x-scheme-handler/chrome=librewolf.desktop
+text/html=librewolf.desktop
+application/x-extension-htm=librewolf.desktop
+application/x-extension-html=librewolf.desktop
+application/x-extension-shtml=librewolf.desktop
+application/xhtml+xml=librewolf.desktop
+application/x-extension-xhtml=librewolf.desktop
+application/x-extension-xht=librewolf.desktop
+x-scheme-handler/mpv=mpv-scheme-handler.desktop
+image/jpg=imv.desktop
+image/bmp=imv.desktop
+image/svg+xml=imv.desktop
+x-scheme-handler/sgnl=signal.desktop
+x-scheme-handler/signalcaptcha=signal.desktop

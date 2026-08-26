@@ -1,0 +1,27 @@
+#!/bin/bash
+# Fast translate using translate-shell (no LLM, no images)
+# Depends: translate-shell, wl-clipboard, foot
+
+text=$(wl-paste)
+[ -z "$text" ] && { echo -e "\n  Empty clipboard!"; sleep 1; exit 1; }
+
+clear
+echo "Original: $text"
+echo ""
+
+lang=$(trans -id "$text" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '/^Code/{print $2}')
+echo "Detected: ${lang:-auto}"
+echo ""
+
+echo "🇬🇧: $(trans -t en -b "$text" 2>/dev/null)"
+echo "🇩🇪: $(trans -t de -b "$text" 2>/dev/null)"
+echo "🇹🇷: $(trans -t tr -b "$text" 2>/dev/null)"
+
+if [ "$(echo "$text" | wc -w)" -le 3 ]; then
+    echo ""
+    echo "── Dictionary ──"
+    trans -d "$text" 2>/dev/null
+fi
+
+echo ""
+read -p "Press Enter to close..."

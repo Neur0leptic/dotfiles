@@ -1,0 +1,108 @@
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+export PATH="$HOME/.cargo/bin:$PATH"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_BIN_HOME="${XDG_BIN_HOME:-$HOME/.local/bin}"
+export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-$HOME/.cache}/python"
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+export XDG_DOWNLOAD_DIR="${HOME}/downloads"
+export XDG_VIDEOS_DIR="${HOME}/videos"
+HISTFILE="${XDG_STATE_HOME}/zsh/history"
+export FZF_DEFAULT_OPTS="--layout=reverse --height 80%"
+export XDG_DOWNLOAD_DIR="${HOME}/downloads"
+export XDG_VIDEOS_DIR="${HOME}/videos"
+
+setopt append_history
+setopt inc_append_history
+setopt share_history
+setopt hist_ignore_dups
+setopt hist_ignore_all_dups
+setopt hist_expire_dups_first
+setopt hist_find_no_dups
+setopt hist_save_no_dups
+setopt hist_reduce_blanks
+setopt hist_verify
+setopt nocaseglob
+setopt extendedglob
+setopt autocd
+setopt completeinword
+setopt nobgnice
+setopt nohup
+setopt PROMPT_SP
+
+export BROWSER="librewolf"
+export EDITOR="nvim"
+
+
+HISTSIZE="5000"
+SAVEHIST="5000"
+
+source "${HOME}/.config/shell/aliasrc"
+
+bindkey -v
+export KEYTIMEOUT="1"
+bindkey -v '^?' backward-delete-char
+
+autoload -U compinit
+compinit -d "$XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION"
+zstyle ':completion:*' cache-path "$XDG_CACHE_HOME/zsh/zcompcache"
+
+fpath=(/usr/share/zsh/site-functions ${fpath})
+
+function zle-keymap-select {
+	[[ "${KEYMAP}" == vicmd || "${KEYMAP}" == visual ]] && print -n '\e[2 q' >/dev/tty || print -n '\e[6 q' >/dev/tty
+}
+zle -N zle-keymap-select
+print -n '\e[6 q' >/dev/tty
+preexec() { print -n '\e[6 q' >/dev/tty; }
+trap 'print -n "\e[6 q" >/dev/tty' INT SIGINT SIGTERM EXIT ERR
+
+fzf-history-widget-with-date() {
+  initial_query="${LBUFFER}"
+  setopt noglobsubst noposixbuiltins pipefail 2>/dev/null
+  entry=$(fc -lir 1 |
+          sed -E 's/^[[:space:]]+[0-9]+\*?[[:space:]]+//' |
+          awk '{cmd=$0; $1=$2=$3=""; sub(/^[ \t]+/, ""); if (!seen[$0]++) print cmd}' |
+          fzf --query="${initial_query}" +s)
+  [ -n "${entry}" ] && LBUFFER=${entry#* * * }
+  zle redisplay
+}
+
+zle -N fzf-history-widget-with-date
+bindkey '^R' fzf-history-widget-with-date
+
+fzf-cd-bookmark() {
+    selection="$(cat "${XDG_CONFIG_HOME}/shell/bm_dirs" | fzf | cut -f2)"
+    eval cd "${selection}"
+        for precmd_func in ${precmd_functions}; do
+            "${precmd_func}"
+        done
+    zle reset-prompt
+}
+
+zle -N fzf-cd-bookmark
+bindkey '^J' fzf-cd-bookmark
+
+source "${ZDOTDIR}/powerlevel10k/powerlevel10k.zsh-theme"
+
+source "${ZDOTDIR}/.p10k.zsh"
+
+source "${ZDOTDIR}/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" 3> "/dev/null"
+
+source "${ZDOTDIR}/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+source "${ZDOTDIR}/fzf-tab/fzf-tab.plugin.zsh"
+
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 -T --color=always --group-directories-first --icons $realpath'
+
+eval "$(zoxide init zsh)"

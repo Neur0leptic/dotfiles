@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+apply_script="{{ .chezmoi.homeDir }}/.config/neurowave/apply.sh"
+
+if [ -f "$apply_script" ]; then
+  sh "$apply_script"
+fi

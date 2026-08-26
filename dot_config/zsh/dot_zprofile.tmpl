@@ -1,0 +1,38 @@
+typeset -U path PATH
+path=(~/.local/bin ~/.cargo/bin $path)
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_BIN_HOME="${XDG_BIN_HOME:-$HOME/.local/bin}"
+
+export EDITOR="nvim"
+export BROWSER="librewolf"
+
+{{ if eq .gpuProfile "nvidia" -}}
+export LIBVA_DRIVER_NAME="nvidia"
+export GBM_BACKEND="nvidia-drm"
+export __GLX_VENDOR_LIBRARY_NAME="nvidia"
+export ENABLE_HDR_WSI="1"
+export __GL_GSYNC_ALLOWED="1"
+export __GL_VRR_ALLOWED="0"
+{{ else if eq .gpuProfile "intel-x220" -}}
+export LIBVA_DRIVER_NAME="i965"
+{{ else if ne .gpuProfile "modern-amd-intel" -}}
+{{ fail (printf "invalid GPU profile %q" .gpuProfile) }}
+{{ end -}}
+
+{{ if eq .desktop "hyprland" -}}
+if [ -z "${WAYLAND_DISPLAY}" ] && [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+    exec start-hyprland
+fi
+{{ else if eq .desktop "dwl" -}}
+if [ -z "${WAYLAND_DISPLAY}" ] && [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/dwl-${UID}}"
+    mkdir -p "${XDG_RUNTIME_DIR}"
+    exec dbus-run-session dwl
+fi
+{{ else if ne .desktop "none" -}}
+{{ fail (printf "invalid desktop profile %q" .desktop) }}
+{{ end -}}

@@ -1,0 +1,30 @@
+{{- $gpgRecipient := promptStringOnce . "gpgRecipient" "GPG recipient fingerprint" -}}
+{{- if eq $gpgRecipient "" -}}
+{{- fail "GPG recipient fingerprint must not be empty" -}}
+{{- end -}}
+{{- $desktop := promptChoiceOnce . "desktop" "Desktop profile" (list "hyprland" "dwl" "none") -}}
+{{- $gpuProfile := promptChoiceOnce . "gpuProfile" "GPU profile" (list "nvidia" "intel-x220" "modern-amd-intel") -}}
+{{- $machine := promptChoiceOnce . "machine" "Machine profile" (list "generic" "main") -}}
+{{- $mail := promptBoolOnce . "features.mail" "Enable mail configuration" -}}
+{{- $keepass := promptBoolOnce . "features.keepass" "Enable KeePass configuration" -}}
+{{- $wireguard := promptBoolOnce . "features.wireguard" "Enable WireGuard integrations" -}}
+{{- $hermes := promptBoolOnce . "features.hermes" "Enable Hermes integrations" -}}
+encryption = "gpg"
+umask = 0o022
+
+[edit]
+hardlink = false
+
+[gpg]
+recipient = {{ $gpgRecipient | quote }}
+
+[data]
+desktop = {{ $desktop | quote }}
+gpuProfile = {{ $gpuProfile | quote }}
+machine = {{ $machine | quote }}
+
+[data.features]
+mail = {{ $mail }}
+keepass = {{ $keepass }}
+wireguard = {{ $wireguard }}
+hermes = {{ $hermes }}
