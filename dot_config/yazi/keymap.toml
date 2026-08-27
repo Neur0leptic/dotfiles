@@ -3,18 +3,18 @@ on = "M"
 run = "plugin mount"
 desc = "Mount manager"
 
-[[manager.prepend_keymap]]
+[[mgr.prepend_keymap]]
 on   = "<C-s>"
-run  = 'shell "$SHELL" --block --confirm'
+run  = 'shell "$SHELL" --block'
 desc = "Open shell here"
 
-[[manager.prepend_keymap]]
+[[mgr.prepend_keymap]]
 on  = "y"
 run = [ '''
-	shell 'for path in "$@"; do echo "file://$path"; done | wl-copy -t text/uri-list' --confirm
+	shell 'for path in "$@"; do echo "file://$path"; done | wl-copy -t text/uri-list'
 ''', "yank" ]
 
-[[manager.prepend_keymap]]
+[[mgr.prepend_keymap]]
 on = "t"
 run = ["tab_create --current"]
 
@@ -24,14 +24,14 @@ on = ["c", "m"]
 run = "plugin chmod"
 desc = "Change permissions"
 
-[[manager.prepend_keymap]]
+[[mgr.prepend_keymap]]
 on   = "T"
 run  = "plugin toggle-pane max-preview"
 desc = "Maximize or restore preview"
 
 [[mgr.prepend_keymap]]
 on = "C"
-run = "plugin ouch --args=zip"
+run = "plugin ouch"
 desc = "Compress with ouch"
 
 [[mgr.prepend_keymap]]

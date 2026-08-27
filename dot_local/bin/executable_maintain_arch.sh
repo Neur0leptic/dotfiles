@@ -21,7 +21,6 @@ handle_error() {
 }
 
 trap 'handle_error' ERR
-trap 'handle_error' RETURN
 
 log_info() {
         sleep "0.3"
@@ -86,6 +85,12 @@ validate_chezmoi_source() {
         fi
 
         if [ "$label" = "Private" ]; then
+                if ! command -v gpg >/dev/null 2>&1; then
+                        rm -f "$inventory_file"
+                        echo -e "${YELLOW}GPG is required to validate the private chezmoi source.${NC}" >&2
+                        return 1
+                fi
+
                 while IFS= read -r rel || [ -n "$rel" ]; do
                         [ -n "$rel" ] || continue
                         case "$rel" in
@@ -93,6 +98,11 @@ validate_chezmoi_source() {
                                         if [ ! -f "$source_dir/$rel" ] || [ -L "$source_dir/$rel" ]; then
                                                 rm -f "$inventory_file"
                                                 echo -e "${YELLOW}Required private chezmoi source is missing or not a regular file: ${rel}${NC}" >&2
+                                                return 1
+                                        fi
+                                        if ! gpg --batch --no-options --dearmor < "$source_dir/$rel" >/dev/null 2>&1; then
+                                                rm -f "$inventory_file"
+                                                echo -e "${YELLOW}Invalid OpenPGP armor in private chezmoi source: ${rel}${NC}" >&2
                                                 return 1
                                         fi
                                         allowed["$rel"]=1
@@ -165,8 +175,21 @@ get_chezmoi_marker() {
 record_chezmoi_marker() {
         local marker_file="${1}"
         local marker="${2}"
+        local marker_dir marker_tmp
 
-        if ! mkdir -p "${marker_file%/*}" || ! printf '%s\n' "$marker" > "$marker_file"; then
+        marker_dir="${marker_file%/*}"
+        if ! mkdir -p "$marker_dir" || ! chmod 700 "$marker_dir"; then
+                return 1
+        fi
+
+        if ! marker_tmp="$(mktemp "$marker_dir/.marker.XXXXXX")"; then
+                return 1
+        fi
+
+        if ! printf '%s\n' "$marker" > "$marker_tmp" ||
+                ! chmod 600 "$marker_tmp" ||
+                ! mv -f "$marker_tmp" "$marker_file"; then
+                rm -f "$marker_tmp"
                 return 1
         fi
 }
@@ -177,7 +200,7 @@ sync_chezmoi_repo() {
         local persistent_state="${3:-}"
         local applied_head_file="${4}"
         local private_allowlist="${5:-}"
-        local source_status target_status
+        local source_status target_status git_dir
         local head_before_pull head_after_pull current_marker applied_marker final_marker ahead
         local source_dirty=0 target_dirty=0 apply_needed=0 changes_found=0 marker_matches=0
         local -a chezmoi_cmd=(chezmoi -S "$source_dir")
@@ -206,12 +229,30 @@ sync_chezmoi_repo() {
                 return 0
         fi
 
+        if ! git_dir="$(git -C "$source_dir" rev-parse --absolute-git-dir)"; then
+                echo -e "${YELLOW}Could not locate the ${label} chezmoi Git directory. Skipping it.${NC}" >&2
+                return 0
+        fi
+
         if git -C "$source_dir" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 ||
                 git -C "$source_dir" rev-parse -q --verify REBASE_HEAD >/dev/null 2>&1 ||
                 git -C "$source_dir" rev-parse -q --verify CHERRY_PICK_HEAD >/dev/null 2>&1 ||
                 git -C "$source_dir" rev-parse -q --verify REVERT_HEAD >/dev/null 2>&1 ||
+                [ -d "$git_dir/rebase-merge" ] ||
+                [ -d "$git_dir/rebase-apply" ] ||
+                [ -d "$git_dir/sequencer" ] ||
                 [ -n "$(git -C "$source_dir" ls-files --unmerged)" ]; then
                 echo -e "${YELLOW}A Git operation is in progress in the ${label} chezmoi source. Skipping it.${NC}" >&2
+                return 0
+        fi
+
+        if ! git -C "$source_dir" diff --cached --quiet; then
+                echo -e "${YELLOW}The ${label} chezmoi source has staged changes. Commit or unstage them before automatic sync.${NC}" >&2
+                return 0
+        fi
+
+        if [ -n "$(git -C "$source_dir" ls-files --others --exclude-standard)" ]; then
+                echo -e "${YELLOW}The ${label} chezmoi source has untracked files. Review and add them manually before automatic sync.${NC}" >&2
                 return 0
         fi
 
@@ -287,8 +328,13 @@ sync_chezmoi_repo() {
                 return 0
         fi
 
+        if [ -n "$(git -C "$source_dir" ls-files --others --exclude-standard)" ]; then
+                echo -e "${YELLOW}Re-add created an untracked file in the ${label} chezmoi source. Review it manually before sync.${NC}" >&2
+                return 0
+        fi
+
         if [ -n "$source_status" ]; then
-                if ! git -C "$source_dir" add -A; then
+                if ! git -C "$source_dir" add -u -- .; then
                         echo -e "${YELLOW}Could not stage ${label} chezmoi changes. Skipping it.${NC}" >&2
                         return 0
                 fi
@@ -313,8 +359,13 @@ sync_chezmoi_repo() {
         fi
 
         if ! git -C "$source_dir" pull --rebase; then
-                git -C "$source_dir" rebase --abort >/dev/null 2>&1 || true
-                echo -e "${YELLOW}${label} chezmoi pull failed or conflicted. The rebase was aborted; skipping apply and push.${NC}" >&2
+                if [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; then
+                        if ! git -C "$source_dir" rebase --abort; then
+                                echo -e "${YELLOW}${label} chezmoi rebase could not be aborted automatically. Resolve it manually.${NC}" >&2
+                                return 0
+                        fi
+                fi
+                echo -e "${YELLOW}${label} chezmoi pull failed or conflicted; skipping apply and push.${NC}" >&2
                 return 0
         fi
 
@@ -379,9 +430,10 @@ sync_chezmoi_repo() {
         return 0
 }
 
-sync_chezmoi() {
+sync_chezmoi() (
         local public_source private_source private_state public_allowlist private_allowlist
         local state_home sync_state_dir public_head private_head
+        local sync_lock_fd
 
         if ! command -v chezmoi >/dev/null 2>&1; then
                 echo -e "${YELLOW}Chezmoi is not installed. Skipping dotfile sync.${NC}" >&2
@@ -393,6 +445,11 @@ sync_chezmoi() {
                 return 0
         fi
 
+        if ! command -v flock >/dev/null 2>&1; then
+                echo -e "${YELLOW}flock is not installed. Skipping dotfile sync.${NC}" >&2
+                return 0
+        fi
+
         private_source="${XDG_DATA_HOME:-$HOME/.local/share}/chezmoi-private"
         private_state="${XDG_STATE_HOME:-$HOME/.local/state}/chezmoi-private.boltdb"
         private_allowlist="${private_source}/private-source-allowlist.txt"
@@ -401,8 +458,19 @@ sync_chezmoi() {
         public_head="${sync_state_dir}/public-head"
         private_head="${sync_state_dir}/private-head"
 
-        if ! mkdir -p "$state_home" "$sync_state_dir"; then
+        umask 077
+        if ! mkdir -p "$state_home" "$sync_state_dir" || ! chmod 700 "$sync_state_dir"; then
                 echo -e "${YELLOW}Could not create chezmoi sync state directories. Skipping dotfile sync.${NC}" >&2
+                return 0
+        fi
+
+        if ! exec {sync_lock_fd}>"$sync_state_dir/lock"; then
+                echo -e "${YELLOW}Could not open the chezmoi sync lock. Skipping dotfile sync.${NC}" >&2
+                return 0
+        fi
+
+        if ! flock -n "$sync_lock_fd"; then
+                echo -e "${YELLOW}Another chezmoi sync is already running. Skipping dotfile sync.${NC}" >&2
                 return 0
         fi
 
@@ -428,7 +496,7 @@ sync_chezmoi() {
         fi
 
         sync_chezmoi_repo "Private" "$private_source" "$private_state" "$private_head" "$private_allowlist"
-}
+)
 
 update_librewolf() {
         if pgrep -x librewolf >/dev/null; then
@@ -652,4 +720,6 @@ main() {
         fi
 }
 
-main "${@}"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+        main "$@"
+fi

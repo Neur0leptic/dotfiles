@@ -90,7 +90,6 @@ hl.bind("SHIFT + PRINT", hl.dsp.exec_cmd("~/.local/bin/hypr_shot.sh output"))
 
 -- Bookmark search / utilities
 hl.bind(M .. " + Grave", hl.dsp.exec_cmd("~/.local/bin/browser_bookmarks.sh"))
-hl.bind("F7", hl.dsp.exec_cmd("~/.local/bin/search_files.sh"))
 hl.bind("F1", hl.dsp.exec_cmd("~/.local/bin/ybrowser.sh"))
 hl.bind("F8", hl.dsp.exec_cmd("~/.local/bin/webapp_install.sh"))
 hl.bind(M .. " + F1", hl.dsp.exec_cmd("dictionary.sh"))

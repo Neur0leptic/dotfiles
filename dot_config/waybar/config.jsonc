@@ -38,15 +38,14 @@
         "exec": "~/.local/bin/waybar_custom.sh",
         "return-type": "json",
         "interval": 30,
-	"on-click": "kitty --class fullscreen -e ~/.local/bin/weather.sh "
+	"on-click": "footclient -a fullscreen ~/.local/bin/weather.sh"
     },
 
     "custom/system": {
         "exec": "~/.local/bin/waybar_ram.sh",
         "return-type": "json",
         "interval": 30,
-	"on-click": "kitty --class fullscreen -e btop",
-	"tooltip": "{tooltip_text}"
+	"on-click": "footclient -a fullscreen btop"
     },
 
     "network": {
@@ -54,7 +53,7 @@
         "format-ethernet": "󰈀",
         "format-disconnected": "󰤭",
         "tooltip-format": "{ifname}: {ipaddr}",
-	"on-click": "kitty --class floating -e impala"
+	"on-click": "footclient -a floating --window-size-chars=80x28 impala"
     },
     "wireplumber": {
 	"format": "{icon} {volume}%",
@@ -62,12 +61,12 @@
 	"format-icons": ["󰕿", "󰖀", "󰕾"],
 	"on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
 	"on-click-right": "pavucontrol",
+	"on-click-middle": "footclient -a floating --window-size-chars=80x28 wiremix",
 	"on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+",
 	"on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-",
 	"scroll-step": 5,
 	"max-volume": 150,
-	"tooltip-format": "{node_name}: {volume}%",
-	"on-click": "kitty --class floating -e wiremix"
+	"tooltip-format": "{node_name}: {volume}%"
     },
     "battery": {
         "format": "{icon} {capacity}%",
@@ -92,7 +91,7 @@
 	"tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
 	"tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
 	"tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
-	"on-click": "kitty --class floating -e bluetui",
+	"on-click": "footclient -a floating --window-size-chars=70x25 bluetui",
 	"max-length": 35
     },
     "tray": {
