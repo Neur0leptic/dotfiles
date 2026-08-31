@@ -3,5 +3,28 @@
 set -eu
 
 if command -v ya >/dev/null 2>&1; then
-  ya pkg install
+  if output=$(GIT_TERMINAL_PROMPT=0 \
+    GIT_ASKPASS=/bin/false \
+    GCM_INTERACTIVE=never \
+    GIT_CONFIG_COUNT=2 \
+    GIT_CONFIG_KEY_0=protocol.version \
+    GIT_CONFIG_VALUE_0=1 \
+    GIT_CONFIG_KEY_1=credential.interactive \
+    GIT_CONFIG_VALUE_1=false \
+    SSH_ASKPASS=/bin/false \
+    SSH_ASKPASS_REQUIRE=never \
+    ya pkg install </dev/null 2>&1); then
+    [ -z "$output" ] || printf '%s\n' "$output"
+  else
+    case "$output" in
+      *"You have modified the contents of the "*"For safety, the operation has been aborted."*)
+        printf '%s\n' "$output"
+        printf '%s\n' 'yazi-packages: refresh did not complete; local package changes were preserved.' >&2
+        ;;
+      *)
+        printf '%s\n' "$output" >&2
+        exit 1
+        ;;
+    esac
+  fi
 fi

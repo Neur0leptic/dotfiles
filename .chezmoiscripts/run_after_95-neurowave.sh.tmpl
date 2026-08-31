@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+if [ "${CHEZMOI_SKIP_NEUROWAVE:-0}" = "1" ]; then
+  exit 0
+fi
+
 apply_script="{{ .chezmoi.homeDir }}/.config/neurowave/apply.sh"
 
 if [ -f "$apply_script" ]; then
