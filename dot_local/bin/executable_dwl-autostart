@@ -1,0 +1,39 @@
+#!/bin/sh
+
+pids=""
+
+start() {
+    command -v "$1" >/dev/null 2>&1 || return 0
+    "$@" &
+    pids="$pids $!"
+}
+
+cleanup() {
+    trap - 0 1 2 15
+    for pid in $pids; do
+        kill "$pid" 2>/dev/null || true
+    done
+    wait 2>/dev/null || true
+}
+trap cleanup 0 1 2 15
+
+session_env="$HOME/.local/bin/wayland-session-env"
+[ -x "$session_env" ] || {
+    printf 'missing session environment helper: %s\n' "$session_env" >&2
+    exit 1
+}
+"$session_env"
+
+start foot --server
+start mako
+start wlsunset -S 06:30 -s 18:30 -d 1800
+start clipse -listen
+start swayidle -w -C "$HOME/.config/swayidle/config-dwl"
+start wayland-pipewire-idle-inhibit --wayland --quiet
+
+if command -v wireguard.sh >/dev/null 2>&1; then
+    (sleep 10; wireguard.sh exclude "$HOME/.local/bin/yourpipe/bin/yourpipe_update.sh") &
+    pids="$pids $!"
+fi
+
+wait

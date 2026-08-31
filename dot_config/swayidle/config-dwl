@@ -1,0 +1,7 @@
+timeout 600 'pidof kitty || kitty --class fullscreen -e unimatrix -c cyan &'
+timeout 1000 'swaylock' resume 'pkill -f "kitty.*unimatrix"'
+timeout 1200 'wlopm --off "*"' resume 'wlopm --on "*"'
+timeout 1800 'pkill kitty 2>/dev/null; systemctl suspend || doas sh -c "echo mem > /sys/power/state"'
+
+before-sleep 'pkill -USR1 swaylock; sleep 0.3; pkill -9 swaylock'
+after-resume 'wlopm --on "*"; swaylock -f'

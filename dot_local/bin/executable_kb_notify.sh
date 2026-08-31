@@ -1,11 +1,13 @@
 #!/bin/sh
 
-# Try hyprctl first (Arch/Hyprland)
-layout=$(hyprctl devices -j 2>/dev/null | jq -r '.keyboards[] | select(.main == true) | .active_keymap')
-
-# Fall back to dwl kblayout file (Gentoo/dwl + kblayout patch)
-if [ -z "$layout" ] && [ -r /tmp/dwl-keymap ]; then
-    layout=$(cat /tmp/dwl-keymap 2>/dev/null)
+layout=""
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+    layout=$(hyprctl devices -j 2>/dev/null | jq -r '.keyboards[] | select(.main == true) | .active_keymap')
+elif [ -n "${DWL_SESSION:-}" ]; then
+    keymap_file="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/dwl-keymap"
+    if [ -r "$keymap_file" ]; then
+        layout=$(cat "$keymap_file" 2>/dev/null)
+    fi
 fi
 
 [ -z "$layout" ] && layout="unknown"

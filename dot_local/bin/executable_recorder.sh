@@ -25,9 +25,9 @@ outfile="${outdir}/$(date "+%y%m%d_%H%M").mp4"
 
 output_arg=""
 outputs=""
-if command -v hyprctl > /dev/null 2>&1; then
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         outputs=$(hyprctl monitors 2> /dev/null | grep '^Monitor' | awk '{print $2}')
-elif command -v wlr-randr > /dev/null 2>&1; then
+elif [ -n "${DWL_SESSION:-}" ]; then
         outputs=$(wlr-randr 2> /dev/null | grep '^[A-Z]' | awk '{print $1}')
 fi
 if [ -n "$outputs" ]; then

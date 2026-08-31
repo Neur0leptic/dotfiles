@@ -19,4 +19,6 @@ case "$clip" in
         ;;
 esac
 
-hyprctl dispatch 'hl.dsp.focus({ window = "class:^(librewolf)$" })' 2>/dev/null
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+    hyprctl dispatch 'hl.dsp.focus({ window = "class:^(librewolf)$" })' 2>/dev/null
+fi

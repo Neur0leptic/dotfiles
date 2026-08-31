@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<protocol name="dwl_ipc_unstable_v2">
+  <description summary="inter-process communication about dwl state">
+    This protocol allows clients to observe and update dwl state.
+  </description>
+
+  <interface name="zdwl_ipc_manager_v2" version="2">
+    <description summary="manage dwl state">
+      This interface exposes tags, layouts and per-output state.
+    </description>
+
+    <request name="release" type="destructor"/>
+
+    <request name="get_output">
+      <arg name="id" type="new_id" interface="zdwl_ipc_output_v2"/>
+      <arg name="output" type="object" interface="wl_output"/>
+    </request>
+
+    <event name="tags">
+      <arg name="amount" type="uint"/>
+    </event>
+
+    <event name="layout">
+      <arg name="name" type="string"/>
+    </event>
+  </interface>
+
+  <interface name="zdwl_ipc_output_v2" version="2">
+    <description summary="observe and control a dwl output">
+      Events are double-buffered and end with a frame event.
+    </description>
+
+    <enum name="tag_state">
+      <entry name="none" value="0" summary="no state"/>
+      <entry name="active" value="1" summary="active tag"/>
+      <entry name="urgent" value="2" summary="tag has an urgent client"/>
+    </enum>
+
+    <request name="release" type="destructor"/>
+
+    <event name="toggle_visibility"/>
+
+    <event name="active">
+      <arg name="active" type="uint"/>
+    </event>
+
+    <event name="tag">
+      <arg name="tag" type="uint"/>
+      <arg name="state" type="uint" enum="tag_state"/>
+      <arg name="clients" type="uint"/>
+      <arg name="focused" type="uint"/>
+    </event>
+
+    <event name="layout">
+      <arg name="layout" type="uint"/>
+    </event>
+
+    <event name="title">
+      <arg name="title" type="string"/>
+    </event>
+
+    <event name="appid">
+      <arg name="appid" type="string"/>
+    </event>
+
+    <event name="layout_symbol">
+      <arg name="layout" type="string"/>
+    </event>
+
+    <event name="frame"/>
+
+    <request name="set_tags">
+      <arg name="tagmask" type="uint"/>
+      <arg name="toggle_tagset" type="uint"/>
+    </request>
+
+    <request name="set_client_tags">
+      <arg name="and_tags" type="uint"/>
+      <arg name="xor_tags" type="uint"/>
+    </request>
+
+    <request name="set_layout">
+      <arg name="index" type="uint"/>
+    </request>
+
+    <event name="fullscreen" since="2">
+      <arg name="is_fullscreen" type="uint"/>
+    </event>
+
+    <event name="floating" since="2">
+      <arg name="is_floating" type="uint"/>
+    </event>
+  </interface>
+</protocol>

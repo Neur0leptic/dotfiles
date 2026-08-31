@@ -274,7 +274,7 @@ sync_chezmoi_repo() {
                 source_dirty=1
         fi
 
-        if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude scripts --exclude externals)"; then
+        if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude=scripts,externals)"; then
                 echo -e "${YELLOW}Could not compare ${label} chezmoi-managed files. Skipping it.${NC}" >&2
                 return 0
         fi
@@ -303,7 +303,7 @@ sync_chezmoi_repo() {
                         return 0
                 fi
 
-                if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude scripts --exclude externals)"; then
+                if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude=scripts,externals)"; then
                         echo -e "${YELLOW}Could not verify re-added ${label} dotfiles. Skipping it.${NC}" >&2
                         return 0
                 fi
@@ -392,7 +392,7 @@ sync_chezmoi_repo() {
                 changes_found=1
         fi
 
-        if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude scripts --exclude externals)"; then
+        if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude=scripts,externals)"; then
                 echo -e "${YELLOW}Could not verify the applied ${label} chezmoi state. Skipping push.${NC}" >&2
                 return 0
         fi

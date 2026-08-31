@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -eu
+
+: "${WAYLAND_DISPLAY:?wayland-session-env: WAYLAND_DISPLAY is not set}"
+: "${XDG_CURRENT_DESKTOP:?wayland-session-env: XDG_CURRENT_DESKTOP is not set}"
+
+command -v dbus-update-activation-environment >/dev/null 2>&1 || {
+    printf 'wayland-session-env: dbus-update-activation-environment is unavailable\n' >&2
+    exit 1
+}
+
+export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-$XDG_CURRENT_DESKTOP}"
+export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+export DWL_SESSION="${DWL_SESSION:-}"
+export HYPRLAND_INSTANCE_SIGNATURE="${HYPRLAND_INSTANCE_SIGNATURE:-}"
+
+activation_vars="WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP
+XDG_SESSION_TYPE PATH DWL_SESSION HYPRLAND_INSTANCE_SIGNATURE"
+
+for name in DISPLAY XAUTHORITY XDG_DATA_DIRS XDG_CONFIG_DIRS \
+    QT_SCREEN_SCALE_FACTORS QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME \
+    CLUTTER_BACKEND SDL_VIDEODRIVER _JAVA_AWT_WM_NONREPARENTING \
+    MOZ_ENABLE_WAYLAND MOZ_DBUS_REMOTE BROWSER \
+    ELECTRON_OZONE_PLATFORM_HINT; do
+    eval "is_set=\${$name+x}"
+    if [ "$is_set" = x ]; then
+        activation_vars="$activation_vars $name"
+    fi
+done
+
+if command -v systemctl >/dev/null 2>&1 \
+    && systemctl --user show-environment >/dev/null 2>&1; then
+    systemctl --user stop \
+        xdg-desktop-portal.service \
+        xdg-desktop-portal-gtk.service \
+        xdg-desktop-portal-hyprland.service \
+        xdg-desktop-portal-wlr.service >/dev/null 2>&1 || true
+
+    # Intentional word splitting: this is a controlled list of variable names.
+    dbus-update-activation-environment --systemd $activation_vars
+else
+    # OpenRC and other non-systemd sessions update dbus-daemon directly.
+    dbus-update-activation-environment $activation_vars
+fi

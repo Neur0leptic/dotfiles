@@ -1,0 +1,92 @@
+#!/bin/sh
+
+set -eu
+
+safe=0
+case "${1:-}" in
+    "") ;;
+    --safe) safe=1 ;;
+    *)
+        printf 'usage: start-dwl [--safe]\n' >&2
+        exit 2
+        ;;
+esac
+
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x -u "$(id -u)" Hyprland >/dev/null 2>&1; then
+    printf 'Hyprland is running; exit it before starting dwl on another VT.\n' >&2
+    exit 1
+fi
+if pgrep -x -u "$(id -u)" dwl >/dev/null 2>&1; then
+    printf 'dwl is already running.\n' >&2
+    exit 1
+fi
+if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
+    printf 'another graphical session is already present in this shell.\n' >&2
+    exit 1
+fi
+
+dwl="$HOME/.local/bin/dwl"
+autostart="$HOME/.local/bin/dwl-autostart"
+[ -x "$dwl" ] || {
+    printf 'dwl is not installed; run update_dwl.sh first.\n' >&2
+    exit 1
+}
+[ -x "$autostart" ] || {
+    printf 'missing autostart script: %s\n' "$autostart" >&2
+    exit 1
+}
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+[ -d "$XDG_RUNTIME_DIR" ] || {
+    printf 'XDG_RUNTIME_DIR does not exist: %s\n' "$XDG_RUNTIME_DIR" >&2
+    exit 1
+}
+
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+fi
+
+export XDG_CURRENT_DESKTOP=dwl
+export XDG_SESSION_DESKTOP=dwl
+export XDG_SESSION_TYPE=wayland
+export DWL_SESSION=1
+export WLR_RENDER_DRM_DEVICE="${WLR_RENDER_DRM_DEVICE:-/dev/dri/renderD128}"
+export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
+export QT_SCREEN_SCALE_FACTORS="${QT_SCREEN_SCALE_FACTORS:-1;1}"
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
+export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt6ct}"
+export CLUTTER_BACKEND="${CLUTTER_BACKEND:-wayland}"
+export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-wayland}"
+export _JAVA_AWT_WM_NONREPARENTING="${_JAVA_AWT_WM_NONREPARENTING:-1}"
+export MOZ_ENABLE_WAYLAND="${MOZ_ENABLE_WAYLAND:-1}"
+export MOZ_DBUS_REMOTE="${MOZ_DBUS_REMOTE:-1}"
+export BROWSER="${BROWSER:-librewolf}"
+export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}"
+
+if [ "$safe" -eq 1 ]; then
+    export WLR_RENDERER=gles2
+    export DWL_COLOR_MODE=srgb
+else
+    export WLR_RENDERER=vulkan
+    export DWL_COLOR_MODE=wide
+fi
+
+session_bus_available() {
+    [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] \
+        && command -v dbus-send >/dev/null 2>&1 \
+        && dbus-send --session --print-reply \
+            --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+            org.freedesktop.DBus.GetId >/dev/null 2>&1
+}
+
+if session_bus_available; then
+    exec "$dwl" -s "$autostart"
+fi
+
+command -v dbus-run-session >/dev/null 2>&1 || {
+    printf 'no usable session bus and dbus-run-session is unavailable\n' >&2
+    exit 1
+}
+
+unset DBUS_SESSION_BUS_ADDRESS
+exec dbus-run-session -- "$dwl" -s "$autostart"

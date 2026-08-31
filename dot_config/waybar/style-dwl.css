@@ -1,0 +1,34 @@
+@import url("style.css");
+
+#tags button {
+    padding: 0 8px;
+    color: @c0;
+    background: transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+#tags button:hover {
+    color: @bc7;
+    background: alpha(@c5, 0.3);
+    border-radius: 6px;
+}
+
+#tags button.focused {
+    color: #000000;
+    background: @bc6;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+#tags button.urgent {
+    color: #000000;
+    background: @c1;
+    border-radius: 6px;
+}
+
+#tags {
+    padding: 0 10px;
+    margin: 4px 2px;
+    background: alpha(@c6, 0.1);
+    border-radius: 8px;
+}

@@ -41,11 +41,20 @@ find_target() {
     return 1
 }
 
-json=$(hyprctl activewindow -j 2>/dev/null)
-
-pid=$(echo "$json" | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p')
-class=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('class',''))" 2>/dev/null)
-title=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('title',''))" 2>/dev/null)
+if [ -n "${DWL_SESSION:-}" ]; then
+    IFS= read -r pid || true
+    IFS= read -r _geometry || true
+    IFS= read -r class || true
+    IFS= read -r title || true
+elif [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+    json=$(hyprctl activewindow -j 2>/dev/null)
+    pid=$(printf '%s\n' "$json" | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p')
+    class=$(printf '%s\n' "$json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('class',''))" 2>/dev/null)
+    title=$(printf '%s\n' "$json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('title',''))" 2>/dev/null)
+else
+    notify-send "Panic Kill" "cannot determine the active compositor" 2>/dev/null
+    exit 1
+fi
 
 if [ -z "$pid" ] || [ "$pid" -le 0 ] 2>/dev/null; then
     notify-send "Panic Kill" "no focused window" 2>/dev/null

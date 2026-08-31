@@ -32,4 +32,11 @@ selected=$(echo "$entries" | fzf $FZF_COLORS --prompt="⚡ Run App > " --with-nt
 
 cmd=$(echo "$selected" | cut -f2- | sed 's/[[:space:]]*$//')
 
-hyprctl dispatch exec "$cmd"
+if [ -n "${DWL_SESSION:-}" ]; then
+  setsid sh -c "$cmd" >/dev/null 2>&1 &
+elif [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+  hyprctl dispatch exec "$cmd"
+else
+  printf 'cannot determine the active compositor\n' >&2
+  exit 1
+fi
