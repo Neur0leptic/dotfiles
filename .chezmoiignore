@@ -55,8 +55,15 @@ docs/**
 {{- end }}
 
 {{- if not .features.wireguard }}
+.config/wireguard/**
 .config/hypr/features/wireguard.lua
+.local/bin/wireguard.sh
 .local/bin/waybar_vpn.sh
+{{- end }}
+
+{{- if eq .machine "generic" }}
+.config/wireguard/device.json
+.config/wireguard/default-relay
 {{- end }}
 
 {{- if not .features.hermes }}

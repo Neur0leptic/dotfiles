@@ -9,6 +9,8 @@ dot_config/private_mpv/scripts/encrypted_private_autosub.lua.asc
 dot_config/systemd/user/encrypted_private_signal-http.service.asc
 dot_config/transmission-daemon/encrypted_private_settings.json.asc
 dot_config/transmission/encrypted_private_settings.json.asc
+dot_config/wireguard/encrypted_private_default-relay-main.asc
+dot_config/wireguard/encrypted_private_device-main.json.asc
 dot_local/bin/encrypted_private_executable_system.sh.asc
 dot_local/bin/encrypted_private_executable_waybar_custom.sh.asc
 dot_local/bin/encrypted_private_executable_weather.sh.asc

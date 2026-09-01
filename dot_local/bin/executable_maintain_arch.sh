@@ -653,6 +653,106 @@ sync_chezmoi() (
 	sync_chezmoi_repo "Private" "$private_source" "$private_state" "$private_head" "$private_allowlist" "$public_allowlist"
 )
 
+validate_wireguard_repo() {
+	local source_dir="${1}"
+	local rel
+
+	while IFS= read -r rel || [ -n "$rel" ]; do
+		case "$rel" in
+			*.asc|*.conf|*/device.json|*/device-main.json|*/device-gentoo.json|*/default-relay|*/mullvad-relays.json)
+				echo -e "${YELLOW}Private or runtime WireGuard file is tracked: ${rel}.${NC}" >&2
+				return 1
+				;;
+		esac
+	done < <(git -C "$source_dir" ls-files)
+
+	if git -C "$source_dir" grep -I -E -q '(^|[^0-9])[0-9]{16}([^0-9]|$)|[A-Za-z0-9+/]{43}=' -- .; then
+		echo -e "${YELLOW}Possible Mullvad account number or WireGuard key found in the public repository.${NC}" >&2
+		return 1
+	fi
+
+	if [ ! -x "$source_dir/tests/test.sh" ] || ! "$source_dir/tests/test.sh"; then
+		echo -e "${YELLOW}WireGuard repository tests failed.${NC}" >&2
+		return 1
+	fi
+}
+
+sync_wireguard() (
+	local data_home source_dir
+	local git_dir source_status ahead
+
+	data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+	source_dir="${WIREGUARD_SOURCE_DIR:-$data_home/wireguard}"
+
+	if ! command -v git >/dev/null 2>&1 || [ ! -d "$source_dir" ]; then
+		echo -e "${YELLOW}WireGuard source repository is unavailable. Skipping it.${NC}" >&2
+		return 0
+	fi
+
+	if ! git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+		! git -C "$source_dir" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
+		echo -e "${YELLOW}WireGuard Git repository or upstream is not configured. Skipping it.${NC}" >&2
+		return 0
+	fi
+
+	git_dir="$(git -C "$source_dir" rev-parse --absolute-git-dir)"
+	if [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ] ||
+		[ -d "$git_dir/sequencer" ] ||
+		git -C "$source_dir" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 ||
+		git -C "$source_dir" rev-parse -q --verify CHERRY_PICK_HEAD >/dev/null 2>&1 ||
+		git -C "$source_dir" rev-parse -q --verify REVERT_HEAD >/dev/null 2>&1 ||
+		[ -n "$(git -C "$source_dir" ls-files --unmerged)" ]; then
+		echo -e "${YELLOW}A Git operation is in progress in the WireGuard repository. Skipping it.${NC}" >&2
+		return 0
+	fi
+
+	if ! git -C "$source_dir" diff --cached --quiet; then
+		echo -e "${YELLOW}WireGuard has staged changes. Review them manually before sync.${NC}" >&2
+		return 0
+	fi
+
+	if [ -n "$(git -C "$source_dir" ls-files --others --exclude-standard)" ]; then
+		echo -e "${YELLOW}WireGuard has untracked files. Review and add them manually before sync.${NC}" >&2
+		return 0
+	fi
+
+	if ! validate_wireguard_repo "$source_dir"; then
+		return 0
+	fi
+
+	source_status="$(git -C "$source_dir" status --porcelain --untracked-files=no)"
+	if [ -n "$source_status" ]; then
+		git -C "$source_dir" add -u -- .
+		if ! git -C "$source_dir" diff --cached --quiet; then
+			git -C "$source_dir" commit -m "Update WireGuard $(date '+%Y-%m-%d %H:%M:%S')"
+		fi
+	fi
+
+	if ! git -C "$source_dir" pull --rebase; then
+		if [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; then
+			git -C "$source_dir" rebase --abort || true
+		fi
+		echo -e "${YELLOW}WireGuard pull failed or conflicted; skipping push.${NC}" >&2
+		return 0
+	fi
+
+	if ! validate_wireguard_repo "$source_dir"; then
+		echo -e "${YELLOW}Pulled WireGuard changes failed validation; skipping push.${NC}" >&2
+		return 0
+	fi
+
+	ahead="$(git -C "$source_dir" rev-list --count '@{upstream}..HEAD')"
+	if [ "$ahead" -gt 0 ]; then
+		if ! git -C "$source_dir" push; then
+			echo -e "${YELLOW}WireGuard push failed. Commits remain local.${NC}" >&2
+			return 0
+		fi
+		echo -e "${GREEN}WireGuard repository synchronized.${NC}"
+	else
+		echo -e "${BLUE}WireGuard repository is already synchronized.${NC}"
+	fi
+)
+
 update_chezmoi_extras() (
 	local public_source public_allowlist state_home sync_state_dir public_head
 	local source_status target_status current_marker applied_marker exit_status
@@ -892,6 +992,9 @@ main() {
         tasks["sync_chezmoi"]="Synchronize chezmoi dotfiles.
 		       Chezmoi synchronization checked."
 
+        tasks["sync_wireguard"]="Synchronize the public WireGuard repository.
+			 WireGuard repository checked."
+
         tasks["update_chezmoi_extras"]="Refresh optional chezmoi scripts and external assets.
 				  Optional chezmoi assets checked."
 
@@ -922,7 +1025,7 @@ main() {
         tasks["run_fstrim"]="Trim the filesystem.
                         Filesystem trimmed."
 
-        task_order=("sync_chezmoi" "update_chezmoi_extras" "update_mirrors" "update_system" "update_librewolf" "update_blocklists" "update_nchat_signal" "remove_orphans"
+	task_order=("sync_chezmoi" "sync_wireguard" "update_chezmoi_extras" "update_mirrors" "update_system" "update_librewolf" "update_blocklists" "update_nchat_signal" "remove_orphans"
                 "clean_caches" "clean_temp_files" "run_fstrim")
 
         TOTAL_TASKS="${#tasks[@]}"
