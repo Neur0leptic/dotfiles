@@ -59,10 +59,40 @@ case "${ID:-} ${ID_LIKE:-}" in
         trap - 0 1 2 15
         terminate_dwl
         ;;
-    *)
-        cd "$HOME/.local/src/dwl"
-        CC=clang CFLAGS="-fno-pic -fno-pie -Ofast -flto=full -pipe -march=native -mtune=native -fomit-frame-pointer -funroll-loops" LDFLAGS="-fuse-ld=lld -rtlib=compiler-rt -unwindlib=libunwind -Wl,-O3 -Wl,--as-needed -Wl,--gc-sections -Wl,--icf=all" make
-        doas make install
+    *gentoo*)
+        src="$HOME/.local/src/dwl"
+        cflags="-O3 -march=native -mtune=native -pipe -fno-math-errno \
+-flto=thin -fomit-frame-pointer -fno-semantic-interposition \
+-fno-stack-protector -fno-stack-clash-protection -fno-sanitize=all \
+-fno-dwarf2-cfi-asm -ffp-contract=fast"
+        ldflags="-fuse-ld=lld -flto=thin -rtlib=compiler-rt -Wl,-O3 \
+-Wl,--lto-O3 -Wl,--as-needed -Wl,--gc-sections -Wl,--icf=all \
+-Wl,--strip-all -Wl,-z,norelro -Wl,--build-id=none -Wl,--relax \
+-Wl,-z,noseparate-code -Wl,-znow"
+
+        [ -d "$src" ] || {
+            printf 'missing dwl source tree: %s\n' "$src" >&2
+            exit 1
+        }
+        command -v clang >/dev/null 2>&1 || {
+            printf 'missing Gentoo dwl compiler: clang\n' >&2
+            exit 1
+        }
+        command -v ld.lld >/dev/null 2>&1 || {
+            printf 'missing Gentoo dwl linker: ld.lld\n' >&2
+            exit 1
+        }
+
+        make -C "$src" clean
+        make -C "$src" -j"$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf 1)" \
+            CC=clang PREFIX="$HOME/.local" CFLAGS="$cflags" LDFLAGS="$ldflags"
+        make -C "$src" CC=clang PREFIX="$HOME/.local" \
+            CFLAGS="$cflags" LDFLAGS="$ldflags" install
         terminate_dwl
+        ;;
+    *)
+        printf 'unsupported distribution for dwl update: %s\n' \
+            "${ID:-unknown}" >&2
+        exit 1
         ;;
 esac
