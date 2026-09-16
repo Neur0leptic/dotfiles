@@ -29,9 +29,7 @@ if [ -z "${WAYLAND_DISPLAY}" ] && [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]
 fi
 {{ else if eq .desktop "dwl" -}}
 if [ -z "${WAYLAND_DISPLAY}" ] && [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
-    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/dwl-${UID}}"
-    mkdir -p "${XDG_RUNTIME_DIR}"
-    exec dbus-run-session dwl
+    exec start-dwl
 fi
 {{ else if ne .desktop "none" -}}
 {{ fail (printf "invalid desktop profile %q" .desktop) }}

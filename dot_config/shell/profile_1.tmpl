@@ -55,12 +55,18 @@ export QT_QPA_PLATFORMTHEME="qt6ct"
 export CLUTTER_BACKEND="wayland"
 export SDL_VIDEODRIVER="wayland"
 export XDG_SESSION_TYPE="wayland"
+{{ if eq .desktop "hyprland" -}}
 export XDG_CURRENT_DESKTOP="hyprland"
 export XDG_SESSION_DESKTOP="hyprland"
+{{ else if eq .desktop "dwl" -}}
+export XDG_CURRENT_DESKTOP="dwl"
+export XDG_SESSION_DESKTOP="dwl"
+{{ else if ne .desktop "none" -}}
+{{ fail (printf "invalid desktop profile %q" .desktop) }}
+{{ end -}}
 export MOZ_ENABLE_WAYLAND="1"
 export MOZ_DBUS_REMOTE="1"
 
-export XDG_RUNTIME_DIR="/tmp/dwl"
-mkdir -p "${XDG_RUNTIME_DIR}"
-
-[ "$(tty)" = "/dev/tty1" ] && ! pidof -s dwl > "/dev/null" 2>&1 && dbus-run-session dwl
+{{ if eq .desktop "dwl" -}}
+[ "$(tty)" = "/dev/tty1" ] && ! pidof -s dwl > /dev/null 2>&1 && exec start-dwl
+{{ end -}}

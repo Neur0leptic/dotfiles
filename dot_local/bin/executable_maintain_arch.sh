@@ -176,56 +176,6 @@ decrypt_private_chezmoi_source() {
 	fi
 }
 
-unlock_private_chezmoi() {
-	local public_source private_source public_allowlist private_allowlist
-
-	if [ "${PRIVATE_CHEZMOI_UNLOCKED:-0}" = "1" ]; then
-		return 0
-	fi
-
-	if ! command -v chezmoi >/dev/null 2>&1; then
-		echo -e "${YELLOW}Chezmoi is not installed. Dotfile Git sync will be skipped.${NC}" >&2
-		return 1
-	fi
-
-	private_source="${XDG_DATA_HOME:-$HOME/.local/share}/chezmoi-private"
-	private_allowlist="${private_source}/private-source-allowlist.txt"
-	if [ ! -d "$private_source" ]; then
-		echo -e "${YELLOW}Private chezmoi source is unavailable. Dotfile Git sync will be skipped.${NC}" >&2
-		return 1
-	fi
-
-	if ! public_source="$(chezmoi source-path 2>/dev/null)" || [ ! -d "$public_source" ]; then
-		echo -e "${YELLOW}Public chezmoi source is unavailable. Dotfile Git sync will be skipped.${NC}" >&2
-		return 1
-	fi
-
-	public_allowlist="${public_source}/docs/private-source-allowlist.txt"
-	if ! cmp -s "$public_allowlist" "$private_allowlist"; then
-		echo -e "${YELLOW}Public and private chezmoi allowlists differ. Dotfile Git sync will be skipped.${NC}" >&2
-		return 1
-	fi
-
-	if ! validate_chezmoi_source "Private" "$private_source" "$private_allowlist"; then
-		echo -e "${YELLOW}Private chezmoi source validation failed. Dotfile Git sync will be skipped.${NC}" >&2
-		return 1
-	fi
-
-	if [ -t 0 ]; then
-		GPG_TTY="$(tty)"
-		export GPG_TTY
-	fi
-
-	echo -e "${BLUE}Unlocking and validating the private chezmoi source before maintenance.${NC}"
-	if ! decrypt_private_chezmoi_source "$private_source" "$private_allowlist"; then
-		echo -e "${YELLOW}Private chezmoi decryption validation failed. Dotfile Git sync will be skipped.${NC}" >&2
-		return 1
-	fi
-
-	PRIVATE_CHEZMOI_UNLOCKED=1
-	echo -e "${GREEN}Private chezmoi source unlocked and validated.${NC}"
-}
-
 get_chezmoi_marker() {
         local source_dir="${1}"
         shift
@@ -264,7 +214,156 @@ record_chezmoi_marker() {
         fi
 }
 
-sync_chezmoi_repo() {
+sync_chezmoi_files() {
+        local phase="$1" snapshot="$2"
+        shift 2
+        python3 - "$phase" "$snapshot" "$@" <<'PY'
+import hashlib
+import json
+import os
+import stat
+import subprocess
+import sys
+
+phase, snapshot, *cmd = sys.argv[1:]
+
+def run(*args):
+    return subprocess.check_output([*cmd, *args])
+
+def digest(contents):
+    return hashlib.sha256(contents).hexdigest()
+
+def actual(path):
+    try:
+        mode = os.lstat(path).st_mode
+    except FileNotFoundError:
+        return None
+    if stat.S_ISLNK(mode):
+        return ['symlink', 0, digest(os.fsencode(os.readlink(path)))]
+    if stat.S_ISREG(mode):
+        with open(path, 'rb') as stream:
+            return ['file', stat.S_IMODE(mode), digest(stream.read())]
+    if stat.S_ISDIR(mode):
+        return ['dir', stat.S_IMODE(mode), '']
+    raise ValueError(f'Unsupported destination type: {path}')
+
+def parents(path):
+    result = {}
+    parent = os.path.dirname(path)
+    while parent != os.path.dirname(parent):
+        if os.path.islink(parent):
+            raise ValueError(f'Symlink destination parent: {parent} (target {path})')
+        result[parent] = actual(parent)
+        parent = os.path.dirname(parent)
+    return result
+
+try:
+    destination = json.loads(run('data'))['chezmoi']['destDir']
+    entries = json.loads(run('dump', '--format=json', '--exclude=scripts,externals'))
+    targets = {}
+    for rel, entry in entries.items():
+        path = os.path.abspath(os.path.join(destination, rel))
+        if os.path.commonpath([destination, path]) != destination or path == destination:
+            raise ValueError(f'Invalid destination: {path}')
+        kind = entry['type']
+        if kind == 'file':
+            wanted = [kind, entry['perm'], digest(run('cat', '--', path))]
+        elif kind == 'symlink':
+            wanted = [kind, 0, digest(os.fsencode(entry['linkname']))]
+        elif kind == 'dir':
+            wanted = [kind, entry['perm'], '']
+        else:
+            raise ValueError(f'Unsupported target type {kind}: {path}')
+        targets[path] = wanted
+
+    if phase == 'record':
+        observed, ancestors, record = {}, {}, []
+        conflicts = []
+        for path, wanted in targets.items():
+            ancestors.update(parents(path))
+            disk = actual(path)
+            observed[path] = disk
+            if disk == wanted:
+                continue
+            if disk and disk[0] != wanted[0] and 'dir' in (disk[0], wanted[0]):
+                conflicts.append(f'{path}: directory type change needs manual reconciliation')
+                continue
+            raw = run('state', 'get', '--bucket=entryState', '--key=' + path)
+            baseline = json.loads(raw) if raw.strip() else None
+            if baseline:
+                kind = baseline['type']
+                baseline = [kind, baseline.get('mode', 0) & 0o7777,
+                            baseline.get('contentsSHA256', '')]
+            if disk == baseline:
+                continue
+            if wanted != baseline:
+                conflicts.append(f'{path}: disk and rendered source differ from baseline')
+                continue
+            source = os.fsdecode(run('source-path', '--', path)).rstrip('\n')
+            # Re-add cannot safely encode arbitrary edits into a template, or a deletion.
+            if disk is None or disk[0] != 'file' or wanted[0] != 'file' or source.endswith(('.tmpl', '.tmpl.asc')):
+                conflicts.append(f'{path}: disk deletion, template or type change needs manual reconciliation')
+                continue
+            if disk[1] not in (0o600, 0o644, 0o700, 0o755):
+                conflicts.append(f'{path}: disk permissions cannot be represented safely by re-add')
+                continue
+            record.append((path, source, actual(source)))
+        if conflicts:
+            raise ValueError('\n'.join(conflicts))
+        with open(snapshot, 'w') as stream:
+            json.dump({'targets': observed, 'parents': ancestors}, stream)
+        # Classify every file before making any source mutation.
+        for path, source, source_state in record:
+            current_parents = parents(path)
+            if actual(path) != observed[path] or current_parents != {p: ancestors[p] for p in current_parents}:
+                raise ValueError(f'Destination changed during sync: {path}')
+            if actual(source) != source_state:
+                raise ValueError(f'Source changed during sync: {source}')
+            subprocess.run([*cmd, '--no-tty', '--force', 're-add', '--', path], check=True,
+                           stdin=subprocess.DEVNULL)
+            if digest(run('cat', '--', path)) != observed[path][2]:
+                raise ValueError(f'Re-add did not preserve disk contents: {path}')
+    elif phase == 'apply':
+        with open(snapshot) as stream:
+            saved = json.load(stream)
+        pending, expected_parents = [], dict(saved['parents'])
+        for path, wanted in targets.items():
+            current_parents = parents(path)
+            for parent, value in current_parents.items():
+                if value != saved['parents'].get(parent):
+                    # A newly managed remote path may have pre-existing directory parents.
+                    if parent in saved['parents'] or value is not None and value[0] != 'dir':
+                        raise ValueError(f'Destination parent changed during sync: {parent}')
+                expected_parents[parent] = value
+            disk = actual(path)
+            if disk != saved['targets'].get(path):
+                raise ValueError(f'Destination changed or new remote target already exists: {path}')
+            if disk and disk[0] != wanted[0] and 'dir' in (disk[0], wanted[0]):
+                raise ValueError(f'Directory type change needs manual reconciliation: {path}')
+            # Even an already equal file must refresh chezmoi's last-written baseline.
+            pending.append(path)
+        for path in sorted(pending, key=lambda p: (p.count(os.sep), p)):
+            for parent, value in parents(path).items():
+                if value != expected_parents[parent]:
+                    raise ValueError(f'Destination parent changed during sync: {parent}')
+            if actual(path) != saved['targets'].get(path):
+                raise ValueError(f'Destination changed during sync: {path}')
+            if targets[path][0] == 'file' and digest(run('cat', '--', path)) != targets[path][2]:
+                raise ValueError(f'Rendered source changed during sync: {path}')
+            subprocess.run([*cmd, '--no-tty', '--force', 'apply',
+                            '--exclude=scripts,externals', '--recursive=false', '--', path],
+                           check=True, stdin=subprocess.DEVNULL)
+            if targets[path][0] == 'dir':
+                expected_parents[path] = actual(path)
+    else:
+        raise ValueError('Unknown sync phase')
+except (ValueError, OSError, KeyError, subprocess.CalledProcessError) as error:
+    print(f'Chezmoi sync stopped: {error}', file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
+sync_chezmoi_repo() (
         local label="${1}"
         local source_dir="${2}"
         local persistent_state="${3:-}"
@@ -272,8 +371,8 @@ sync_chezmoi_repo() {
         local private_allowlist="${5:-}"
 	local trusted_private_allowlist="${6:-}"
         local source_status target_status git_dir
-        local head_before_pull head_after_pull current_marker applied_marker final_marker ahead
-        local source_dirty=0 target_dirty=0 apply_needed=0 changes_found=0 marker_matches=0
+        local head_before_pull head_after_pull final_marker ahead snapshot
+        local changes_found=0
 	local -a chezmoi_cmd=(env CHEZMOI_SKIP_EXTERNALS=1 chezmoi -S "$source_dir" --refresh-externals=never)
 
         if [ -n "$persistent_state" ]; then
@@ -282,12 +381,12 @@ sync_chezmoi_repo() {
 
         if [ ! -d "$source_dir" ]; then
                 echo -e "${YELLOW}${label} chezmoi source is unavailable. Skipping it.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
                 echo -e "${YELLOW}${label} chezmoi source is not a Git repository. Skipping it.${NC}" >&2
-                return 0
+                return 1
         fi
 
 	if [ -z "$trusted_private_allowlist" ] || ! cmp -s "$trusted_private_allowlist" "$private_allowlist"; then
@@ -297,10 +396,7 @@ sync_chezmoi_repo() {
 
         if ! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist"; then
                 echo -e "${YELLOW}${label} chezmoi source validation failed. Skipping it.${NC}" >&2
-		if [ "$label" = "Private" ]; then
-			return 1
-		fi
-		return 0
+		return 1
 	fi
 
 	if [ "$label" = "Private" ] &&
@@ -311,12 +407,12 @@ sync_chezmoi_repo() {
 
         if ! git -C "$source_dir" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
                 echo -e "${YELLOW}${label} chezmoi Git upstream is not configured. Skipping it.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! git_dir="$(git -C "$source_dir" rev-parse --absolute-git-dir)"; then
                 echo -e "${YELLOW}Could not locate the ${label} chezmoi Git directory. Skipping it.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if git -C "$source_dir" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 ||
@@ -328,102 +424,29 @@ sync_chezmoi_repo() {
                 [ -d "$git_dir/sequencer" ] ||
                 [ -n "$(git -C "$source_dir" ls-files --unmerged)" ]; then
                 echo -e "${YELLOW}A Git operation is in progress in the ${label} chezmoi source. Skipping it.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! git -C "$source_dir" diff --cached --quiet; then
                 echo -e "${YELLOW}The ${label} chezmoi source has staged changes. Commit or unstage them before automatic sync.${NC}" >&2
-                return 0
+                return 1
         fi
 
-        if [ -n "$(git -C "$source_dir" ls-files --others --exclude-standard)" ]; then
-                echo -e "${YELLOW}The ${label} chezmoi source has untracked files. Review and add them manually before automatic sync.${NC}" >&2
-                return 0
+        if ! command -v python3 >/dev/null 2>&1; then
+                echo "Python 3 is required for safe per-file chezmoi sync." >&2
+                return 1
         fi
-
-        if ! current_marker="$(get_chezmoi_marker "$source_dir" "${chezmoi_cmd[@]}")"; then
-                echo -e "${YELLOW}Could not calculate the ${label} chezmoi revision/profile marker. Skipping it.${NC}" >&2
-                return 0
-        fi
-
-        if [ -r "$applied_head_file" ] && IFS= read -r applied_marker < "$applied_head_file" && [ "$applied_marker" = "$current_marker" ]; then
-                marker_matches=1
-        fi
-
-        if ! source_status="$(git -C "$source_dir" status --porcelain)"; then
-                echo -e "${YELLOW}Could not inspect the ${label} chezmoi repository. Skipping it.${NC}" >&2
-                return 0
-        fi
-
-        if [ -n "$source_status" ]; then
-                source_dirty=1
-        fi
-
-        if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude=scripts,externals)"; then
-                echo -e "${YELLOW}Could not compare ${label} chezmoi-managed files. Skipping it.${NC}" >&2
-                return 0
-        fi
-
-        if grep -q '^[ADM]' <<<"$target_status"; then
-                target_dirty=1
-        fi
-
-        if grep -q '^.[ADM]' <<<"$target_status"; then
-                apply_needed=1
-        fi
-
-        if [ "$source_dirty" -eq 1 ] && [ "$target_dirty" -eq 1 ]; then
-                echo -e "${YELLOW}Both the ${label} chezmoi source and its managed files have local changes. Skipping it to avoid overwriting either side.${NC}" >&2
-                return 0
-        fi
-
-        if [ "$target_dirty" -eq 1 ]; then
-                if [ "$marker_matches" -ne 1 ]; then
-                        echo -e "${YELLOW}${label} chezmoi revision or profile changed since the last successful apply. Skipping re-add to protect source changes.${NC}" >&2
-                        return 0
+        snapshot="$(mktemp "${TMPDIR:-/tmp}/chezmoi-sync.XXXXXX")" || return 1
+        trap 'rm -f "$snapshot"' EXIT
+        if ! sync_chezmoi_files record "$snapshot" "${chezmoi_cmd[@]}"; then
+                if [ "$label" = "Private" ]; then
+                        if ! cmp -s "$trusted_private_allowlist" "$private_allowlist" ||
+                                ! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist" ||
+                                ! decrypt_private_chezmoi_source "$source_dir" "$private_allowlist"; then
+                                echo -e "${YELLOW}Partially re-added private chezmoi payloads failed validation.${NC}" >&2
+                        fi
                 fi
-
-                if ! "${chezmoi_cmd[@]}" --no-tty re-add </dev/null; then
-                        echo -e "${YELLOW}Could not record local ${label} dotfile changes. Skipping it.${NC}" >&2
-			if [ "$label" = "Private" ]; then
-				if ! cmp -s "$trusted_private_allowlist" "$private_allowlist" ||
-					! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist" ||
-					! decrypt_private_chezmoi_source "$source_dir" "$private_allowlist"; then
-					echo -e "${YELLOW}Partially re-added private chezmoi payloads failed validation.${NC}" >&2
-				fi
-				return 1
-			fi
-                        return 0
-                fi
-
-		if [ "$label" = "Private" ] && {
-			! cmp -s "$trusted_private_allowlist" "$private_allowlist" ||
-			! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist" ||
-			! decrypt_private_chezmoi_source "$source_dir" "$private_allowlist"
-		}; then
-			echo -e "${YELLOW}Private chezmoi payload validation failed immediately after re-add.${NC}" >&2
-			return 1
-		fi
-
-                if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude=scripts,externals)"; then
-                        echo -e "${YELLOW}Could not verify re-added ${label} dotfiles. Skipping it.${NC}" >&2
-			if [ "$label" = "Private" ]; then
-				return 1
-			fi
-                        return 0
-                fi
-
-                if grep -q '^.[ADM]' <<<"$target_status"; then
-                        echo -e "${YELLOW}Some local ${label} changes require a manual chezmoi merge, such as templates or deletions. Skipping pull, apply and push.${NC}" >&2
-			if [ "$label" = "Private" ]; then
-				return 1
-			fi
-                        return 0
-                fi
-
-                apply_needed=0
-        elif [ "$marker_matches" -ne 1 ]; then
-                apply_needed=1
+                return 1
         fi
 
 	if [ -z "$trusted_private_allowlist" ] || ! cmp -s "$trusted_private_allowlist" "$private_allowlist"; then
@@ -433,10 +456,7 @@ sync_chezmoi_repo() {
 
         if ! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist"; then
                 echo -e "${YELLOW}${label} chezmoi source validation failed after re-add. Skipping commit, pull and push.${NC}" >&2
-		if [ "$label" = "Private" ]; then
-			return 1
-		fi
-		return 0
+		return 1
 	fi
 
 	if [ "$label" = "Private" ] &&
@@ -447,24 +467,19 @@ sync_chezmoi_repo() {
 
         if ! source_status="$(git -C "$source_dir" status --porcelain)"; then
                 echo -e "${YELLOW}Could not inspect re-added ${label} chezmoi changes. Skipping it.${NC}" >&2
-                return 0
-        fi
-
-        if [ -n "$(git -C "$source_dir" ls-files --others --exclude-standard)" ]; then
-                echo -e "${YELLOW}Re-add created an untracked file in the ${label} chezmoi source. Review it manually before sync.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if [ -n "$source_status" ]; then
-                if ! git -C "$source_dir" add -u -- .; then
+                if ! git -C "$source_dir" add -A -- .; then
                         echo -e "${YELLOW}Could not stage ${label} chezmoi changes. Skipping it.${NC}" >&2
-                        return 0
+                        return 1
                 fi
 
                 if ! git -C "$source_dir" diff --cached --quiet; then
                         if ! git -C "$source_dir" commit -m "Update dotfiles $(date '+%Y-%m-%d %H:%M:%S')"; then
                                 echo -e "${YELLOW}Could not commit ${label} chezmoi changes. Skipping it.${NC}" >&2
-                                return 0
+                                return 1
                         fi
                         changes_found=1
                 fi
@@ -472,28 +487,28 @@ sync_chezmoi_repo() {
 
         if ! source_status="$(git -C "$source_dir" status --porcelain)" || [ -n "$source_status" ]; then
                 echo -e "${YELLOW}${label} chezmoi source is still dirty after the commit. Skipping pull, apply and push.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! head_before_pull="$(git -C "$source_dir" rev-parse HEAD)"; then
                 echo -e "${YELLOW}Could not read the ${label} chezmoi Git revision. Skipping it.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! git -C "$source_dir" pull --rebase; then
                 if [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; then
                         if ! git -C "$source_dir" rebase --abort; then
                                 echo -e "${YELLOW}${label} chezmoi rebase could not be aborted automatically. Resolve it manually.${NC}" >&2
-                                return 0
+                                return 1
                         fi
                 fi
                 echo -e "${YELLOW}${label} chezmoi pull failed or conflicted; skipping apply and push.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! head_after_pull="$(git -C "$source_dir" rev-parse HEAD)"; then
                 echo -e "${YELLOW}Could not read the updated ${label} chezmoi Git revision. Skipping apply and push.${NC}" >&2
-                return 0
+                return 1
         fi
 
 	if [ -z "$trusted_private_allowlist" ] || ! cmp -s "$trusted_private_allowlist" "$private_allowlist"; then
@@ -503,10 +518,7 @@ sync_chezmoi_repo() {
 
         if ! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist"; then
                 echo -e "${YELLOW}${label} chezmoi source validation failed after pull. Skipping apply and push.${NC}" >&2
-		if [ "$label" = "Private" ]; then
-			return 1
-		fi
-		return 0
+		return 1
 	fi
 
 	if [ "$label" = "Private" ] &&
@@ -516,46 +528,39 @@ sync_chezmoi_repo() {
 	fi
 
         if [ "$head_before_pull" != "$head_after_pull" ]; then
-                apply_needed=1
                 changes_found=1
         fi
 
-        if [ "$apply_needed" -eq 1 ]; then
-                if ! "${chezmoi_cmd[@]}" --no-tty apply --exclude=scripts,externals </dev/null; then
-                        echo -e "${YELLOW}Could not apply ${label} chezmoi changes. Skipping push.${NC}" >&2
-			if [ "$label" = "Private" ]; then
-				return 1
-			fi
-			return 0
-                fi
-                changes_found=1
+        if ! sync_chezmoi_files apply "$snapshot" "${chezmoi_cmd[@]}"; then
+                echo -e "${YELLOW}Could not safely apply ${label} chezmoi changes. Skipping push.${NC}" >&2
+                return 1
         fi
 
         if ! target_status="$("${chezmoi_cmd[@]}" --color=false status --exclude=scripts,externals)"; then
                 echo -e "${YELLOW}Could not verify the applied ${label} chezmoi state. Skipping push.${NC}" >&2
-                return 0
+                return 1
         fi
 
-        if [ -n "$target_status" ]; then
+        if grep -q '^.[ADM]' <<<"$target_status"; then
                 echo -e "${YELLOW}${label} chezmoi-managed files did not converge after apply. Skipping marker update and push.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! final_marker="$(get_chezmoi_marker "$source_dir" "${chezmoi_cmd[@]}")" ||
                 ! record_chezmoi_marker "$applied_head_file" "$final_marker"; then
                 echo -e "${YELLOW}Could not record the applied ${label} chezmoi revision/profile marker. Skipping push.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! ahead="$(git -C "$source_dir" rev-list --count '@{upstream}..HEAD')"; then
                 echo -e "${YELLOW}Could not determine whether ${label} chezmoi has commits to push. Skipping push.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if [ "$ahead" -gt 0 ]; then
                 if ! git -C "$source_dir" push; then
                         echo -e "${YELLOW}Could not push ${label} chezmoi changes. They remain committed locally.${NC}" >&2
-                        return 0
+                        return 1
                 fi
                 changes_found=1
         fi
@@ -567,90 +572,74 @@ sync_chezmoi_repo() {
         fi
 
         return 0
-}
+)
 
 sync_chezmoi() (
-        local public_source private_source private_state public_allowlist private_allowlist
-        local state_home sync_state_dir public_head private_head
-        local sync_lock_fd
-
-	if [ "${CHEZMOI_SYNC_DISABLED:-0}" = "1" ]; then
-		echo -e "${YELLOW}Private GPG preflight was cancelled or failed. Skipping dotfile Git sync.${NC}" >&2
-		return 0
-	fi
-
-	if [ "${PRIVATE_CHEZMOI_UNLOCKED:-0}" != "1" ] && ! unlock_private_chezmoi; then
-		echo -e "${YELLOW}Private chezmoi key preflight failed. Skipping dotfile sync.${NC}" >&2
-		return 0
-	fi
-
-        if ! command -v chezmoi >/dev/null 2>&1; then
-                echo -e "${YELLOW}Chezmoi is not installed. Skipping dotfile sync.${NC}" >&2
-                return 0
-        fi
-
-        if ! command -v git >/dev/null 2>&1; then
-                echo -e "${YELLOW}Git is not installed. Skipping dotfile sync.${NC}" >&2
-                return 0
-        fi
-
-        if ! command -v flock >/dev/null 2>&1; then
-                echo -e "${YELLOW}flock is not installed. Skipping dotfile sync.${NC}" >&2
-                return 0
-        fi
-
-        private_source="${XDG_DATA_HOME:-$HOME/.local/share}/chezmoi-private"
-        private_state="${XDG_STATE_HOME:-$HOME/.local/state}/chezmoi-private.boltdb"
-        private_allowlist="${private_source}/private-source-allowlist.txt"
+        local state_home sync_state_dir sync_lock_fd trusted_allowlist required
+        local label source_dir persistent_state marker allowlist_rel failed=0
+        for required in chezmoi git flock; do
+                if ! command -v "$required" >/dev/null 2>&1; then
+                        echo -e "${YELLOW}$required is unavailable. Skipping dotfile sync.${NC}" >&2
+                        return 1
+                fi
+        done
         state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
         sync_state_dir="${state_home}/chezmoi-sync"
-        public_head="${sync_state_dir}/public-head"
-        private_head="${sync_state_dir}/private-head"
 
         umask 077
         if ! mkdir -p "$state_home" "$sync_state_dir" || ! chmod 700 "$sync_state_dir"; then
                 echo -e "${YELLOW}Could not create chezmoi sync state directories. Skipping dotfile sync.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! exec {sync_lock_fd}>"$sync_state_dir/lock"; then
                 echo -e "${YELLOW}Could not open the chezmoi sync lock. Skipping dotfile sync.${NC}" >&2
-                return 0
+                return 1
         fi
 
         if ! flock -n "$sync_lock_fd"; then
                 echo -e "${YELLOW}Another chezmoi sync is already running. Skipping dotfile sync.${NC}" >&2
-                return 0
+                return 1
         fi
 
-        if public_source="$(chezmoi source-path 2>/dev/null)" && [ -d "$public_source" ]; then
-                public_allowlist="${public_source}/docs/private-source-allowlist.txt"
-                if [ -d "$private_source" ] && ! cmp -s "$public_allowlist" "$private_allowlist"; then
-                        echo -e "${YELLOW}Public and private chezmoi allowlists differ. Skipping dotfile sync.${NC}" >&2
-			return 1
+        trusted_allowlist="$(mktemp "${TMPDIR:-/tmp}/chezmoi-policy.XXXXXX")" || return 1
+        trap 'rm -f "$trusted_allowlist"' EXIT
+        for label in Public Private; do
+                case "$label" in
+                        Public)
+                                if ! source_dir="$(chezmoi source-path 2>/dev/null)"; then
+                                        echo -e "${YELLOW}Public source is unavailable; private sync will still be attempted.${NC}" >&2
+                                        failed=1
+                                        continue
+                                fi
+                                persistent_state=""
+                                marker="$sync_state_dir/public-head"
+                                allowlist_rel="docs/private-source-allowlist.txt"
+                                ;;
+                        Private)
+                                source_dir="${XDG_DATA_HOME:-$HOME/.local/share}/chezmoi-private"
+                                persistent_state="$state_home/chezmoi-private.boltdb"
+                                marker="$sync_state_dir/private-head"
+                                allowlist_rel="private-source-allowlist.txt"
+                                if [ -t 0 ]; then
+                                        GPG_TTY="$(tty)"
+                                        export GPG_TTY
+                                fi
+                                ;;
+                esac
+                # Each repository uses its own committed privacy policy, not the other's working tree.
+                if ! git -C "$source_dir" show "HEAD:$allowlist_rel" > "$trusted_allowlist" || [ ! -s "$trusted_allowlist" ]; then
+                        echo -e "${YELLOW}${label} committed privacy policy is unavailable. Skipping only this repository.${NC}" >&2
+                        failed=1
+                        continue
                 fi
-                sync_chezmoi_repo "Public" "$public_source" "" "$public_head" "$public_allowlist" "$private_allowlist"
-        else
-                echo -e "${YELLOW}Public chezmoi source is unavailable. Skipping it.${NC}" >&2
-		return 1
-        fi
-
-        if [ ! -d "$private_source" ]; then
-                echo -e "${YELLOW}Private chezmoi source is unavailable. Skipping it.${NC}" >&2
-		return 1
-	fi
-
-	if ! cmp -s "$public_allowlist" "$private_allowlist"; then
-		echo -e "${YELLOW}Public and private chezmoi allowlists differ after public sync. Aborting dotfile sync.${NC}" >&2
-		return 1
-        fi
-
-        if ! mkdir -p "${private_state%/*}"; then
-                echo -e "${YELLOW}Could not create the private chezmoi state directory. Skipping it.${NC}" >&2
-		return 1
-        fi
-
-	sync_chezmoi_repo "Private" "$private_source" "$private_state" "$private_head" "$private_allowlist" "$public_allowlist"
+                if ! sync_chezmoi_repo "$label" "$source_dir" "$persistent_state" "$marker" \
+                        "$source_dir/$allowlist_rel" "$trusted_allowlist"; then
+                        echo -e "${YELLOW}${label} sync did not complete; continuing with the remaining work.${NC}" >&2
+                        failed=1
+                fi
+        done
+        return "$failed"
 )
 
 validate_wireguard_repo() {
@@ -980,12 +969,7 @@ handle_shutdown() {
 }
 
 main() {
-	PRIVATE_CHEZMOI_UNLOCKED=0
-	CHEZMOI_SYNC_DISABLED=0
-        if ! unlock_private_chezmoi; then
-		CHEZMOI_SYNC_DISABLED=1
-		echo -e "${YELLOW}Private GPG preflight was cancelled or failed. Dotfile Git sync will be skipped; maintenance will continue.${NC}" >&2
-        fi
+        local sync_failed=0
 
         declare -A "tasks"
 
@@ -1052,11 +1036,24 @@ main() {
                 ) &
                 log_pid="${!}"
 
-                "${function}"
-                log_info g "${done_message}"
+                if [ "$function" = "sync_chezmoi" ]; then
+                        if "$function"; then
+                                log_info g "$done_message"
+                        else
+                                sync_failed=1
+                                log_info r "Chezmoi sync needs attention; maintenance will continue."
+                        fi
+                else
+                        "${function}"
+                        log_info g "${done_message}"
+                fi
 
                 [[ "${TASK_NUMBER}" -eq "${TOTAL_TASKS}" ]] && {
-                        log_info g "All tasks completed."
+                        if [ "$sync_failed" -eq 1 ]; then
+                                log_info r "Maintenance tasks finished; Chezmoi sync remains incomplete."
+                        else
+                                log_info g "All tasks completed."
+                        fi
                         kill "${log_pid}" 2> "/dev/null" || true
                         break
                 }

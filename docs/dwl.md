@@ -10,7 +10,7 @@
 ## Commands
 
 - `update_dwl.sh`: builds and installs dwl.
-- `start-dwl`: starts dwl with the Vulkan renderer and wide color mode.
+- `start-dwl`: starts dwl with GLES2/sRGB on `intel-x220`, and Vulkan/wide color on the other GPU profiles.
 - `start-dwl --safe`: starts dwl with the GLES2 renderer and sRGB mode.
 
 ## Builds

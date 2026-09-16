@@ -5,20 +5,25 @@ killall "wf-recorder" 2> /dev/null
 output_device="$(wpctl inspect "@DEFAULT_AUDIO_SINK@" | grep -o "alsa_output.*[[:alnum:]]")"
 audiodevice="--audio=${output_device}.monitor"
 
-#videocodec="--codec=libx264"
+{{ if eq .gpuProfile "nvidia" -}}
 videocodec="--codec=h264_nvenc"
+{{ else -}}
+videocodec="--codec=libx264"
+{{ end -}}
 audiocodec="--audio-codec=aac"
 framerate="--framerate=60"
 pixelformat="--pixel-format=yuv420p"
 
-#codecparameter1="--codec-param=crf=22"
-#codecparameter2="--codec-param=preset=ultrafast"
-#codecparameter3="--codec-param=tune=zerolatency"
-#codecparameter4="--codec-param=cpu-used=8"
+{{ if eq .gpuProfile "nvidia" -}}
 codecparameter1="--codec-param=qp=22"
 codecparameter2="--codec-param=rc=constqp"
 codecparameter3="--codec-param=preset=p2"
 codecparameter4="--codec-param=tune=ll"
+{{ else -}}
+codecparameter1="--codec-param=crf=22"
+codecparameter2="--codec-param=preset=ultrafast"
+codecparameter3="--codec-param=tune=zerolatency"
+{{ end -}}
 outdir="${VIDEOS:-${HOME}/Videos}"
 mkdir -p "${outdir}"
 outfile="${outdir}/$(date "+%y%m%d_%H%M").mp4"
@@ -47,4 +52,8 @@ wf-recorder -f "${outfile}" \
         "${videocodec}" "${audiodevice}" "${audiocodec}" \
         "${framerate}" --no-damage "${pixelformat}" \
         "${codecparameter1}" "${codecparameter2}" \
+{{ if eq .gpuProfile "nvidia" -}}
         "${codecparameter3}" "${codecparameter4}"
+{{ else -}}
+        "${codecparameter3}"
+{{ end -}}

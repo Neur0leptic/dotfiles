@@ -2,7 +2,11 @@
 
 set -eu
 
+{{ if eq .gpuProfile "intel-x220" -}}
+safe=1
+{{ else -}}
 safe=0
+{{ end -}}
 case "${1:-}" in
     "") ;;
     --safe) safe=1 ;;

@@ -10,7 +10,16 @@ docs/**
 {{- end }}
 
 # Desktop-specific sources remain in Git but are only applied when selected.
-{{- if ne .desktop "hyprland" }}
+{{- if eq .desktop "hyprland" }}
+.config/dwl/**
+.config/swayidle/config-dwl
+.config/waybar/config-dwl.jsonc
+.config/waybar/style-dwl.css
+{{- else if eq .desktop "dwl" }}
+.config/hypr/**
+.config/swayidle/config
+{{- else }}
+.config/dwl/**
 .config/hypr/**
 .config/swayidle/**
 .config/waybar/**

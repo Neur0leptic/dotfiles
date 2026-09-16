@@ -204,7 +204,7 @@ index 8a6eda0..639a40c 100644
  static const int tap_to_click = 1;
  static const int tap_and_drag = 1;
  static const int drag_lock = 1;
-@@ -67,106 +94,134 @@ static const int natural_scrolling = 0;
+@@ -67,106 +94,133 @@ static const int natural_scrolling = 0;
  static const int disable_while_typing = 1;
  static const int left_handed = 0;
  static const int middle_button_emulation = 0;
@@ -270,8 +270,8 @@ index 8a6eda0..639a40c 100644
 +static const char *alttermcmd[] = { "kitty", NULL };
 +static const char *filecmd[] = { "footclient", "yazi", NULL };
 +static const char *browsercmd[] = { "librewolf", NULL };
-+static const char *altbrowsercmd[] = { "helium-browser", NULL };
-+static const char *kb_notify_cmd[] = { "/home/neuroleptic/.local/bin/kb_notify.sh", NULL };
++static const char *altbrowsercmd[] = { "/bin/sh", "-c", "if command -v helium-browser >/dev/null 2>&1; then exec helium-browser; else exec helium; fi", NULL };
++static const char *kb_notify_cmd[] = { "kb_notify.sh", NULL };
  
  static const Key keys[] = {
 -	/* Note that Shift changes certain key codes: 2 -> at, etc. */
@@ -332,7 +332,6 @@ index 8a6eda0..639a40c 100644
 +	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w, spawn, {.v = altbrowsercmd} },
 +	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_a, spawn, SHCMD("footclient -a opencode-float --window-size-chars=110x45 opencode") },
 +	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/helium_launch_webapp.sh 'https://youtube.com' youtube") },
-+	{ MODKEY, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/yourpipe/bin/yourpipe.sh") },
 +	{ MODKEY, XKB_KEY_c, spawn, SHCMD("footclient nvim \"$HOME/.local/src/dwl/config.def.h\"") },
 +	{ MODKEY, XKB_KEY_n, spawn, SHCMD("footclient -a vim-wiki-float --window-size-chars=85x45 nvim -c VimwikiIndex") },
 +	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_n, spawn, SHCMD("footclient -a fullscreen $HOME/.local/bin/weather.sh") },
@@ -353,7 +352,7 @@ index 8a6eda0..639a40c 100644
 +
 +	{ MODKEY, XKB_KEY_grave, spawn, SHCMD("$HOME/.local/bin/browser_bookmarks.sh") },
 +	{ 0, XKB_KEY_F1, spawn, SHCMD("$HOME/.local/bin/ybrowser.sh") },
-+	{ 0, XKB_KEY_F8, spawn, SHCMD("$HOME/.local/bin/webapp_install.sh") },
++	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_F8, spawn, SHCMD("$HOME/.local/bin/webapp_install.sh") },
 +	{ MODKEY, XKB_KEY_F1, spawn, SHCMD("dictionary.sh") },
 +	{ MODKEY, XKB_KEY_F2, spawn, SHCMD("addtorrent.sh") },
 +	{ MODKEY, XKB_KEY_b, spawn, SHCMD("$HOME/.local/bin/waybar_toggle.sh") },

@@ -11,7 +11,7 @@ desc = "Open shell here"
 [[mgr.prepend_keymap]]
 on  = "y"
 run = [ '''
-	shell 'for path in "$@"; do echo "file://$path"; done | wl-copy -t text/uri-list'
+	shell -- for path in %s; do echo "file://$path"; done | wl-copy -t text/uri-list
 ''', "yank" ]
 
 [[mgr.prepend_keymap]]
@@ -36,12 +36,12 @@ desc = "Compress with ouch"
 
 [[mgr.prepend_keymap]]
 on = "<A-d>"
-run = '''shell -- ripdrag --no-click --and-exit --icon-size 64 --target --all "$@" | while read filepath; do cp -nR "$filepath" .; done '''
+run = '''shell -- ripdrag --no-click --and-exit --icon-size 64 --target --all %s | while read filepath; do cp -nR "$filepath" .; done '''
 desc = "Drag files OUT (no overwrite)"
 
 [[mgr.prepend_keymap]]
 on = "<A-D>"
-run = '''shell -- ripdrag --no-click --and-exit --icon-size 64 --target --all "$@" | while read filepath; do cp -fR "$filepath" .; done '''
+run = '''shell -- ripdrag --no-click --and-exit --icon-size 64 --target --all %s | while read filepath; do cp -fR "$filepath" .; done '''
 desc = "Drag files OUT (overwrite)"
 
 [[mgr.prepend_keymap]]
@@ -62,7 +62,7 @@ run = "cd ~/.local/"
 
 [[mgr.prepend_keymap]]
 on = [ "g", "s" ]
-run = "cd ~/screenshot/"
+run = "cd ~/Screenshots/"
 
 [[mgr.prepend_keymap]]
 on = [ "g", "<Space>" ]

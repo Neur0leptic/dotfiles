@@ -135,7 +135,7 @@ get_installed_browsers() {
                                 fi
                         fi
                 done
-                for cmd in helium-browser thorium-browser librewolf firefox chromium google-chrome-stable brave; do
+                for cmd in helium-browser helium thorium-browser librewolf firefox chromium google-chrome-stable brave; do
                         if command -v "$cmd" >/dev/null 2>&1; then
                                 echo "$cmd"
                         fi
@@ -164,7 +164,8 @@ if [ ! -f "$launcher_path" ]; then
                         template_path="${XDG_BIN_HOME}/thorium_launch_webapp.sh"
                 fi
                 [ -f "$template_path" ] || die "Template for Chromium-like browsers not found"
-                sed -e "s/helium-browser/${browser}/g" \
+                sed -e "s/exec helium-browser /exec ${browser} /g" \
+                    -e "s/exec helium /exec ${browser} /g" \
                     -e "s/thorium-browser/${browser}/g" \
                     -e "s/helium-webapps/${browser}-webapps/g" \
                     -e "s/thorium-webapps/${browser}-webapps/g" \

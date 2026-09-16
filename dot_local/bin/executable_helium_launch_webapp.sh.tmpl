@@ -12,7 +12,7 @@ PROFILE_DIR="$HOME/.config/helium-webapps/${APP_NAME}"
 mkdir -p "$PROFILE_DIR"
 
 # Launch Helium with webapp mode
-exec helium-browser \
+exec {{ if eq .chezmoi.osRelease.id "gentoo" }}helium{{ else }}helium-browser{{ end }} \
         --user-data-dir="$PROFILE_DIR" \
         --class="WebApp-${APP_NAME}" \
         --app="$APP_URL" \

@@ -3,7 +3,7 @@ local T = "footclient"
 local K = "kitty"
 local FM = "footclient yazi"
 local BR = "librewolf"
-local ABR = "helium-browser"
+local ABR = "{{ if eq .chezmoi.osRelease.id "gentoo" }}helium{{ else }}helium-browser{{ end }}"
 local MENU = 'rofi -show drun -theme-str "window { width: 47ch; } configuration { show-icons: true; }"'
 
 -- Modifier (Win-key)
@@ -91,7 +91,7 @@ hl.bind("SHIFT + PRINT", hl.dsp.exec_cmd("~/.local/bin/hypr_shot.sh output"))
 -- Bookmark search / utilities
 hl.bind(M .. " + Grave", hl.dsp.exec_cmd("~/.local/bin/browser_bookmarks.sh"))
 hl.bind("F1", hl.dsp.exec_cmd("~/.local/bin/ybrowser.sh"))
-hl.bind("F8", hl.dsp.exec_cmd("~/.local/bin/webapp_install.sh"))
+hl.bind(M .. " + SHIFT + F8", hl.dsp.exec_cmd("~/.local/bin/webapp_install.sh"))
 hl.bind(M .. " + F1", hl.dsp.exec_cmd("dictionary.sh"))
 hl.bind(M .. " + F2", hl.dsp.exec_cmd("addtorrent.sh"))
 hl.bind(M .. " + B", hl.dsp.exec_cmd("~/.local/bin/waybar_toggle.sh"))

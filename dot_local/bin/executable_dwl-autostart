@@ -30,9 +30,11 @@ start wlsunset -S 06:30 -s 18:30 -d 1800
 start clipse -listen
 start swayidle -w -C "$HOME/.config/swayidle/config-dwl"
 start wayland-pipewire-idle-inhibit --wayland --quiet
-
-if command -v wireguard.sh >/dev/null 2>&1; then
-    (sleep 10; wireguard.sh exclude "$HOME/.local/bin/yourpipe/bin/yourpipe_update.sh") &
+if command -v waybar >/dev/null 2>&1; then
+    waybar_log="${XDG_CACHE_HOME:-$HOME/.cache}/waybar.log"
+    mkdir -p "$(dirname "$waybar_log")"
+    waybar -c "$HOME/.config/waybar/config-dwl.jsonc" \
+        -s "$HOME/.config/waybar/style-dwl.css" >>"$waybar_log" 2>&1 &
     pids="$pids $!"
 fi
 
