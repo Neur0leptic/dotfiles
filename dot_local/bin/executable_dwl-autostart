@@ -24,18 +24,19 @@ session_env="$HOME/.local/bin/wayland-session-env"
 }
 "$session_env"
 
+# This helper is installed with the canonical DWL output configuration.
+output_setup="$HOME/.local/bin/dwl-outputs"
+if [ -x "$output_setup" ]; then
+    "$output_setup" || printf 'DWL output preferences failed; keeping the compositor layout.\n' >&2
+fi
+
 start foot --server
 start mako
 start wlsunset -S 06:30 -s 18:30 -d 1800
 start clipse -listen
 start swayidle -w -C "$HOME/.config/swayidle/config-dwl"
 start wayland-pipewire-idle-inhibit --wayland --quiet
-if command -v waybar >/dev/null 2>&1; then
-    waybar_log="${XDG_CACHE_HOME:-$HOME/.cache}/waybar.log"
-    mkdir -p "$(dirname "$waybar_log")"
-    waybar -c "$HOME/.config/waybar/config-dwl.jsonc" \
-        -s "$HOME/.config/waybar/style-dwl.css" >>"$waybar_log" 2>&1 &
-    pids="$pids $!"
-fi
+
+# Waybar is started on demand by waybar_toggle.sh (Super+B).
 
 wait

@@ -1,0 +1,14 @@
+{{- $outputs := get . "dwlOutputs" | default "" -}}
+{{- if $outputs -}}
+{{ $outputs | fromJson | toPrettyJson }}
+{{- else if eq .machine "main" -}}
+{
+  "schema": 1,
+  "outputs": [
+    {"name": "HDMI-A-1", "mode": "3840x2160@60", "scale": 2, "enabled": true, "position": "0,0"},
+    {"name": "eDP-1", "mode": "1920x1080@144.028", "scale": 1.5, "enabled": true, "position": "1920,0"}
+  ]
+}
+{{- else -}}
+{"schema": 1, "outputs": []}
+{{- end }}

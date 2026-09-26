@@ -1,0 +1,33 @@
+#!/bin/sh
+# Apply explicit connector preferences. wlroots handles unconfigured outputs.
+set -eu
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}/dwl/outputs.json"
+[ -f "$config" ] || exit 0
+current=$(wlr-randr --json)
+connected=$(printf '%s\n' "$current" | jq -r '.[].name')
+settings=$(jq -er '.outputs | map([.name, (.mode // "preferred"),
+    (.scale // 1), (if .enabled == false then "off" else "on" end),
+    (.position // "auto")] | @tsv) | join("\n")' "$config")
+set --
+enabled=0
+while IFS="$(printf '\t')" read -r name mode scale state position; do
+    [ -n "$name" ] || continue
+    printf '%s\n' "$connected" | grep -qxF -- "$name" || continue
+    set -- "$@" --output "$name" "--$state"
+    [ "$state" = on ] || continue
+    enabled=$((enabled + 1))
+    if [ "$mode" = preferred ]; then
+        set -- "$@" --preferred
+    else
+        set -- "$@" --mode "$mode"
+    fi
+    set -- "$@" --scale "$scale"
+    [ "$position" = auto ] || set -- "$@" --pos "$position"
+done <<EOF
+$settings
+EOF
+# A disconnected selected screen must not leave the session without a display.
+[ "$enabled" -gt 0 ] || exit 0
+wlr-randr --dryrun "$@"
+exec wlr-randr "$@"

@@ -5,6 +5,10 @@
 {{- $desktop := promptChoiceOnce . "desktop" "Desktop profile" (list "hyprland" "dwl" "none") -}}
 {{- $gpuProfile := promptChoiceOnce . "gpuProfile" "GPU profile" (list "nvidia" "intel-x220" "modern-amd-intel") -}}
 {{- $machine := promptChoiceOnce . "machine" "Machine profile" (list "generic" "main") -}}
+{{- $dwlOutputs := get . "dwlOutputs" | default "" -}}
+{{- if eq $desktop "dwl" -}}
+{{- $dwlOutputs = promptStringOnce . "dwlOutputs" "DWL output configuration JSON (empty for machine defaults)" -}}
+{{- end -}}
 {{- $mail := promptBoolOnce . "features.mail" "Enable mail configuration" -}}
 {{- $keepass := promptBoolOnce . "features.keepass" "Enable KeePass configuration" -}}
 {{- $wireguard := promptBoolOnce . "features.wireguard" "Enable WireGuard integrations" -}}
@@ -22,6 +26,7 @@ recipient = {{ $gpgRecipient | quote }}
 desktop = {{ $desktop | quote }}
 gpuProfile = {{ $gpuProfile | quote }}
 machine = {{ $machine | quote }}
+dwlOutputs = {{ $dwlOutputs | quote }}
 
 [data.features]
 mail = {{ $mail }}

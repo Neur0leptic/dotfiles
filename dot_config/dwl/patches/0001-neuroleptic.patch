@@ -162,15 +162,15 @@ index 8a6eda0..639a40c 100644
 -	{ NULL,       0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
 -	/* default monitor rule: can be changed but cannot be eliminated; at least one monitor rule must exist */
 +	{
-+		.name = "HDMI-A-1", .mfact = 0.55f, .nmaster = 1, .scale = 2.0f,
-+		.lt = &layouts[0], .rr = WL_OUTPUT_TRANSFORM_NORMAL, .x = 0, .y = 0,
-+		.width = 3840, .height = 2160, .refresh = 60000,
++		.name = "HDMI-A-1", .mfact = 0.55f, .nmaster = 1, .scale = 1.0f,
++		.lt = &layouts[0], .rr = WL_OUTPUT_TRANSFORM_NORMAL, .x = -1, .y = -1,
++		.width = 0, .height = 0, .refresh = 0,
 +		.image_desc = &bt2020_sdr, .render_format = DRM_FORMAT_XBGR2101010,
 +	},
 +	{
-+		.name = "eDP-1", .mfact = 0.55f, .nmaster = 1, .scale = 1.5f,
-+		.lt = &layouts[0], .rr = WL_OUTPUT_TRANSFORM_NORMAL, .x = 1920, .y = 0,
-+		.width = 1920, .height = 1080, .refresh = 144028,
++		.name = "eDP-1", .mfact = 0.55f, .nmaster = 1, .scale = 1.0f,
++		.lt = &layouts[0], .rr = WL_OUTPUT_TRANSFORM_NORMAL, .x = -1, .y = -1,
++		.width = 0, .height = 0, .refresh = 0,
 +		.image_desc = NULL, .render_format = DRM_FORMAT_XRGB8888,
 +	},
 +	{

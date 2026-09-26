@@ -54,9 +54,8 @@ export XDG_CURRENT_DESKTOP=dwl
 export XDG_SESSION_DESKTOP=dwl
 export XDG_SESSION_TYPE=wayland
 export DWL_SESSION=1
-export WLR_RENDER_DRM_DEVICE="${WLR_RENDER_DRM_DEVICE:-/dev/dri/renderD128}"
+# wlroots selects the render device; an exported WLR_RENDER_DRM_DEVICE can override it.
 export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
-export QT_SCREEN_SCALE_FACTORS="${QT_SCREEN_SCALE_FACTORS:-1;1}"
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
 export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt6ct}"
 export CLUTTER_BACKEND="${CLUTTER_BACKEND:-wayland}"
