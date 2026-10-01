@@ -8,12 +8,21 @@ current=$(wlr-randr --json)
 connected=$(printf '%s\n' "$current" | jq -r '.[].name')
 settings=$(jq -er '.outputs | map([.name, (.mode // "preferred"),
     (.scale // 1), (if .enabled == false then "off" else "on" end),
-    (.position // "auto")] | @tsv) | join("\n")' "$config")
+    (.position // "auto"), (.edid // "-")] | @tsv) | join("\n")' "$config")
 set --
 enabled=0
-while IFS="$(printf '\t')" read -r name mode scale state position; do
+while IFS="$(printf '\t')" read -r name mode scale state position expected_edid; do
     [ -n "$name" ] || continue
     printf '%s\n' "$connected" | grep -qxF -- "$name" || continue
+    if [ -n "$expected_edid" ] && [ "$expected_edid" != '-' ]; then
+        matched=0
+        for edid in /sys/class/drm/card*-"$name"/edid; do
+            [ -r "$edid" ] || continue
+            actual=$(sha256sum "$edid")
+            [ "${actual%% *}" != "$expected_edid" ] || matched=1
+        done
+        [ "$matched" -eq 1 ] || continue
+    fi
     set -- "$@" --output "$name" "--$state"
     [ "$state" = on ] || continue
     enabled=$((enabled + 1))

@@ -1,6 +1,6 @@
-require("machine")
 require("env")
 require("input")
+require("machine")
 require("gpu")
 require("appearance")
 require("workspaces")

@@ -1,3 +1,4 @@
+{{- $settings := includeTemplate "machine-settings" . | fromJson -}}
 {
     "modules-right": [
 {{- if .features.wireguard }}
@@ -21,8 +22,8 @@
     },
 {{- end }}
     "backlight": {
-{{- if eq .machine "main" }}
-        "device": "intel_backlight",
+{{- if $settings.backlight }}
+        "device": {{ $settings.backlight | quote }},
 {{- end }}
         "format": "{icon} {percent}%",
         "format-icons": ["󰃞", "󰃟", "󰃠"],

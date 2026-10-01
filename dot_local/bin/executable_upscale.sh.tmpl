@@ -1,4 +1,4 @@
-{{- $validGPUProfiles := list "nvidia" "intel-x220" "modern-amd-intel" -}}
+{{- $validGPUProfiles := list "nvidia" "intel-x220" "modern-amd-intel" "mesa" -}}
 {{- if not (has .gpuProfile $validGPUProfiles) -}}
 {{- fail (printf "invalid gpuProfile %q" .gpuProfile) -}}
 {{- end -}}

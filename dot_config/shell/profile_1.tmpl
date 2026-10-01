@@ -1,4 +1,4 @@
-{{- $validGPUProfiles := list "nvidia" "intel-x220" "modern-amd-intel" -}}
+{{- $validGPUProfiles := list "nvidia" "intel-x220" "modern-amd-intel" "mesa" -}}
 {{- if not (has .gpuProfile $validGPUProfiles) -}}
 {{- fail (printf "invalid gpuProfile %q" .gpuProfile) -}}
 {{- end -}}
@@ -44,10 +44,11 @@ export BEMENU_OPTS="-i \
 export BEMENU_BACKEND="wayland"
 export QT_SCREEN_SCALE_FACTORS="1;1"
 {{ if eq .gpuProfile "nvidia" -}}
-export LIBVA_DRIVER_NAME="nvidia"
 export __GLX_VENDOR_LIBRARY_NAME="nvidia"
-{{ else if eq .gpuProfile "intel-x220" -}}
-export LIBVA_DRIVER_NAME="i965"
+{{ end -}}
+{{- $settings := includeTemplate "machine-settings" . | fromJson }}
+{{ if ne $settings.vaapi "auto" -}}
+export LIBVA_DRIVER_NAME={{ $settings.vaapi | squote }}
 {{ end -}}
 export _JAVA_AWT_WM_NONREPARENTING="1"
 export QT_QPA_PLATFORM="wayland"

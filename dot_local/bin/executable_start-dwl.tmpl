@@ -2,7 +2,8 @@
 
 set -eu
 
-{{ if eq .gpuProfile "intel-x220" -}}
+{{- $settings := includeTemplate "machine-settings" . | fromJson }}
+{{ if eq $settings.renderer "gles2" -}}
 safe=1
 {{ else -}}
 safe=0
@@ -70,9 +71,46 @@ if [ "$safe" -eq 1 ]; then
     export WLR_RENDERER=gles2
     export DWL_COLOR_MODE=srgb
 else
+{{ if eq $settings.renderer "vulkan" -}}
     export WLR_RENDERER=vulkan
+{{ end -}}
     export DWL_COLOR_MODE=wide
 fi
+export XKB_DEFAULT_LAYOUT={{ $settings.keyboardLayout | squote }}
+export XKB_DEFAULT_OPTIONS={{ $settings.keyboardOptions | squote }}
+{{ if $settings.renderDevice -}}
+export WLR_RENDER_DRM_DEVICE={{ $settings.renderDevice | squote }}
+{{ end -}}
+{{ if $settings.mouse -}}
+export DWL_MOUSE_NAME={{ $settings.mouse | squote }}
+export DWL_MOUSE_SENSITIVITY={{ $settings.sensitivity | toString | squote }}
+{{ end -}}
+# Explicit tag/output and color preferences; no connector name is assumed by DWL.
+output_matches() {
+    [ -n "$2" ] || return 0
+    for edid in /sys/class/drm/card*-"$1"/edid; do
+        [ -r "$edid" ] || continue
+        actual=$(sha256sum "$edid")
+        [ "${actual%% *}" != "$2" ] || return 0
+    done
+    return 1
+}
+for tag in 1 2 3 4 5 6 7 8 9 10; do unset "DWL_TAG_OUTPUT_$tag"; done
+DWL_WIDE_OUTPUTS=""
+{{ range $output := $settings.outputs -}}
+{{ if ne $output.enabled false -}}
+if output_matches {{ $output.name | squote }} {{ $output.edid | default "" | squote }}; then
+    :
+{{ range $tag := $output.tags -}}
+    export DWL_TAG_OUTPUT_{{ $tag }}={{ $output.name | squote }}
+{{ end -}}
+{{ if eq ($output.color | default "srgb") "wide" -}}
+    DWL_WIDE_OUTPUTS="${DWL_WIDE_OUTPUTS}"{{ printf "%s," $output.name | squote }}
+{{ end -}}
+fi
+{{ end -}}
+{{ end -}}
+export DWL_WIDE_OUTPUTS
 
 session_bus_available() {
     [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] \

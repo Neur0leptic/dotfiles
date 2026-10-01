@@ -11,16 +11,17 @@ export EDITOR="nvim"
 export BROWSER="librewolf"
 
 {{ if eq .gpuProfile "nvidia" -}}
-export LIBVA_DRIVER_NAME="nvidia"
 export GBM_BACKEND="nvidia-drm"
 export __GLX_VENDOR_LIBRARY_NAME="nvidia"
 export ENABLE_HDR_WSI="1"
 export __GL_GSYNC_ALLOWED="1"
 export __GL_VRR_ALLOWED="0"
-{{ else if eq .gpuProfile "intel-x220" -}}
-export LIBVA_DRIVER_NAME="i965"
-{{ else if ne .gpuProfile "modern-amd-intel" -}}
+{{ else if not (has .gpuProfile (list "modern-amd-intel" "intel-x220" "mesa")) -}}
 {{ fail (printf "invalid GPU profile %q" .gpuProfile) }}
+{{ end -}}
+{{- $settings := includeTemplate "machine-settings" . | fromJson }}
+{{ if ne $settings.vaapi "auto" -}}
+export LIBVA_DRIVER_NAME={{ $settings.vaapi | squote }}
 {{ end -}}
 
 {{ if eq .desktop "hyprland" -}}

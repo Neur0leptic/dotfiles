@@ -137,89 +137,50 @@ no_download() {
         transmission-remote -t "${id}" -G "all"
 }
 
-# Init system detection
-SVC_CTL="systemctl"
-SVC_ENABLE="systemctl enable"
-SVC_DISABLE="systemctl disable"
-SVC_ACTIVE="systemctl is-active --quiet"
-command -v rc-service >/dev/null 2>&1 && {
-    SVC_CTL="rc-service"
-    SVC_ENABLE="rc-update add"
-    SVC_DISABLE="rc-update del"
-    SVC_ACTIVE="rc-service status >/dev/null 2>&1"
+# Service control follows the installed distribution; package selection belongs
+# to the installer's optional full-tier torrent choice.
+privileged() {
+        if command -v doas >/dev/null 2>&1; then set -- doas "$@"; else set -- sudo "$@"; fi
+        # A compositor keybinding has no terminal for password authentication.
+        if [ -t 0 ]; then "$@"; else foot -e "$@"; fi
 }
 
-install_sv() {
-        n "Installing Prowlarr & Flaresolverr from AUR..."
-        n "This can take a while..."
-
-        yay -S --noconfirm prowlarr-bin flaresolverr || {
-                n "Installation failed. Check your internet connection."
-                exit 1
-        }
-
+service_installed() {
         if command -v rc-service >/dev/null 2>&1; then
-                sudo rc-update add prowlarr default || {
-                        n "Failed to enable Prowlarr"
-                        exit 1
-                }
-                sudo rc-service prowlarr start || {
-                        n "Failed to start Prowlarr"
-                        exit 1
-                }
-                sudo rc-update add flaresolverr default || {
-                        n "Failed to enable Flaresolverr"
-                        exit 1
-                }
-                sudo rc-service flaresolverr start || {
-                        n "Failed to start Flaresolverr"
-                        exit 1
-                }
+                [ -x "/etc/init.d/$1" ]
         else
-                sudo systemctl enable --now prowlarr.service || {
-                        n "Failed to enable Prowlarr service"
-                        exit 1
-                }
-                sudo systemctl enable --now flaresolverr.service || {
-                        n "Failed to enable Flaresolverr service"
-                        exit 1
-                }
+                systemctl cat "$1.service" >/dev/null 2>&1
         fi
-
-        n "Installation finished successfully"
-        n "Services started and enabled"
 }
 
 search() {
-        # Prowlarr kurulu mu kontrol et
-        command -v prowlarr > "/dev/null" || pacman -Q prowlarr-bin > "/dev/null" 2>&1 || {
-                SELECTION="$(printf "Yes\0icon\037dialog-yes\nNo\0icon\037dialog-no" | m "Install Prowlarr & Flaresolverr?")"
-
-                [ "${SELECTION}" = "Yes" ] && install_sv || exit
+        service_installed prowlarr && service_installed flaresolverr || {
+                n "Search needs Prowlarr and FlareSolverr. Select torrent tools in the installer's full tier."
+                return 1
         }
 
-        # Servislerin calisip calismadigini kontrol et
+        # Start the optional services only when search is requested.
         if command -v rc-service >/dev/null 2>&1; then
-                if ! sudo rc-service prowlarr status >/dev/null 2>&1; then
+                if ! rc-service prowlarr status >/dev/null 2>&1; then
                         n "Starting Prowlarr..."
-                        sudo rc-service prowlarr start
+                        privileged rc-service prowlarr start || return 1
                 fi
-                if ! sudo rc-service flaresolverr status >/dev/null 2>&1; then
+                if ! rc-service flaresolverr status >/dev/null 2>&1; then
                         n "Starting Flaresolverr..."
-                        sudo rc-service flaresolverr start
+                        privileged rc-service flaresolverr start || return 1
                 fi
         else
                 systemctl is-active --quiet prowlarr.service || {
                         n "Starting Prowlarr..."
-                        sudo systemctl start prowlarr.service
+                        privileged systemctl start prowlarr.service || return 1
                 }
                 systemctl is-active --quiet flaresolverr.service || {
                         n "Starting Flaresolverr..."
-                        sudo systemctl start flaresolverr.service
+                        privileged systemctl start flaresolverr.service || return 1
                 }
         fi
 
-        # Servislerin hazir olmasini bekle
+        # Wait for both local web interfaces.
         i="0"
         while [ "${i}" -lt "15" ]; do
                 curl -s "http://localhost:9696" > "/dev/null" &&
@@ -230,7 +191,7 @@ search() {
 
         [ "${i}" -lt "15" ] || {
                 n "Services did not start properly."
-                n "Check: sudo ${SVC_CTL} status prowlarr flaresolverr"
+                n "Check the prowlarr and flaresolverr service logs."
                 exit
         }
 
@@ -241,10 +202,10 @@ search() {
 
 killsv() {
         if command -v rc-service >/dev/null 2>&1; then
-                sudo rc-service prowlarr stop 2>/dev/null
-                sudo rc-service flaresolverr stop 2>/dev/null
+                privileged rc-service prowlarr stop 2>/dev/null
+                privileged rc-service flaresolverr stop 2>/dev/null
         else
-                sudo systemctl stop prowlarr.service flaresolverr.service 2>/dev/null
+                privileged systemctl stop prowlarr.service flaresolverr.service 2>/dev/null
         fi
         kill -9 $(pgrep -f 'transmission-daemon') 2>/dev/null
         n "Services are closed"
@@ -299,6 +260,13 @@ list() {
 		'
         footclient -a torrent-float zsh -c 'while true; do tput cup 0 0; transmission-remote -t all -i | awk '"'${awk_script}'"'; sleep 0.1; done'
 }
+
+for tool in transmission-daemon transmission-remote hck; do
+        command -v "$tool" >/dev/null 2>&1 || {
+                n "Missing $tool. Select optional torrent tools in the installer's full tier."
+                exit 1
+        }
+done
 
 C="$(printf "List\0icon\037text-x-generic\nAdd\0icon\037list-add\nRemove\0icon\037user-trash\nTorrent Prio\0icon\037preferences-system\nFile Prio\0icon\037application-x-bittorrent\nStart/Stop\0icon\037media-playback-paused\nDisable All Files\0icon\037media-playback-stopped\nSearch\0icon\037system-search\nKillall\0icon\037system-shutdown\nDaemon\0icon\037transmission" | m "Torrents")"
 

@@ -1,1 +1,9 @@
 include=~~/gpus/{{ .gpuProfile }}.conf
+{{- $settings := includeTemplate "machine-settings" . | fromJson }}
+{{ if eq $settings.renderer "gles2" -}}
+gpu-api=opengl
+{{ else if eq $settings.renderer "vulkan" -}}
+gpu-api=vulkan
+{{ else -}}
+gpu-api=auto
+{{ end -}}

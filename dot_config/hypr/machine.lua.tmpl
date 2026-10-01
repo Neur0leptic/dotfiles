@@ -1,3 +1,40 @@
-require("machines.{{ .machine }}.monitors")
-require("machines.{{ .machine }}.input")
-require("machines.{{ .machine }}.workspaces")
+{{- $settings := includeTemplate "machine-settings" . | fromJson -}}
+-- Concrete machine answers, shared with the DWL installation path.
+local function output_matches(name, expected)
+    if expected == "" then return true end
+    if not name:match("^[%w_.-]+$") then return false end
+    local hashes = io.popen("sha256sum /sys/class/drm/card*-" .. name .. "/edid 2>/dev/null")
+    if not hashes then return false end
+    local matched = false
+    for line in hashes:lines() do
+        if line:match("^([a-f0-9]+)") == expected then matched = true end
+    end
+    hashes:close()
+    return matched
+end
+
+{{ range $output := $settings.outputs -}}
+if output_matches({{ $output.name | quote }}, {{ $output.edid | default "" | quote }}) then
+hl.monitor({ output = {{ $output.name | quote }},
+{{ if eq $output.enabled false -}}
+    disabled = true,
+{{ else -}}
+    mode = {{ $output.mode | default "preferred" | quote }},
+    position = {{ $output.position | default "auto" | quote }},
+    scale = {{ $output.scale | default 1 }},
+{{ if eq ($output.color | default "srgb") "wide" -}}
+    bitdepth = 10, supports_wide_color = true, supports_hdr = true,
+    sdr_min_luminance = 0, sdr_max_luminance = 203,
+    min_luminance = 0, max_luminance = 800, cm = "wide",
+{{ end -}}
+{{ end -}}
+})
+{{ range $index, $tag := $output.tags -}}
+hl.workspace_rule({ workspace = {{ $tag | toString | quote }}, monitor = {{ $output.name | quote }}{{ if eq $index 0 }}, default = true{{ end }} })
+{{ end -}}
+end
+{{ end -}}
+hl.config({ input = { kb_layout = {{ $settings.keyboardLayout | quote }}, kb_options = {{ $settings.keyboardOptions | quote }} } })
+{{ if $settings.mouse -}}
+hl.device({ name = {{ $settings.mouse | quote }}, sensitivity = {{ $settings.sensitivity }} })
+{{ end -}}

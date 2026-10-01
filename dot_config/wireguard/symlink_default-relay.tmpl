@@ -1,1 +1,2 @@
-default-relay-{{ .machine }}
+{{- $settings := includeTemplate "machine-settings" . | fromJson -}}
+default-relay-{{ $settings.wireguardProfile }}

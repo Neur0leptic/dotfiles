@@ -25,13 +25,8 @@ docs/**
 .config/waybar/**
 {{- end }}
 
-# Only the selected physical-machine variant is applied.
-{{- if ne .machine "main" }}
-.config/hypr/machines/main/**
-{{- end }}
-{{- if ne .machine "generic" }}
-.config/hypr/machines/generic/**
-{{- end }}
+# Historical presets are replaced by the concrete machine-settings data.
+.config/hypr/machines/**
 
 # GPU variants are synchronized through Git but only one is active locally.
 {{- if ne .gpuProfile "nvidia" }}
@@ -45,6 +40,10 @@ docs/**
 {{- if ne .gpuProfile "modern-amd-intel" }}
 .config/hypr/gpus/modern-amd-intel.lua
 .config/mpv/gpus/modern-amd-intel.conf
+{{- end }}
+{{- if ne .gpuProfile "mesa" }}
+.config/hypr/gpus/mesa.lua
+.config/mpv/gpus/mesa.conf
 {{- end }}
 
 {{- if not .features.mail }}
@@ -70,7 +69,8 @@ docs/**
 .local/bin/waybar_vpn.sh
 {{- end }}
 
-{{- if eq .machine "generic" }}
+{{- $settings := includeTemplate "machine-settings" . | fromJson }}
+{{- if not $settings.wireguardProfile }}
 .config/wireguard/device.json
 .config/wireguard/default-relay
 {{- end }}

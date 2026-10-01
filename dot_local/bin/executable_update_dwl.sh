@@ -13,6 +13,69 @@ if [ -r /etc/os-release ]; then
     . /etc/os-release
 fi
 
+update_packaged_dwl() (
+    patch="${XDG_CONFIG_HOME:-$HOME/.config}/dwl/patches/0001-neuroleptic.patch"
+    protocol="${XDG_CONFIG_HOME:-$HOME/.config}/dwl/protocols/dwl-ipc-unstable-v2.xml"
+    provenance=/usr/share/dwl/neurogentoo
+    [ -r "$patch" ] && [ -r "$protocol" ] || {
+        printf 'Synchronize the DWL patch/protocol with the existing Chezmoi sync script first.\n' >&2
+        exit 1
+    }
+    if cmp -s "$patch" "$provenance/desktop.patch" && cmp -s "$protocol" "$provenance/dwl-ipc-unstable-v2.xml"; then
+        printf 'Packaged DWL already matches the synchronized patch/protocol; no rebuild needed.\n'
+        exit 0
+    fi
+    source=$(chezmoi source-path)
+    origin=$(git -C "$source" remote get-url origin)
+    case "$origin" in
+        https://github.com/Neur0leptic/dotfiles.git|git@github.com:Neur0leptic/dotfiles.git) ;;
+        *) printf 'Unexpected public dotfiles origin; no package was changed.\n' >&2; exit 1 ;;
+    esac
+    [ "$(git -C "$source" symbolic-ref --quiet --short HEAD)" = main ] &&
+        [ "$(git -C "$source" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}')" = origin/main ] &&
+        [ -z "$(git -C "$source" status --porcelain --untracked-files=all)" ] &&
+        git -C "$source" merge-base --is-ancestor HEAD origin/main || {
+        printf 'Use the existing Chezmoi sync workflow to publish/reconcile dotfiles before rebuilding DWL.\n' >&2
+        exit 1
+    }
+    ref=$(git -C "$source" rev-parse HEAD)
+    git -C "$source" show "$ref:dot_config/dwl/patches/0001-neuroleptic.patch" | cmp -s "$patch" - &&
+        git -C "$source" show "$ref:dot_config/dwl/protocols/dwl-ipc-unstable-v2.xml" | cmp -s "$protocol" - || {
+        printf 'The deployed patch/protocol differs from the synchronized source; no package was changed.\n' >&2
+        exit 1
+    }
+    case "${ID:-} ${ID_LIKE:-}" in
+        *gentoo*)
+            doas env "EGIT_OVERRIDE_COMMIT_NEUR0LEPTIC_DOTFILES=$ref" \
+                emerge --oneshot --keep-going=n '=gui-wm/dwl-9999::neurogentoo'
+            ;;
+        *arch*)
+            [ -r "$provenance/PKGBUILD" ] || {
+                printf 'The installed DWL package lacks its live PKGBUILD; update it through the installer first.\n' >&2
+                exit 1
+            }
+            builddir=$(mktemp -d "${TMPDIR:-/tmp}/dwl-package.XXXXXX")
+            trap 'rm -rf -- "$builddir"' 0
+            trap 'exit 130' 1 2 15
+            cp "$provenance/PKGBUILD" "$builddir/PKGBUILD"
+            cd "$builddir"
+            DWL_DOTFILES_REF="$ref" makepkg --syncdeps --install --clean --force
+            ;;
+        *) printf 'Unsupported distribution for packaged DWL update.\n' >&2; exit 1 ;;
+    esac
+    cmp -s "$patch" "$provenance/desktop.patch" && cmp -s "$protocol" "$provenance/dwl-ipc-unstable-v2.xml" || {
+        printf 'Rebuilt package inputs differ from the synchronized patch/protocol.\n' >&2
+        exit 1
+    }
+    terminate_dwl
+)
+
+# Keep package-owned installations package-owned; standalone paths stay unchanged.
+if [ -L "$HOME/.local/bin/dwl" ] && [ "$(readlink -f "$HOME/.local/bin/dwl")" = /usr/bin/dwl ]; then
+    update_packaged_dwl
+    exit 0
+fi
+
 case "${ID:-} ${ID_LIKE:-}" in
     *arch*)
         src="$HOME/.local/src/dwl"

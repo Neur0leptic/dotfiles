@@ -3,8 +3,9 @@
 {{- fail "GPG recipient fingerprint must not be empty" -}}
 {{- end -}}
 {{- $desktop := promptChoiceOnce . "desktop" "Desktop profile" (list "hyprland" "dwl" "none") -}}
-{{- $gpuProfile := promptChoiceOnce . "gpuProfile" "GPU profile" (list "nvidia" "intel-x220" "modern-amd-intel") -}}
+{{- $gpuProfile := promptChoiceOnce . "gpuProfile" "GPU profile" (list "mesa" "nvidia" "intel-x220" "modern-amd-intel") -}}
 {{- $machine := promptChoiceOnce . "machine" "Machine profile" (list "generic" "main") -}}
+{{- $machineSettings := promptStringOnce . "machineSettings" "Machine settings JSON (empty for portable defaults)" -}}
 {{- $dwlOutputs := get . "dwlOutputs" | default "" -}}
 {{- if eq $desktop "dwl" -}}
 {{- $dwlOutputs = promptStringOnce . "dwlOutputs" "DWL output configuration JSON (empty for machine defaults)" -}}
@@ -26,6 +27,7 @@ recipient = {{ $gpgRecipient | quote }}
 desktop = {{ $desktop | quote }}
 gpuProfile = {{ $gpuProfile | quote }}
 machine = {{ $machine | quote }}
+machineSettings = {{ $machineSettings | quote }}
 dwlOutputs = {{ $dwlOutputs | quote }}
 
 [data.features]

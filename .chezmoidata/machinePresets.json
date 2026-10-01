@@ -1,0 +1,20 @@
+{
+  "machinePresets": {
+    "main": {
+      "match": {"sys_vendor": "HP", "product_name": "OMEN by HP Laptop 15-dh1xxx"},
+      "settings": {
+        "renderer": "vulkan", "vaapi": "nvidia", "keyboardLayout": "us,de,tr",
+        "keyboardOptions": "grp:alt_shift_toggle", "mouse": "epic-mouse-v1",
+        "sensitivity": -0.5, "backlight": "intel_backlight",
+        "outputs": [
+          {"name": "HDMI-A-1", "mode": "3840x2160@60", "scale": 2, "enabled": true, "position": "0,0", "tags": [1,2,3,4,5], "color": "wide", "edid": "b08039357245f181fa52386bee62fbf668b1a4637bbb773c5758a07fc83bf0d9"},
+          {"name": "eDP-1", "mode": "1920x1080@144.028", "scale": 1.5, "enabled": true, "position": "1920,0", "tags": [6,7,8,9,10], "color": "srgb", "edid": "4267850cf048ca1967df7fc87a6c4506cdebc1548120098187af8682c336f29d"}
+        ]
+      }
+    },
+    "x220": {
+      "match": {"sys_vendor": "LENOVO", "product_version": "ThinkPad X220"},
+      "settings": {"renderer": "gles2", "vaapi": "i965", "keyboardLayout": "us,de,tr", "keyboardOptions": "grp:alt_shift_toggle", "outputs": []}
+    }
+  }
+}

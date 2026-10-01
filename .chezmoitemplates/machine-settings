@@ -1,0 +1,24 @@
+{{- $settings := dict "schema" 1 "outputs" (list) "renderer" "auto" "renderDevice" "" "vaapi" "auto" "keyboardLayout" "us" "keyboardOptions" "grp:alt_shift_toggle" "mouse" "" "sensitivity" 0 "backlight" "" "wireguardProfile" "" -}}
+{{- $raw := get . "machineSettings" | default "" -}}
+{{- if $raw -}}
+{{- $settings = mergeOverwrite $settings ($raw | fromJson) -}}
+{{- else if and (eq .chezmoi.os "linux") (eq .machine "main") -}}
+{{- $vendor := output "cat" "/sys/class/dmi/id/sys_vendor" | trim -}}
+{{- $product := output "cat" "/sys/class/dmi/id/product_name" | trim -}}
+{{- $preset := .machinePresets.main -}}
+{{- if and (eq $vendor $preset.match.sys_vendor) (eq $product $preset.match.product_name) -}}
+{{- $settings = mergeOverwrite $settings $preset.settings -}}
+{{- end -}}
+{{- else if eq .gpuProfile "intel-x220" -}}
+{{- $_ := set $settings "renderer" "gles2" -}}
+{{- $_ := set $settings "vaapi" "i965" -}}
+{{- end -}}
+{{- if not (has $settings.renderer (list "auto" "gles2" "vulkan")) -}}
+{{- fail "renderer must be auto, gles2 or vulkan" -}}
+{{- end -}}
+{{- $outputs := list -}}
+{{- range $output := $settings.outputs -}}
+{{- $outputs = append $outputs (mergeOverwrite (dict "enabled" true "mode" "preferred" "scale" 1 "position" "auto" "tags" (list) "color" "srgb" "edid" "") $output) -}}
+{{- end -}}
+{{- $_ := set $settings "outputs" $outputs -}}
+{{- $settings | toJson -}}
