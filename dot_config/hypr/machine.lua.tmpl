@@ -20,7 +20,7 @@ hl.monitor({ output = {{ $output.name | quote }},
     disabled = true,
 {{ else -}}
     mode = {{ $output.mode | default "preferred" | quote }},
-    position = {{ $output.position | default "auto" | quote }},
+    position = {{ $output.position | default "auto" | replace "," "x" | quote }},
     scale = {{ $output.scale | default 1 }},
 {{ if eq ($output.color | default "srgb") "wide" -}}
     bitdepth = 10, supports_wide_color = true, supports_hdr = true,
