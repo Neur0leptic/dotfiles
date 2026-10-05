@@ -1,0 +1,89 @@
+return {
+	{
+		"maxmx03/fluoromachine.nvim",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			local fm = require("fluoromachine")
+			fm.setup({
+				glow = true,
+				brightness = 0.05,
+				theme = "retrowave",
+				transparent = true,
+
+				styles = {
+					comments = { italic = true },
+					functions = { bold = true },
+					keywords = { bold = true },
+					variables = { italic = true },
+					parameters = { italic = true },
+				},
+
+			colors = function(_, color)
+				local darken = color.darken
+				return {
+					bg = "#${BASE00}",
+					bgdark = darken("#${BASE00}", 20),
+					pink = "#${BASE0E}",
+					purple = "#${BASE15}",
+					blue = "#${BASE0D}",
+					green = "#${BASE0B}",
+					yellow = "#${BASE0A}",
+					orange = "#${BASE09}",
+					red = "#${BASE08}",
+					cyan = "#${BASE0C}",
+					white = "#${BASE05}",
+					black = "#${BASE15}",
+					purple2 = "#${BASE05}",
+					cyan2 = "#${BASE0C}",
+					green2 = "#${BASE0B}",
+				}
+			end,
+
+				overrides = function(c, color)
+					return {
+						TelescopeResultsBorder = { fg = c.bgdark, bg = c.bgdark },
+						TelescopeResultsNormal = { bg = c.bgdark },
+						TelescopePreviewNormal = { bg = c.bg },
+
+						["@comment"] = { italic = true, fg = color.darken(c.purple, 30) },
+						["@keyword"] = { fg = c.pink, bold = true },
+					}
+				end,
+				plugins = {
+					bufferline = true,
+					cmp = true,
+					dashboard = true,
+					editor = true,
+					gitsign = true,
+					hop = true,
+					ibl = true,
+					illuminate = true,
+					lazy = true,
+					minicursor = true,
+					ministarter = true,
+					minitabline = true,
+					ministatusline = true,
+					navic = true,
+					neogit = true,
+					neotree = true,
+					noice = true,
+					notify = true,
+					lspconfig = true,
+					syntax = true,
+					telescope = true,
+					treesitter = true,
+					tree = true,
+					wk = true,
+				},
+			})
+			vim.cmd.colorscheme("fluoromachine")
+		end,
+	},
+	{
+		"LazyVim/LazyVim",
+		opts = {
+			colorscheme = "fluoromachine",
+		},
+	},
+}

@@ -1,0 +1,131 @@
+/* Scope native control tokens to internal pages; leave websites untouched. */
+@-moz-document url-prefix("about:") {
+  @media not (forced-colors) {
+    :root {
+      color-scheme: dark !important;
+      accent-color: #99d8fe;
+      scrollbar-color: #463465 #000000;
+      --background-color-canvas: #000000 !important;
+      --background-color-box: #0d0d14 !important;
+      --text-color: #e8e8e8 !important;
+      --text-color-deemphasized: color-mix(in srgb, #e8e8e8 70%, #000000) !important;
+      --text-color-disabled: color-mix(in srgb, #e8e8e8 45%, #000000) !important;
+      --text-color-error: #f95556 !important;
+      --color-accent-primary: #99d8fe !important;
+      --color-accent-primary-hover: #b3e2fe !important;
+      --color-accent-primary-active: #3bf0f4 !important;
+      --color-accent-primary-selected: #99d8fe !important;
+      --color-accent-attention: #30F7BE !important;
+      --focus-outline-color: #3bf0f4 !important;
+      --border-color: #463465 !important;
+      --border-color-deemphasized: #1c272a !important;
+      --border-color-interactive: #463465 !important;
+      --border-color-interactive-hover: #99d8fe !important;
+      --border-color-interactive-active: #3bf0f4 !important;
+      --border-color-error: #f95556 !important;
+      --button-background-color: #0d0d14 !important;
+      --button-background-color-hover: #1c272a !important;
+      --button-background-color-active: #463465 !important;
+      --button-text-color: #e8e8e8 !important;
+      --button-border-color: #463465 !important;
+      --button-border-color-hover: #99d8fe !important;
+      --button-border-color-active: #3bf0f4 !important;
+      --button-border-color-ghost: transparent !important;
+      --button-background-color-ghost-hover: #463465 !important;
+      --button-background-color-ghost-active: #1c272a !important;
+      --button-background-color-menu-hover: #463465 !important;
+      --button-background-color-menu-active: #463465 !important;
+      --button-background-color-menu-selected: #463465 !important;
+      --button-text-color-primary: #000000 !important;
+      --button-background-color-primary-disabled: #293542 !important;
+      --button-text-color-primary-disabled: #e8e8e8 !important;
+      --button-background-color-destructive: #f95556 !important;
+      --button-background-color-destructive-hover: color-mix(in srgb, #f95556 85%, #e8e8e8) !important;
+      --button-background-color-destructive-active: color-mix(in srgb, #f95556 90%, #000000) !important;
+      --button-text-color-destructive: #000000 !important;
+      --input-text-background-color: #0d0d14 !important;
+      --input-text-color: #e8e8e8 !important;
+      --input-text-border-color: #463465 !important;
+      --input-border-color-warning: #F8FD00 !important;
+      --input-box-shadow-color-warning: color-mix(in srgb, #F8FD00 20%, transparent) !important;
+      --card-background-color: #0d0d14 !important;
+      --card-border-color: #463465 !important;
+      --card-border-radius: 8px !important;
+      --button-border-radius: 6px !important;
+      --link-color: #3bf0f4 !important;
+      --link-color-hover: #80f9fc !important;
+      --link-color-active: #99d8fe !important;
+      --link-color-visited: #e9c4fd !important;
+      --background-color-information: color-mix(in srgb, #99d8fe 12%, #000000) !important;
+      --background-color-warning: color-mix(in srgb, #F8FD00 10%, #000000) !important;
+      --background-color-critical: color-mix(in srgb, #da3030 15%, #000000) !important;
+      --background-color-success: color-mix(in srgb, #30F7BE 10%, #000000) !important;
+      --icon-color-information: #99d8fe !important;
+      --icon-color-warning: #F8FD00 !important;
+      --icon-color-critical: #f95556 !important;
+      --icon-color-success: #30F7BE !important;
+      --table-background-color: #0d0d14 !important;
+      --table-border-color: #463465 !important;
+      --table-header-background-color: #1c272a !important;
+      --table-header-text-color: #99d8fe !important;
+      --table-row-background-color-alternate: #0d0d14 !important;
+      --sidebar-background-color: #000000 !important;
+      --sidebar-text-color: #e8e8e8 !important;
+      --panel-background-color: #000000 !important;
+      --panel-text-color: #e8e8e8 !important;
+      --panel-border-color: #99d8fe !important;
+      --panel-separator-color: #463465 !important;
+      --popup-background-color: #0d0d14 !important;
+      --popup-border-color: #99d8fe !important;
+    }
+
+    html, body {
+      background-color: #000000 !important;
+      color: #e8e8e8 !important;
+    }
+
+    /* Component tokens must be set on the host, not only inherited from root. */
+    moz-toggle {
+      --toggle-background-color: #1c272a !important;
+      --toggle-background-color-hover: #293542 !important;
+      --toggle-background-color-active: #463465 !important;
+      --toggle-background-color-pressed: #30F7BE !important;
+      --toggle-background-color-pressed-hover: #94fed6 !important;
+      --toggle-background-color-pressed-active: #3bf0f4 !important;
+      --toggle-border-color: #463465 !important;
+      --toggle-border-color-hover: #99d8fe !important;
+      --toggle-border-color-active: #3bf0f4 !important;
+      --toggle-dot-background-color: #e8e8e8 !important;
+      --toggle-dot-background-color-hover: #e8e8e8 !important;
+      --toggle-dot-background-color-active: #e8e8e8 !important;
+      --toggle-dot-background-color-on-pressed: #000000 !important;
+    }
+
+    moz-message-bar {
+      --message-bar-background-color-warning: var(--background-color-warning) !important;
+      --message-bar-text-color: #e8e8e8 !important;
+    }
+
+    ::selection {
+      background: #463465 !important;
+      color: #e8e8e8 !important;
+    }
+  }
+}
+
+@-moz-document url-prefix("about:preferences"), url-prefix("about:addons") {
+  @media not (forced-colors) {
+    .sidebar-pane, .sticky-container, .page-header {
+      background-color: #000000 !important;
+    }
+
+    #categories .category:not([selected="true"], [disabled]):hover {
+      background-color: #0d0d14 !important;
+    }
+
+    #categories .category:is([selected="true"], [aria-selected="true"]) {
+      background-color: #463465 !important;
+      color: #99d8fe !important;
+    }
+  }
+}

@@ -1,0 +1,147 @@
+from aqt import mw
+from aqt.gui_hooks import webview_will_set_content
+from anki.hooks import wrap
+
+RETROWAVE_CSS = """
+<style>
+body {
+    background-color: #${BASE00} !important;
+    color: #${BASE05} !important;
+}
+
+.card {
+    background-color: #${BASE00} !important;
+    color: #${BASE05} !important;
+}
+
+tr.deck-row {
+    background-color: transparent !important;
+}
+
+tr.deck-row:hover {
+    background-color: #${BASE0E} !important;
+}
+
+tr.deck-row.current {
+    background-color: #${BASE02} !important;
+}
+
+tr.deck-row.selected {
+    background-color: #${BASE02} !important;
+}
+
+td {
+    border-color: #${BASE02} !important;
+    color: #${BASE05} !important;
+}
+
+.nightMode tr.deck-row.current,
+.nightMode tr.deck-row.selected,
+tr[class*="selected"],
+tr[class*="current"] {
+    background-color: #${BASE02} !important;
+}
+
+.gear {
+    color: #${BASE02} !important;
+}
+
+.gear:hover {
+    color: #${BASE0E} !important;
+}
+
+button {
+    background-color: #${BASE02} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE02} !important;
+    border-radius: 4px !important;
+    padding: 8px 16px !important;
+}
+
+button:hover {
+    background-color: #${BASE0E} !important;
+    border: 1px solid #${BASE15} !important;
+}
+
+a {
+    color: #${BASE0B} !important;
+}
+
+a:hover {
+    color: #${BASE12} !important;
+}
+
+img {
+    background-color: transparent !important;
+}
+
+input, textarea {
+    background-color: #${BASE01} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE02} !important;
+}
+
+input:focus, textarea:focus {
+    border: 1px solid #${BASE0E} !important;
+}
+
+input::selection, textarea::selection {
+    background-color: #${BASE02} !important;
+    color: #${BASE05} !important;
+}
+
+pre, code {
+    background-color: #${BASE01} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE02} !important;
+}
+
+table {
+    border-color: #${BASE02} !important;
+}
+
+th {
+    border-color: #${BASE02} !important;
+    color: #${BASE05} !important;
+    background-color: #${BASE02} !important;
+}
+
+::selection {
+    background-color: #${BASE02} !important;
+    color: #${BASE05} !important;
+}
+
+.progress {
+    background-color: #${BASE0B} !important;
+}
+
+.review-buttons button:nth-child(1) {
+    background-color: #${BASE08} !important;
+}
+
+.review-buttons button:nth-child(1):hover {
+    background-color: #${BASE11} !important;
+}
+
+.review-buttons button:nth-child(4) {
+    background-color: #${BASE0B} !important;
+    color: #${BASE00} !important;
+}
+
+.review-buttons button:nth-child(4):hover {
+    background-color: #${BASE12} !important;
+}
+
+[style*="background-color: rgb(122, 80, 59)"],
+[style*="background-color: rgb(115, 71, 51)"],
+[style*="background-color: #7a503b"],
+[style*="background-color: #734733"] {
+    background-color: #${BASE02} !important;
+}
+</style>
+"""
+
+def on_webview_will_set_content(web_content, context):
+    web_content.head += RETROWAVE_CSS
+
+webview_will_set_content.append(on_webview_will_set_content)

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Neurowave
+Comment=Cyberdeck Retrowave theme — dark terminal-inspired palette
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=Neurowave
+MetacityTheme=Neurowave
+IconTheme=candy-icons
+CursorTheme=catppuccin-mocha-sky-cursors
+ButtonLayout=close,minimize,maximize:menu

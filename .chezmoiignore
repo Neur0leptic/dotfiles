@@ -7,6 +7,9 @@ docs/**
 {{- if ne .chezmoi.os "linux" }}
 .config/**
 .local/bin/**
+.librewolf/**
+.local/share/themes/Neurowave/**
+.local/share/Kvantum/Neurowave/**
 {{- end }}
 
 # Desktop-specific sources remain in Git but are only applied when selected.
@@ -23,6 +26,15 @@ docs/**
 .config/hypr/**
 .config/swayidle/**
 .config/waybar/**
+.config/foot/**
+.config/librewolf/**
+.config/helium-browser-theme.json
+.config/browser-extensions.json
+.librewolf/**
+.local/share/themes/Neurowave/**
+.local/share/Kvantum/Neurowave/**
+.local/bin/setup_librewolf.sh
+.local/bin/setup_browser_theme.sh
 {{- end }}
 
 # Historical presets are replaced by the concrete machine-settings data.

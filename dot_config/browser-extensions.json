@@ -1,0 +1,39 @@
+{
+  "librewolf": {
+    "ExtensionSettings": {
+      "uBlock0@raymondhill.net": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/uBlock0@raymondhill.net/latest.xpi",
+        "private_browsing": true
+      },
+      "{d7742d87-e61d-4b78-b8a1-b469842139fa}": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/{d7742d87-e61d-4b78-b8a1-b469842139fa}/latest.xpi"
+      },
+      "idcac-pub@guus.ninja": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/idcac-pub@guus.ninja/latest.xpi"
+      },
+      "jid1-QoFqdK4qzUfGWQ@jetpack": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/jid1-QoFqdK4qzUfGWQ@jetpack/latest.xpi"
+      },
+      "magnolia@12.34": {
+        "installation_mode": "normal_installed",
+        "update_manifest_url": "https://gitflic.ru/project/magnolia1234/bpc_updates/blob/raw?file=updates.json"
+      }
+    }
+  },
+  "helium": {
+    "ExtensionSettings": {
+      "dbepggeogbaibhgnhhndojpepiihcmeb": {
+        "installation_mode": "normal_installed",
+        "update_url": "https://update-url-to-be-replaced.qjz9zk"
+      },
+      "edibdbjcniadpccecjdfdjjppcpchdlm": {
+        "installation_mode": "normal_installed",
+        "update_url": "https://update-url-to-be-replaced.qjz9zk"
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+font=BlexMono Nerd Font Mono:size=12:weight=medium
+pad=0x0
+
+[colors-dark]
+background=${BASE00}
+foreground=${BASE05}
+
+## Normal colors
+regular0=${BASE00}
+regular1=${BASE08}
+regular2=${BASE0B}
+regular3=${BASE0A}
+regular4=${BASE0D}
+regular5=${BASE0E}
+regular6=${BASE0C}
+regular7=${BASE05}
+
+## Bright colors
+bright0=${BASE10}
+bright1=${BASE11}
+bright2=${BASE12}
+bright3=${BASE13}
+bright4=${BASE14}
+bright5=${BASE15}
+bright6=${BASE16}
+bright7=${BASE17}
+
+## Selection
+selection-background=${BASE02}
+selection-foreground=${BASE05}
+
+## Cursor
+cursor=${BASE00} ${BASE0C}

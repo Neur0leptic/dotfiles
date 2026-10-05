@@ -1,0 +1,131 @@
+/* Scope native control tokens to internal pages; leave websites untouched. */
+@-moz-document url-prefix("about:") {
+  @media not (forced-colors) {
+    :root {
+      color-scheme: dark !important;
+      accent-color: #${BASE0D};
+      scrollbar-color: #${BASE02} #${BASE00};
+      --background-color-canvas: #${BASE00} !important;
+      --background-color-box: #${BASE01} !important;
+      --text-color: #${BASE05} !important;
+      --text-color-deemphasized: color-mix(in srgb, #${BASE05} 70%, #${BASE00}) !important;
+      --text-color-disabled: color-mix(in srgb, #${BASE05} 45%, #${BASE00}) !important;
+      --text-color-error: #${BASE11} !important;
+      --color-accent-primary: #${BASE0D} !important;
+      --color-accent-primary-hover: #${BASE14} !important;
+      --color-accent-primary-active: #${BASE0C} !important;
+      --color-accent-primary-selected: #${BASE0D} !important;
+      --color-accent-attention: #${BASE0B} !important;
+      --focus-outline-color: #${BASE0C} !important;
+      --border-color: #${BASE02} !important;
+      --border-color-deemphasized: #${BASE03} !important;
+      --border-color-interactive: #${BASE02} !important;
+      --border-color-interactive-hover: #${BASE0D} !important;
+      --border-color-interactive-active: #${BASE0C} !important;
+      --border-color-error: #${BASE11} !important;
+      --button-background-color: #${BASE01} !important;
+      --button-background-color-hover: #${BASE03} !important;
+      --button-background-color-active: #${BASE02} !important;
+      --button-text-color: #${BASE05} !important;
+      --button-border-color: #${BASE02} !important;
+      --button-border-color-hover: #${BASE0D} !important;
+      --button-border-color-active: #${BASE0C} !important;
+      --button-border-color-ghost: transparent !important;
+      --button-background-color-ghost-hover: #${BASE02} !important;
+      --button-background-color-ghost-active: #${BASE03} !important;
+      --button-background-color-menu-hover: #${BASE02} !important;
+      --button-background-color-menu-active: #${BASE02} !important;
+      --button-background-color-menu-selected: #${BASE02} !important;
+      --button-text-color-primary: #${BASE00} !important;
+      --button-background-color-primary-disabled: #${BASE04} !important;
+      --button-text-color-primary-disabled: #${BASE05} !important;
+      --button-background-color-destructive: #${BASE11} !important;
+      --button-background-color-destructive-hover: color-mix(in srgb, #${BASE11} 85%, #${BASE05}) !important;
+      --button-background-color-destructive-active: color-mix(in srgb, #${BASE11} 90%, #${BASE00}) !important;
+      --button-text-color-destructive: #${BASE00} !important;
+      --input-text-background-color: #${BASE01} !important;
+      --input-text-color: #${BASE05} !important;
+      --input-text-border-color: #${BASE02} !important;
+      --input-border-color-warning: #${BASE0A} !important;
+      --input-box-shadow-color-warning: color-mix(in srgb, #${BASE0A} 20%, transparent) !important;
+      --card-background-color: #${BASE01} !important;
+      --card-border-color: #${BASE02} !important;
+      --card-border-radius: 8px !important;
+      --button-border-radius: 6px !important;
+      --link-color: #${BASE0C} !important;
+      --link-color-hover: #${BASE16} !important;
+      --link-color-active: #${BASE0D} !important;
+      --link-color-visited: #${BASE15} !important;
+      --background-color-information: color-mix(in srgb, #${BASE0D} 12%, #${BASE00}) !important;
+      --background-color-warning: color-mix(in srgb, #${BASE0A} 10%, #${BASE00}) !important;
+      --background-color-critical: color-mix(in srgb, #${BASE08} 15%, #${BASE00}) !important;
+      --background-color-success: color-mix(in srgb, #${BASE0B} 10%, #${BASE00}) !important;
+      --icon-color-information: #${BASE0D} !important;
+      --icon-color-warning: #${BASE0A} !important;
+      --icon-color-critical: #${BASE11} !important;
+      --icon-color-success: #${BASE0B} !important;
+      --table-background-color: #${BASE01} !important;
+      --table-border-color: #${BASE02} !important;
+      --table-header-background-color: #${BASE03} !important;
+      --table-header-text-color: #${BASE0D} !important;
+      --table-row-background-color-alternate: #${BASE01} !important;
+      --sidebar-background-color: #${BASE00} !important;
+      --sidebar-text-color: #${BASE05} !important;
+      --panel-background-color: #${BASE00} !important;
+      --panel-text-color: #${BASE05} !important;
+      --panel-border-color: #${BASE0D} !important;
+      --panel-separator-color: #${BASE02} !important;
+      --popup-background-color: #${BASE01} !important;
+      --popup-border-color: #${BASE0D} !important;
+    }
+
+    html, body {
+      background-color: #${BASE00} !important;
+      color: #${BASE05} !important;
+    }
+
+    /* Component tokens must be set on the host, not only inherited from root. */
+    moz-toggle {
+      --toggle-background-color: #${BASE03} !important;
+      --toggle-background-color-hover: #${BASE04} !important;
+      --toggle-background-color-active: #${BASE02} !important;
+      --toggle-background-color-pressed: #${BASE0B} !important;
+      --toggle-background-color-pressed-hover: #${BASE12} !important;
+      --toggle-background-color-pressed-active: #${BASE0C} !important;
+      --toggle-border-color: #${BASE02} !important;
+      --toggle-border-color-hover: #${BASE0D} !important;
+      --toggle-border-color-active: #${BASE0C} !important;
+      --toggle-dot-background-color: #${BASE05} !important;
+      --toggle-dot-background-color-hover: #${BASE05} !important;
+      --toggle-dot-background-color-active: #${BASE05} !important;
+      --toggle-dot-background-color-on-pressed: #${BASE00} !important;
+    }
+
+    moz-message-bar {
+      --message-bar-background-color-warning: var(--background-color-warning) !important;
+      --message-bar-text-color: #${BASE05} !important;
+    }
+
+    ::selection {
+      background: #${BASE02} !important;
+      color: #${BASE05} !important;
+    }
+  }
+}
+
+@-moz-document url-prefix("about:preferences"), url-prefix("about:addons") {
+  @media not (forced-colors) {
+    .sidebar-pane, .sticky-container, .page-header {
+      background-color: #${BASE00} !important;
+    }
+
+    #categories .category:not([selected="true"], [disabled]):hover {
+      background-color: #${BASE01} !important;
+    }
+
+    #categories .category:is([selected="true"], [aria-selected="true"]) {
+      background-color: #${BASE02} !important;
+      color: #${BASE0D} !important;
+    }
+  }
+}

@@ -1,0 +1,36 @@
+font_family      BlexMono Nerd Font Mono
+bold_font        auto
+italic_font      auto
+bold_italic_font auto
+font_size        12.0
+
+window_padding_width 0
+hide_window_decorations yes
+
+show_tab_bar_margin no
+tab_bar_style hidden
+
+background #${BASE00}
+foreground #${BASE05}
+cursor #${BASE00}
+cursor_text_color #${BASE0B}
+selection_foreground #${BASE05}
+selection_background #${BASE02}
+
+color0 #${BASE00}
+color1 #${BASE08}
+color2 #${BASE0B}
+color3 #${BASE0A}
+color4 #${BASE0D}
+color5 #${BASE0E}
+color6 #${BASE0C}
+color7 #${BASE05}
+
+color8 #${BASE10}
+color9 #${BASE11}
+color10 #${BASE12}
+color11 #${BASE13}
+color12 #${BASE14}
+color13 #${BASE15}
+color14 #${BASE16}
+color15 #${BASE17}

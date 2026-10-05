@@ -17,3 +17,4 @@ chezmoi apply
 Review changes before applying. Do not bulk-add `$HOME` or `~/.config`.
 
 See [DWL notes](docs/dwl.md).
+See [themes and browser configuration](docs/themes.md) for Neurowave and browser scope.

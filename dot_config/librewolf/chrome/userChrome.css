@@ -1,0 +1,343 @@
+:root {
+  --uc-navbar-margin: -40px;
+  --uc-tabs-margin: -50px;
+  --uc-hide-delay: 200ms;
+  --uc-toolbar-trigger-height: 10px;
+
+  --lwt-accent-color: #000000 !important;
+  --lwt-text-color: #e8e8e8 !important;
+  --toolbox-background-color: #000000 !important;
+  --toolbox-background-color-inactive: #000000 !important;
+  --toolbox-background-image: none !important;
+  --toolbox-text-color: #e8e8e8 !important;
+  --toolbox-text-color-inactive: #e8e8e8 !important;
+  --chrome-content-separator-color: #000000 !important;
+  --toolbar-bgcolor: #000000 !important;
+  --toolbar-color: #e8e8e8 !important;
+  --toolbar-field-bgcolor: #0d0d14 !important;
+  --toolbar-field-color: #e8e8e8 !important;
+  --toolbar-field-focus-bgcolor: #0d0d14 !important;
+  --toolbar-field-focus-color: #e8e8e8 !important;
+  --tab-selected-bgcolor: #0d0d14 !important;
+  --tabs-navbar-background: #000000 !important;
+  --arrowpanel-background: #000000 !important;
+  --arrowpanel-color: #e8e8e8 !important;
+  --autocomplete-popup-background: #000000 !important;
+  --autocomplete-popup-color: #e8e8e8 !important;
+  --sidebar-background: #000000 !important;
+  --sidebar-text-color: #e8e8e8 !important;
+  --toolbarbutton-icon-fill: #e8e8e8 !important;
+
+  /* Native UI tokens preserve disabled, primary and security states. */
+  color-scheme: dark !important;
+  accent-color: #99d8fe;
+  --background-color-canvas: #000000 !important;
+  --background-color-box: #0d0d14 !important;
+  --text-color: #e8e8e8 !important;
+  --text-color-deemphasized: color-mix(in srgb, #e8e8e8 70%, #000000) !important;
+  --text-color-disabled: color-mix(in srgb, #e8e8e8 45%, #000000) !important;
+  --text-color-error: #f95556 !important;
+  --color-accent-primary: #99d8fe !important;
+  --color-accent-primary-hover: #b3e2fe !important;
+  --color-accent-primary-active: #3bf0f4 !important;
+  --color-accent-primary-selected: #99d8fe !important;
+  --color-accent-attention: #30F7BE !important;
+  --focus-outline-color: #3bf0f4 !important;
+  --border-color: #463465 !important;
+  --border-color-deemphasized: #1c272a !important;
+  --border-color-interactive: #463465 !important;
+  --border-color-interactive-hover: #99d8fe !important;
+  --border-color-interactive-active: #3bf0f4 !important;
+  --border-color-error: #f95556 !important;
+  --button-background-color: #0d0d14 !important;
+  --button-background-color-hover: #1c272a !important;
+  --button-background-color-active: #463465 !important;
+  --button-text-color: #e8e8e8 !important;
+  --button-border-color: #463465 !important;
+  --button-border-color-hover: #99d8fe !important;
+  --button-border-color-active: #3bf0f4 !important;
+  --button-border-color-ghost: transparent !important;
+  --button-background-color-ghost-hover: #463465 !important;
+  --button-background-color-ghost-active: #1c272a !important;
+  --button-background-color-menu-hover: #463465 !important;
+  --button-background-color-menu-active: #463465 !important;
+  --button-background-color-menu-selected: #463465 !important;
+  --button-text-color-primary: #000000 !important;
+  --button-background-color-primary-disabled: #293542 !important;
+  --button-text-color-primary-disabled: #e8e8e8 !important;
+  --button-background-color-destructive: #f95556 !important;
+  --button-background-color-destructive-hover: color-mix(in srgb, #f95556 85%, #e8e8e8) !important;
+  --button-background-color-destructive-active: color-mix(in srgb, #f95556 90%, #000000) !important;
+  --button-text-color-destructive: #000000 !important;
+  --input-text-background-color: #0d0d14 !important;
+  --input-text-color: #e8e8e8 !important;
+  --input-text-border-color: #463465 !important;
+  --card-background-color: #0d0d14 !important;
+  --card-border-color: #463465 !important;
+  --card-border-radius: 8px !important;
+  --button-border-radius: 6px !important;
+  --link-color: #3bf0f4 !important;
+  --link-color-hover: #80f9fc !important;
+  --link-color-active: #99d8fe !important;
+  --link-color-visited: #e9c4fd !important;
+  --background-color-information: color-mix(in srgb, #99d8fe 12%, #000000) !important;
+  --background-color-warning: color-mix(in srgb, #F8FD00 10%, #000000) !important;
+  --background-color-critical: color-mix(in srgb, #da3030 15%, #000000) !important;
+  --background-color-success: color-mix(in srgb, #30F7BE 10%, #000000) !important;
+  --icon-color-information: #99d8fe !important;
+  --icon-color-warning: #F8FD00 !important;
+  --icon-color-critical: #f95556 !important;
+  --icon-color-success: #30F7BE !important;
+  --panel-background-color: #000000 !important;
+  --panel-text-color: #e8e8e8 !important;
+  --panel-border-color: #99d8fe !important;
+  --panel-separator-color: #463465 !important;
+  --toolbar-background-color: #000000 !important;
+  --toolbar-text-color: #e8e8e8 !important;
+  --toolbar-field-background-color: #0d0d14 !important;
+  --toolbar-field-background-color-focus: #0d0d14 !important;
+  --toolbar-field-text-color: #e8e8e8 !important;
+  --toolbar-field-text-color-focus: #e8e8e8 !important;
+  --toolbar-field-border-color: #463465 !important;
+  --toolbar-field-border-color-focus: #3bf0f4 !important;
+  --toolbarbutton-background-color-hover: #463465 !important;
+  --toolbarbutton-background-color-active: #1c272a !important;
+  --toolbarbutton-outline-color-active: #99d8fe !important;
+  --toolbarbutton-icon-fill-attention: #30F7BE !important;
+  --sidebar-background-color: #000000 !important;
+}
+
+#titlebar-spacer { display: none !important; }
+
+:root:not([customizing], [inFullscreen]) #navigator-toolbox {
+  /* Keep a hover target even when both toolbar rows are collapsed. */
+  min-height: var(--uc-toolbar-trigger-height) !important;
+
+  > :is(#nav-bar, #TabsToolbar) {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: margin-top 0.25s ease var(--uc-hide-delay),
+                opacity 0.25s ease var(--uc-hide-delay) !important;
+  }
+
+  > #nav-bar {
+    margin-top: var(--uc-navbar-margin) !important;
+  }
+
+  > #TabsToolbar {
+    margin-top: var(--uc-tabs-margin) !important;
+  }
+
+  #urlbar {
+    transition: opacity 0.25s ease var(--uc-hide-delay) !important;
+  }
+
+  &:not(:hover):not(:focus-within):not(:has(
+    #toolbar-menubar:not([inactive], [collapsed="true"]),
+    #urlbar:is([focused], [open], [popover-open]),
+    toolbarbutton[open="true"]
+  )) {
+    /* Restore native address-field sizing as soon as the toolbox is revealed. */
+    :is(#urlbar, #urlbar-container) {
+      min-height: 0 !important;
+      height: 0 !important;
+    }
+
+    #urlbar {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      overflow: hidden !important;
+    }
+  }
+
+  &:is(:hover, :focus-within, :has(
+    #toolbar-menubar:not([inactive], [collapsed="true"]),
+    #urlbar:is([focused], [open], [popover-open]),
+    toolbarbutton[open="true"]
+  )) {
+    > :is(#nav-bar, #TabsToolbar) {
+      margin-top: 0 !important;
+      opacity: 1 !important;
+      pointer-events: auto;
+      transition-delay: 0s !important;
+    }
+
+    #urlbar {
+      transition-delay: 0s !important;
+    }
+  }
+}
+
+#TabsToolbar,
+#nav-bar,
+#PersonalToolbar,
+#toolbar-menubar {
+  background-color: #000000 !important;
+  color: #e8e8e8 !important;
+}
+
+.tab-background,
+.tabbrowser-tab .tab-stack,
+.tabbrowser-tab {
+  background-color: transparent !important;
+}
+
+.tabbrowser-tab:not([selected]):hover .tab-background {
+  background-color: #0d0d14 !important;
+}
+
+.tabbrowser-tab[selected] .tab-background {
+  background-color: #0d0d14 !important;
+  box-shadow: inset 0 -2px 0 #3bf0f4 !important;
+  border-radius: var(--tab-border-radius) !important;
+}
+
+.tabbrowser-tab:not([selected]) .tab-content {
+  color: #e9c4fd !important;
+}
+
+.tabbrowser-tab[selected] .tab-content {
+  color: #e8e8e8 !important;
+}
+
+.tabbrowser-tab:hover .tab-content {
+  color: #e8e8e8 !important;
+}
+
+#urlbar,
+#searchbar {
+  --urlbar-background-color: #0d0d14 !important;
+  --urlbar-background-color-focus: #0d0d14 !important;
+  --urlbar-box-background-color: #1c272a !important;
+  --urlbar-box-background-color-focus: #1c272a !important;
+  --urlbar-box-background-color-hover: #463465 !important;
+  --urlbar-box-background-color-active: #293542 !important;
+}
+
+/* LibreWolf 157 uses classes; retain the older IDs for older profiles. */
+#urlbar :is(.urlbar-background, #urlbar-background) {
+  background-color: #0d0d14 !important;
+}
+
+#urlbar :is(.urlbar-input-container, #urlbar-input-container) {
+  color: #e8e8e8 !important;
+}
+
+#urlbar {
+  --lwt-toolbar-field-highlight: #99d8fe !important;
+  --lwt-toolbar-field-highlight-text: #000000 !important;
+}
+
+/* Set the real input's caret explicitly, including during focus transitions. */
+#urlbar :is(.urlbar-input, #urlbar-input) {
+  caret-color: #3bf0f4 !important;
+  cursor: text !important;
+}
+
+#urlbar :is(.urlbar-input, #urlbar-input)::selection {
+  background-color: #99d8fe !important;
+  color: #000000 !important;
+}
+
+.urlbarView {
+  --urlbarview-background-color-hover: #1c272a !important;
+  --urlbarview-background-color-selected: #463465 !important;
+  --urlbarview-text-color-selected: #e8e8e8 !important;
+  --urlbarview-text-color-action: #e9c4fd !important;
+  --urlbarview-text-color-secondary: var(--text-color-deemphasized) !important;
+  --urlbarview-separator-color: #463465 !important;
+}
+
+/* Native suggestion matches are wrapped in strong elements. */
+.urlbarView :is(.urlbarView-title, .urlbarView-url, .urlbarView-tag) > strong {
+  color: #F8FD00 !important;
+}
+
+/* Paint the native popup surface, not every child or the transparent host. */
+:is(menupopup, panel) {
+  --panel-background-color: #000000 !important;
+  --panel-text-color: #e8e8e8 !important;
+  --panel-border-color: #99d8fe !important;
+  --panel-separator-color: #463465 !important;
+  --panel-border-radius: 8px !important;
+  --menuitem-border-radius: 4px !important;
+}
+
+/* _moz-menuactive also covers keyboard navigation and open submenus. */
+menupopup :is(menuitem, menu):not([disabled]):is([_moz-menuactive], :hover) {
+  background-color: #463465 !important;
+  color: #e8e8e8 !important;
+}
+
+moz-toggle {
+  --toggle-background-color: #1c272a !important;
+  --toggle-background-color-hover: #293542 !important;
+  --toggle-background-color-active: #463465 !important;
+  --toggle-background-color-pressed: #30F7BE !important;
+  --toggle-background-color-pressed-hover: #94fed6 !important;
+  --toggle-background-color-pressed-active: #3bf0f4 !important;
+  --toggle-border-color: #463465 !important;
+  --toggle-border-color-hover: #99d8fe !important;
+  --toggle-border-color-active: #3bf0f4 !important;
+  --toggle-dot-background-color: #e8e8e8 !important;
+  --toggle-dot-background-color-hover: #e8e8e8 !important;
+  --toggle-dot-background-color-active: #e8e8e8 !important;
+  --toggle-dot-background-color-on-pressed: #000000 !important;
+}
+
+#sidebar-box,
+#sidebar-main,
+#sidebar-header,
+#sidebar-search-container {
+  background-color: #000000 !important;
+  color: #e8e8e8 !important;
+}
+
+#statuspanel,
+#statuspanel-label {
+  background-color: #000000 !important;
+  color: #e9c4fd !important;
+  border-color: #463465 !important;
+}
+
+findbar,
+.browserContainer > findbar {
+  background-color: #000000 !important;
+  color: #e8e8e8 !important;
+  border-color: #463465 !important;
+}
+
+#PopupAutoComplete .autocomplete-richlistitem[selected] {
+  background-color: #463465 !important;
+  color: #e8e8e8 !important;
+}
+
+#confirmation-hint {
+  --panel-background-color: #0d0d14 !important;
+  --panel-text-color: #30F7BE !important;
+  --panel-border-color: #30F7BE !important;
+}
+
+::selection {
+  background: #463465 !important;
+  color: #e8e8e8 !important;
+}
+
+scrollbar {
+  -moz-appearance: none !important;
+  background-color: #000000 !important;
+}
+
+scrollbar thumb {
+  background-color: #463465 !important;
+  border-radius: 4px !important;
+}
+
+scrollbar thumb:hover {
+  background-color: #3bf0f4 !important;
+}
+
+scrollbar button,
+scrollcorner {
+  display: none !important;
+}
