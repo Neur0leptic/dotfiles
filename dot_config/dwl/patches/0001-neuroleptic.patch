@@ -192,7 +192,7 @@ index 8a6eda0..639a40c 100644
  static const int tap_to_click = 1;
  static const int tap_and_drag = 1;
  static const int drag_lock = 1;
-@@ -67,106 +82,133 @@ static const int natural_scrolling = 0;
+@@ -67,106 +82,132 @@ static const int natural_scrolling = 0;
  static const int disable_while_typing = 1;
  static const int left_handed = 0;
  static const int middle_button_emulation = 0;
@@ -344,9 +344,8 @@ index 8a6eda0..639a40c 100644
 +	{ MODKEY, XKB_KEY_F1, spawn, SHCMD("dictionary.sh") },
 +	{ MODKEY, XKB_KEY_F2, spawn, SHCMD("addtorrent.sh") },
 +	{ MODKEY, XKB_KEY_b, spawn, SHCMD("$HOME/.local/bin/waybar_toggle.sh") },
-+	{ MODKEY, XKB_KEY_i, spawn, SHCMD("footclient -a floating --window-size-chars=80x28 impala") },
++	{ MODKEY, XKB_KEY_i, spawn, SHCMD("$HOME/.local/bin/iwctl.sh") },
 +	{ MODKEY, XKB_KEY_m, spawn, SHCMD("footclient -a floating --window-size-chars=80x28 wiremix") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_m, spawn, SHCMD("footclient -a floating --window-size-chars=80x28 cliamp") },
 +	{ MODKEY, XKB_KEY_p, spawn, SHCMD("footclient -a floating --window-size-chars=70x25 bluetui") },
 +	{ MODKEY, XKB_KEY_s, spawn, SHCMD("footclient -a fullscreen btop") },
 +	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_s, spawn, SHCMD("footclient -a fullscreen htop") },
