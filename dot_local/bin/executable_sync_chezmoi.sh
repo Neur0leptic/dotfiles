@@ -419,6 +419,9 @@ try:
                     replace_source(source, original, actual(source))
                     raise
     elif phase == 'apply':
+        apply_umask = json.loads(run('dump-config', '--format=json'))['umask']
+        if not isinstance(apply_umask, int) or not 0 <= apply_umask <= 0o777:
+            raise ValueError('Invalid configured chezmoi umask')
         with open(snapshot) as stream:
             saved = json.load(stream)
         pending, expected_parents = [], dict(saved['parents'])
@@ -447,7 +450,11 @@ try:
                 raise ValueError(f'Rendered source changed during sync: {path}')
             subprocess.run([*cmd, '--no-tty', '--force', 'apply',
                             '--exclude=scripts,externals', '--recursive=false', '--', path],
-                           check=True, stdin=subprocess.DEVNULL)
+                           check=True, stdin=subprocess.DEVNULL, umask=apply_umask)
+            # Keep the sync process and its state files private, but do not let its
+            # restrictive umask silently mask newly created destination directories.
+            if actual(path) != targets[path]:
+                raise ValueError(f'Applied target does not match its rendered contents/permissions: {path}')
             if targets[path][0] == 'dir':
                 expected_parents[path] = actual(path)
     else:
@@ -647,6 +654,7 @@ sync_chezmoi_repo() (
         fi
 
         if grep -q '^.[ADM]' <<<"$target_status"; then
+                printf '%s\n' "$target_status" >&2
                 echo -e "${YELLOW}${label} chezmoi-managed files did not converge after apply. Skipping marker update and push.${NC}" >&2
                 return 1
         fi
