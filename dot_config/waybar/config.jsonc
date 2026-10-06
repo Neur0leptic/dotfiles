@@ -53,7 +53,7 @@
         "format-ethernet": "󰈀",
         "format-disconnected": "󰤭",
         "tooltip-format": "{ifname}: {ipaddr}",
-	"on-click": "~/.local/bin/iwctl.sh"
+	"on-click": "if command -v impala >/dev/null; then footclient -a floating --window-size-chars=80x28 impala; else ~/.local/bin/iwctl.sh; fi"
     },
     "wireplumber": {
 	"format": "{icon} {volume}%",
