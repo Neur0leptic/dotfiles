@@ -37,7 +37,8 @@ hl.bind(M .. " + F6", hl.dsp.exec_cmd("~/.local/bin/recorder.sh"))
 hl.bind(M .. " + W", hl.dsp.exec_cmd(BR))
 --  ⇧ W           → alt browser (helium)
 hl.bind(M .. " + SHIFT + W", hl.dsp.exec_cmd(ABR))
-
+--  A           → claude-code terminal
+hl.bind(M .. " + A", hl.dsp.exec_cmd("footclient -a opencode-float --window-size-chars=110x45 claude"))
 --  ⇧ A           → opencode terminal
 hl.bind(M .. " + SHIFT + A", hl.dsp.exec_cmd("footclient -a opencode-float --window-size-chars=110x45 opencode"))
 --  ⇧ Y           → YouTube webapp (helium)

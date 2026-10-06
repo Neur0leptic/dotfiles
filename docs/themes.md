@@ -7,6 +7,8 @@ data and history are not part of this repository.
 ## LibreWolf and Helium
 
 LibreWolf's personal UI preferences use its native `librewolf.overrides.cfg`.
+The source directory's `private_` attribute keeps `~/.librewolf` at mode 0700;
+it does not encrypt the public override file or include runtime profiles.
 The installer attaches the active profile's CSS files to the managed files in
 `~/.config/librewolf/chrome/`. Edit those files when changing the CSS theme;
 the profile links do not require a second copy or a fixed profile name.

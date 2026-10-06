@@ -100,6 +100,16 @@ validate_chezmoi_source() {
                         echo -e "${YELLOW}Private payload found in public chezmoi source: ${rel}. Refusing automatic staging.${NC}" >&2
                         return 1
                 fi
+                case "$rel" in
+                        dot_librewolf/*|private_dot_librewolf/*)
+                                if [[ "$rel" != dot_librewolf/librewolf.overrides.cfg &&
+                                      "$rel" != private_dot_librewolf/librewolf.overrides.cfg ]]; then
+                                        rm -f "$inventory_file"
+                                        echo -e "${YELLOW}Browser runtime data found in public chezmoi source: ${rel}. Refusing automatic staging.${NC}" >&2
+                                        return 1
+                                fi
+                                ;;
+                esac
         done < "$inventory_file"
 
         rm -f "$inventory_file"
@@ -163,6 +173,41 @@ record_chezmoi_marker() {
         fi
 }
 
+refresh_chezmoi_config() (
+        local source_dir="$1" format template="" directory
+        shift
+        for format in toml yaml json jsonc; do
+                if [ -f "$source_dir/.chezmoi.$format.tmpl" ]; then
+                        template="$source_dir/.chezmoi.$format.tmpl"
+                        break
+                fi
+        done
+        [ -n "$template" ] || return 0
+        directory="$(mktemp -d "${TMPDIR:-/tmp}/chezmoi-config.XXXXXX")" || return 1
+        trap 'rm -f "$directory/preview.$format" "$directory/warnings" "$directory/render-errors" "$directory/current.json" "$directory/preview.json"; rmdir "$directory"' EXIT
+        if ! "$@" --no-tty dump --format=json --exclude=scripts,externals \
+                >/dev/null 2>"$directory/warnings"; then
+                cat "$directory/warnings" >&2
+                return 1
+        fi
+        grep -q 'config file template has changed' "$directory/warnings" || return 0
+        if ! "$@" --no-tty execute-template --init --file "$template" \
+                >"$directory/preview.$format" 2>"$directory/render-errors"; then
+                cat "$directory/render-errors" >&2
+                return 0
+        fi
+        # Refresh the native template marker only when every effective setting is
+        # unchanged. Local config additions and new profile choices are never reset.
+        if "$@" dump-config --format=json >"$directory/current.json" 2>/dev/null &&
+                "$@" --config "$directory/preview.$format" --config-format "$format" \
+                        dump-config --format=json >"$directory/preview.json" 2>/dev/null &&
+                cmp -s "$directory/current.json" "$directory/preview.json"; then
+                "$@" --no-tty init --apply=false --prompt=false --data=true || return 1
+        else
+                echo -e "${YELLOW}Config template has new settings; retaining the current config and continuing file sync.${NC}" >&2
+        fi
+)
+
 sync_chezmoi_files() {
         local phase="$1" snapshot="$2"
         shift 2
@@ -173,11 +218,12 @@ import os
 import stat
 import subprocess
 import sys
+import tempfile
 
 phase, snapshot, *cmd = sys.argv[1:]
 
-def run(*args):
-    return subprocess.check_output([*cmd, *args])
+def run(*args, input=None):
+    return subprocess.check_output([*cmd, *args], input=input)
 
 def digest(contents):
     return hashlib.sha256(contents).hexdigest()
@@ -206,8 +252,71 @@ def parents(path):
         parent = os.path.dirname(parent)
     return result
 
+def merge_contents(ours, base, theirs, path):
+    if ours == base:
+        return theirs
+    if theirs == base or ours == theirs:
+        return ours
+    # Let Git merge non-overlapping edits; never write conflict markers to configs.
+    with tempfile.TemporaryDirectory(prefix='chezmoi-merge-', dir=os.path.dirname(snapshot)) as directory:
+        files = []
+        for name, contents in (('source', ours), ('base', base), ('disk', theirs)):
+            filename = os.path.join(directory, name)
+            with open(filename, 'xb') as stream:
+                os.chmod(filename, 0o600)
+                stream.write(contents)
+            files.append(filename)
+        result = subprocess.run(['git', 'merge-file', '--stdout', '--diff-algorithm=histogram', *files],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode:
+            raise ValueError(f'{path}: overlapping edits need a merge; both versions are preserved')
+        return result.stdout
+
+def render(contents, template):
+    return run('execute-template', input=contents) if template else contents
+
+def previous_contents(source, baseline, wanted, current, template, encrypted):
+    if baseline is None or baseline == wanted:
+        return current
+    relative = os.path.relpath(source, source_root)
+    if relative.startswith('../'):
+        raise ValueError(f'Source is outside the repository: {source}')
+    refs = ['HEAD']
+    saved_ref = os.environ.get('CHEZMOI_SYNC_BASELINE_REF', '')
+    if len(saved_ref) in (40, 64) and all(c in '0123456789abcdef' for c in saved_ref):
+        refs.insert(0, saved_ref)
+    for ref in refs:
+        try:
+            contents = subprocess.check_output(['git', '-C', source_root, 'show', f'{ref}:{relative}'],
+                                               stderr=subprocess.DEVNULL)
+            if encrypted:
+                contents = run('decrypt', input=contents)
+            contents = render(contents, template)
+            if digest(contents) == baseline[2]:
+                return contents
+        except subprocess.CalledProcessError:
+            continue
+    raise ValueError(f'{source}: previous rendered contents cannot be recovered; both versions are preserved')
+
+def replace_source(source, contents, expected):
+    if actual(source) != expected:
+        raise ValueError(f'Source changed during sync: {source}')
+    fd, temporary = tempfile.mkstemp(prefix='.chezmoi-sync-', dir=os.path.dirname(source))
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            os.fchmod(stream.fileno(), expected[1])
+            stream.write(contents)
+        if actual(source) != expected:
+            raise ValueError(f'Source changed during sync: {source}')
+        os.replace(temporary, source)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
 try:
-    destination = json.loads(run('data'))['chezmoi']['destDir']
+    context = json.loads(run('data'))['chezmoi']
+    destination = context['destDir']
+    source_root = context['sourceDir']
     entries = json.loads(run('dump', '--format=json', '--exclude=scripts,externals'))
     targets = {}
     for rel, entry in entries.items():
@@ -245,33 +354,70 @@ try:
                             baseline.get('contentsSHA256', '')]
             if disk == baseline:
                 continue
-            if wanted != baseline:
-                conflicts.append(f'{path}: disk and rendered source differ from baseline')
-                continue
             source = os.fsdecode(run('source-path', '--', path)).rstrip('\n')
-            # Re-add cannot safely encode arbitrary edits into a template, or a deletion.
-            if disk is None or disk[0] != 'file' or wanted[0] != 'file' or source.endswith(('.tmpl', '.tmpl.asc')):
-                conflicts.append(f'{path}: disk deletion, template or type change needs manual reconciliation')
+            if disk is None or disk[0] != 'file' or wanted[0] != 'file':
+                conflicts.append(f'{path}: deletion or type change needs a decision; both versions are preserved')
                 continue
             if disk[1] not in (0o600, 0o644, 0o700, 0o755):
                 conflicts.append(f'{path}: disk permissions cannot be represented safely by re-add')
                 continue
-            record.append((path, source, actual(source)))
+            source_state = actual(source)
+            if not source_state or source_state[0] != 'file' or os.stat(source).st_nlink != 1:
+                conflicts.append(f'{path}: source is not an independent regular file')
+                continue
+            template = source.endswith(('.tmpl', '.tmpl.asc'))
+            encrypted = os.path.basename(source).startswith('encrypted_')
+            if not template and (baseline is None or wanted == baseline):
+                # A first sync adopts an existing ordinary file, rather than rejecting
+                # it just because chezmoi has not written a baseline on this machine.
+                record.append((path, source, source_state, None, None))
+                continue
+            if disk[1] != wanted[1]:
+                conflicts.append(f'{path}: competing template/source permissions need a decision')
+                continue
+            try:
+                current = run('cat', '--', path)
+                with open(path, 'rb') as stream:
+                    edited = stream.read()
+                base = previous_contents(source, baseline, wanted, current, template, encrypted)
+                expected = merge_contents(current, base, edited, path)
+                with open(source, 'rb') as stream:
+                    original = stream.read()
+                raw = run('decrypt', input=original) if encrypted else original
+                candidate = merge_contents(raw, base, edited, path) if template else expected
+                if render(candidate, template) != expected:
+                    raise ValueError(f'{path}: edit changes generated template fields; both versions are preserved')
+                if encrypted:
+                    candidate = run('encrypt', input=candidate)
+                record.append((path, source, source_state, candidate, expected))
+            except (ValueError, subprocess.CalledProcessError) as error:
+                conflicts.append(str(error))
         if conflicts:
             raise ValueError('\n'.join(conflicts))
         with open(snapshot, 'w') as stream:
             json.dump({'targets': observed, 'parents': ancestors}, stream)
         # Classify every file before making any source mutation.
-        for path, source, source_state in record:
+        for path, source, source_state, candidate, expected in record:
             current_parents = parents(path)
             if actual(path) != observed[path] or current_parents != {p: ancestors[p] for p in current_parents}:
                 raise ValueError(f'Destination changed during sync: {path}')
             if actual(source) != source_state:
                 raise ValueError(f'Source changed during sync: {source}')
-            subprocess.run([*cmd, '--no-tty', '--force', 're-add', '--', path], check=True,
-                           stdin=subprocess.DEVNULL)
-            if digest(run('cat', '--', path)) != observed[path][2]:
-                raise ValueError(f'Re-add did not preserve disk contents: {path}')
+            if candidate is None:
+                subprocess.run([*cmd, '--no-tty', '--force', 're-add', '--', path], check=True,
+                               stdin=subprocess.DEVNULL)
+                if digest(run('cat', '--', path)) != observed[path][2]:
+                    raise ValueError(f'Re-add did not preserve disk contents: {path}')
+            else:
+                with open(source, 'rb') as stream:
+                    original = stream.read()
+                replace_source(source, candidate, source_state)
+                try:
+                    if run('cat', '--', path) != expected:
+                        raise ValueError(f'Merged template did not preserve edits: {path}')
+                except (ValueError, subprocess.CalledProcessError):
+                    replace_source(source, original, actual(source))
+                    raise
     elif phase == 'apply':
         with open(snapshot) as stream:
             saved = json.load(stream)
@@ -320,7 +466,7 @@ sync_chezmoi_repo() (
         local private_allowlist="${5:-}"
 	local trusted_private_allowlist="${6:-}"
         local source_status target_status git_dir
-        local head_before_pull head_after_pull final_marker ahead snapshot
+        local head_before_pull head_after_pull final_marker ahead snapshot baseline_ref="" applied_marker
         local changes_found=0
 	local -a chezmoi_cmd=(env CHEZMOI_SKIP_EXTERNALS=1 chezmoi -S "$source_dir" --refresh-externals=never)
 
@@ -348,7 +494,7 @@ sync_chezmoi_repo() (
 		return 1
 	fi
 
-	if [ "$label" = "Private" ] &&
+        if [ "$label" = "Private" ] &&
 		! decrypt_private_chezmoi_source "$source_dir" "$private_allowlist"; then
 		echo -e "${YELLOW}Private chezmoi payload validation failed. Aborting dotfile sync.${NC}" >&2
 		return 1
@@ -356,6 +502,10 @@ sync_chezmoi_repo() (
 
         if ! git -C "$source_dir" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
                 echo -e "${YELLOW}${label} chezmoi Git upstream is not configured. Skipping it.${NC}" >&2
+                return 1
+        fi
+
+        if [ "$label" = "Public" ] && ! refresh_chezmoi_config "$source_dir" "${chezmoi_cmd[@]}"; then
                 return 1
         fi
 
@@ -387,7 +537,10 @@ sync_chezmoi_repo() (
         fi
         snapshot="$(mktemp "${TMPDIR:-/tmp}/chezmoi-sync.XXXXXX")" || return 1
         trap 'rm -f "$snapshot"' EXIT
-        if ! sync_chezmoi_files record "$snapshot" "${chezmoi_cmd[@]}"; then
+        if [ -r "$applied_head_file" ] && IFS= read -r applied_marker < "$applied_head_file"; then
+                baseline_ref="${applied_marker%% *}"
+        fi
+        if ! CHEZMOI_SYNC_BASELINE_REF="$baseline_ref" sync_chezmoi_files record "$snapshot" "${chezmoi_cmd[@]}"; then
                 if [ "$label" = "Private" ]; then
                         if ! cmp -s "$trusted_private_allowlist" "$private_allowlist" ||
                                 ! validate_chezmoi_source "$label" "$source_dir" "$private_allowlist" ||
@@ -478,6 +631,9 @@ sync_chezmoi_repo() (
 
         if [ "$head_before_pull" != "$head_after_pull" ]; then
                 changes_found=1
+                if [ "$label" = "Public" ] && ! refresh_chezmoi_config "$source_dir" "${chezmoi_cmd[@]}"; then
+                        return 1
+                fi
         fi
 
         if ! sync_chezmoi_files apply "$snapshot" "${chezmoi_cmd[@]}"; then

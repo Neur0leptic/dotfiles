@@ -24,6 +24,8 @@ dot_config/nchat/profiles/
 dot_config/net.imput.helium/
 dot_librewolf/*
 !dot_librewolf/librewolf.overrides.cfg
+private_dot_librewolf/*
+!private_dot_librewolf/librewolf.overrides.cfg
 dot_config/network_scan/known_macs
 dot_config/network_scan/private_known_macs
 dot_config/opencode/
