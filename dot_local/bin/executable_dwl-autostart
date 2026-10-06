@@ -30,6 +30,9 @@ if [ -x "$output_setup" ]; then
     "$output_setup" || printf 'DWL output preferences failed; keeping the compositor layout.\n' >&2
 fi
 
+# OpenRC has no user service manager: Gentoo's launcher starts PipeWire, its
+# PulseAudio server and WirePlumber. systemd hosts do not ship it.
+start gentoo-pipewire-launcher restart
 start foot --server
 start mako
 start wlsunset -S 06:30 -s 18:30 -d 1800

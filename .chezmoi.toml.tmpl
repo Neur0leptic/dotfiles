@@ -1,7 +1,5 @@
+{{- /* Only encrypted (private) sources need GPG; empty disables encryption. */ -}}
 {{- $gpgRecipient := promptStringOnce . "gpgRecipient" "GPG recipient fingerprint" -}}
-{{- if eq $gpgRecipient "" -}}
-{{- fail "GPG recipient fingerprint must not be empty" -}}
-{{- end -}}
 {{- $desktop := promptChoiceOnce . "desktop" "Desktop profile" (list "hyprland" "dwl" "none") -}}
 {{- $gpuProfile := promptChoiceOnce . "gpuProfile" "GPU profile" (list "mesa" "nvidia" "intel-x220" "modern-amd-intel") -}}
 {{- $machine := promptChoiceOnce . "machine" "Machine profile" (list "generic" "main") -}}
@@ -14,14 +12,18 @@
 {{- $keepass := promptBoolOnce . "features.keepass" "Enable KeePass configuration" -}}
 {{- $wireguard := promptBoolOnce . "features.wireguard" "Enable WireGuard integrations" -}}
 {{- $hermes := promptBoolOnce . "features.hermes" "Enable Hermes integrations" -}}
+{{ if $gpgRecipient -}}
 encryption = "gpg"
+{{ end -}}
 umask = 0o022
 
 [edit]
 hardlink = false
+{{- if $gpgRecipient }}
 
 [gpg]
 recipient = {{ $gpgRecipient | quote }}
+{{- end }}
 
 [data]
 gpgRecipient = {{ $gpgRecipient | quote }}
