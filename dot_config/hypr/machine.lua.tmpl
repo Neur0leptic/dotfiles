@@ -13,8 +13,24 @@ local function output_matches(name, expected)
     return matched
 end
 
+-- Hyprland evaluates these checks only when the configuration loads. Recheck a monitor
+-- when it is connected, and reload when the result has changed.
+local checks = {}
+
+local function output_applies(name, expected)
+    checks[name] = { expected = expected, matched = output_matches(name, expected) }
+    return checks[name].matched
+end
+
+hl.on("monitor.added", function(monitor)
+    local check = checks[monitor.name]
+    if check and output_matches(monitor.name, check.expected) ~= check.matched then
+        hl.exec_cmd("hyprctl reload")
+    end
+end)
+
 {{ range $output := $settings.outputs -}}
-if output_matches({{ $output.name | quote }}, {{ $output.edid | default "" | quote }}) then
+if output_applies({{ $output.name | quote }}, {{ $output.edid | default "" | quote }}) then
 hl.monitor({ output = {{ $output.name | quote }},
 {{ if eq $output.enabled false -}}
     disabled = true,

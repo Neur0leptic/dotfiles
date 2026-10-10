@@ -1,5 +1,5 @@
 -- Cursor
-hl.env("XCURSOR_SIZE", "24")
+hl.env("XCURSOR_SIZE", "28")
 hl.env("HYPRCURSOR_SIZE", "28")
 
 -- PATH
