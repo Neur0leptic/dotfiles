@@ -42,32 +42,26 @@ docs/**
 
 # GPU variants are synchronized through Git but only one is active locally.
 {{- if ne .gpuProfile "nvidia" }}
-.config/hypr/gpus/nvidia.lua
 .config/mpv/gpus/nvidia.conf
 {{- end }}
 {{- if ne .gpuProfile "intel-x220" }}
-.config/hypr/gpus/intel-x220.lua
 .config/mpv/gpus/intel-x220.conf
 {{- end }}
 {{- if ne .gpuProfile "modern-amd-intel" }}
-.config/hypr/gpus/modern-amd-intel.lua
 .config/mpv/gpus/modern-amd-intel.conf
 {{- end }}
 {{- if ne .gpuProfile "mesa" }}
-.config/hypr/gpus/mesa.lua
 .config/mpv/gpus/mesa.conf
 {{- end }}
 
 {{- if not .features.mail }}
 .config/aerc/**
-.config/hypr/features/mail.lua
 .config/systemd/user/email-check.service
 .config/systemd/user/email-check.timer
 .local/bin/email_notifier.sh
 {{- end }}
 
 {{- if not .features.keepass }}
-.config/hypr/features/keepass.lua
 .config/keepass/**
 .config/keepassxc/**
 .local/bin/kp.py
@@ -76,7 +70,6 @@ docs/**
 
 {{- if not .features.wireguard }}
 .config/wireguard/**
-.config/hypr/features/wireguard.lua
 .local/bin/wireguard.sh
 .local/bin/waybar_vpn.sh
 {{- end }}
@@ -88,7 +81,6 @@ docs/**
 {{- end }}
 
 {{- if not .features.hermes }}
-.config/hypr/features/hermes.lua
 .config/systemd/user/acp-relay.service
 .config/systemd/user/hermes-gateway.service
 .local/bin/hermes-launch.sh

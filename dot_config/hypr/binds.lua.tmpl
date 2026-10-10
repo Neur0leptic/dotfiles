@@ -41,6 +41,14 @@ hl.bind(M .. " + SHIFT + W", hl.dsp.exec_cmd(ABR))
 hl.bind(M .. " + A", hl.dsp.exec_cmd("footclient -a opencode-float --window-size-chars=110x45 claude"))
 --  ⇧ A           → opencode terminal
 hl.bind(M .. " + SHIFT + A", hl.dsp.exec_cmd("footclient -a opencode-float --window-size-chars=110x45 opencode"))
+{{ if .features.mail -}}
+--  E             → mail (aerc)
+hl.bind(M .. " + E", hl.dsp.exec_cmd("footclient -a fullscreen aerc"))
+{{ end -}}
+{{ if .features.keepass -}}
+--  Ctrl K        → passwords (kprofi)
+hl.bind(M .. " + CTRL + K", hl.dsp.exec_cmd("~/.local/bin/kprofi.sh"))
+{{ end -}}
 --  ⇧ Y           → YouTube webapp (helium)
 hl.bind(
 	M .. " + SHIFT + Y",

@@ -1,1 +1,6 @@
-require("gpus.{{ .gpuProfile }}")
+-- GPU-specific Hyprland settings.
+{{ if eq .gpuProfile "nvidia" -}}
+hl.config({ cursor = {
+    no_hardware_cursors = true,
+} })
+{{ end -}}

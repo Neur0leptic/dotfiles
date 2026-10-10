@@ -1,1 +1,0 @@
--- Mesa uses automatic device selection. Per-machine overrides live in machine.lua.
