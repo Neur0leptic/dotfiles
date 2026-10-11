@@ -5,20 +5,31 @@ killall "wf-recorder" 2> /dev/null
 output_device="$(wpctl inspect "@DEFAULT_AUDIO_SINK@" | grep -o "alsa_output.*[[:alnum:]]")"
 audiodevice="--audio=${output_device}.monitor"
 
+{{ $vaapi := has .gpuProfile (list "intel-x220" "modern-amd-intel") -}}
 {{ if eq .gpuProfile "nvidia" -}}
 videocodec="--codec=h264_nvenc"
+{{ else if $vaapi -}}
+videocodec="--codec=h264_vaapi"
 {{ else -}}
 videocodec="--codec=libx264"
 {{ end -}}
 audiocodec="--audio-codec=aac"
 framerate="--framerate=60"
+{{ if $vaapi -}}
+{{ $settings := includeTemplate "machine-settings" . | fromJson -}}
+pixelformat="--pixel-format=nv12"
+device="--device={{ $settings.renderDevice | default "/dev/dri/renderD128" }}"
+{{ else -}}
 pixelformat="--pixel-format=yuv420p"
-
+{{ end }}
 {{ if eq .gpuProfile "nvidia" -}}
 codecparameter1="--codec-param=qp=22"
 codecparameter2="--codec-param=rc=constqp"
 codecparameter3="--codec-param=preset=p2"
 codecparameter4="--codec-param=tune=ll"
+{{ else if $vaapi -}}
+codecparameter1="--codec-param=rc_mode=CQP"
+codecparameter2="--codec-param=qp=22"
 {{ else -}}
 codecparameter1="--codec-param=crf=22"
 codecparameter2="--codec-param=preset=ultrafast"
@@ -50,10 +61,6 @@ choice="$(printf "Start Recording\nExit\n" | rofi -dmenu -p "Screen Recorder" -l
 wf-recorder -f "${outfile}" \
         ${output_arg:+"$output_arg"} \
         "${videocodec}" "${audiodevice}" "${audiocodec}" \
-        "${framerate}" --no-damage "${pixelformat}" \
+        "${framerate}" --no-damage "${pixelformat}" ${device:+"$device"} \
         "${codecparameter1}" "${codecparameter2}" \
-{{ if eq .gpuProfile "nvidia" -}}
-        "${codecparameter3}" "${codecparameter4}"
-{{ else -}}
-        "${codecparameter3}"
-{{ end -}}
+        ${codecparameter3:+"$codecparameter3"} ${codecparameter4:+"$codecparameter4"}
