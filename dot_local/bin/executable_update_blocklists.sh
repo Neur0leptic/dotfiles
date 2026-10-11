@@ -42,6 +42,10 @@ curl -s "${trckrs_url}" | clnup
 nhsts="$(ctrl "${hsts}" "${tmp_hsts}" | wc -l)"
 ntrckrs="$(wc -l < "${tmp_trckrs}")"
 
+# chezmoi reads /etc/hosts until a loopback name with a domain; keep one above the list.
+lpbck="127.0.1.1 $(uname -n).home.arpa $(uname -n)"
+grep -qxF "${lpbck}" "${hsts}" || ${prv} sed -i "1i ${lpbck}" "${hsts}"
+
 [ "$(wc -l < "${hsts}")" -lt "10" ] && echo " " | ${prv} tee -a "${hsts}" > /dev/null
 
 ctrl "${hsts}" "${tmp_hsts}" | ${prv} tee -a "${hsts}" > /dev/null
