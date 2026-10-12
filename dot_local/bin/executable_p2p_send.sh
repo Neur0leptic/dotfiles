@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ============================================
-# uploader.sh - P2P File transfer tool using croc
-# Features: Resume capability, encryption, no limits
+# p2p_send.sh - P2P File transfer tool using sendme
+# Features: Resumable downloads, encryption, no size limit
 # ============================================
 
 RED='\033[0;31m'
@@ -45,8 +45,8 @@ check_dependencies() {
                 if ! command -v 7z &> /dev/null; then
                         warn "$SU pacman -S 7zip"
                 fi
-                if ! command -v croc &> /dev/null; then
-                        warn "$SU pacman -S croc"
+                if ! command -v sendme &> /dev/null; then
+                        warn "$SU pacman -S sendme"
                 fi
 
         # 2. Gentoo Linux
@@ -54,8 +54,8 @@ check_dependencies() {
                 if ! command -v 7z &> /dev/null; then
                         warn "$SU emerge app-arch/7zip"
                 fi
-                if ! command -v croc &> /dev/null; then
-                        warn "$SU emerge net-misc/croc"
+                if ! command -v sendme &> /dev/null; then
+                        warn "$SU emerge net-misc/sendme"
                 fi
 
         # 3. Debian/Ubuntu/Zorin
@@ -63,14 +63,14 @@ check_dependencies() {
                 if ! command -v 7z &> /dev/null; then
                         warn "$SU apt install 7zip"
                 fi
-                if ! command -v croc &> /dev/null; then
-                        warn "Install croc from https://github.com/schollz/croc"
+                if ! command -v sendme &> /dev/null; then
+                        warn "Install sendme from https://github.com/n0-computer/sendme/releases"
                 fi
         fi
 
         # Final check
-        if ! command -v croc &> /dev/null; then
-                error "croc could not be found. Please install it manually."
+        if ! command -v sendme &> /dev/null; then
+                error "sendme could not be found. Please install it manually."
         fi
 }
 
@@ -93,7 +93,7 @@ show_help() {
         echo "  $(basename "$0") -a file1 file2     - Send multiple files as archive"
         echo ""
         echo "Receiver runs:"
-        echo "  croc <code>"
+        echo "  sendme receive <ticket>"
         exit 0
 }
 
@@ -124,13 +124,12 @@ if [ "$1" = "-a" ]; then
 
         info "Creating archive: $FINAL_ARCHIVE"
         7z a -t7z "$FINAL_ARCHIVE" $COMPRESSION_LEVEL "$@" || error "Failed to create archive!"
+        # sendme serves until Ctrl-C, so the archive is deleted however the script ends.
+        trap 'rm -f "$FINAL_ARCHIVE"; info "Temporary archive deleted."' EXIT
 
         echo ""
-        info "Sending archive via croc..."
-        croc send "$FINAL_ARCHIVE"
-
-        rm -f "$FINAL_ARCHIVE"
-        info "Temporary archive deleted."
+        info "Sending archive via sendme. Press Ctrl-C once the receiver has it."
+        sendme send "$FINAL_ARCHIVE"
 else
         # Tek dosya modu
         [ $# -ne 1 ] && error "Use -a for multiple files."
@@ -139,6 +138,6 @@ else
         FILE="$1"
         [ ! -e "$FILE" ] && error "Not found: $FILE"
 
-        info "Sending file via croc..."
-        croc send "$FILE"
+        info "Sending file via sendme. Press Ctrl-C once the receiver has it."
+        sendme send "$FILE"
 fi
