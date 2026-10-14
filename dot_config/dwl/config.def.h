@@ -1,9 +1,13 @@
-/* Portable defaults; the installer seeds ~/.local/src/dwl/config.h once. */
+/* Shared settings. The two marked sections are kept separately for each machine. */
 #define DWL_CONFIG_VERSION 1
+/* machine settings: begin */
 #define DWL_RENDERER ""
 #define DWL_RENDER_DEVICE ""
 #define DWL_MOUSE_NAME ""
 #define DWL_MOUSE_SPEED (0.0)
+#define DWL_XKB_LAYOUT "us"
+#define DWL_XKB_OPTIONS ""
+/* machine settings: end */
 #define DWL_CURSOR_THEME "catppuccin-mocha-sapphire-cursors"
 #define DWL_CURSOR_SIZE 28
 
@@ -78,8 +82,8 @@ static const MonitorRule monrules[] = {
 /* output rules: end */
 
 static const struct xkb_rule_names xkb_rules = {
-	.layout = "us",
-	.options = "",
+	.layout = DWL_XKB_LAYOUT,
+	.options = DWL_XKB_OPTIONS,
 };
 static const int numlock = 1;
 static const int capslock = 0;

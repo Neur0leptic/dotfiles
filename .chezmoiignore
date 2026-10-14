@@ -3,12 +3,22 @@ docs/**
 
 # Repository metadata is never installed into $HOME.
 .gitignore
+dwl-machines
+dwl-machines/**
 
-# DWL's active native header is local user input, seeded only once by the installer.
-.local/src/dwl/**
+# DWL: ~/.local/src/dwl/config.h is the only editable header. Sync keeps its shared
+# part in config.def.h (a source input only) and its machine sections in dwl-machines/.
+# Installer apply preserves the header; normal sync captures it and apply restores it.
+.config/dwl/config.def.h
+{{- $dwlProfile := includeTemplate "dwl-config-profile" . }}
+{{- $dwlSaved := joinPath .chezmoi.sourceDir "dwl-machines" (printf "%s.h" $dwlProfile) }}
+{{- if or (eq (env "CHEZMOI_PRESERVE_DWL_CONFIG") "1") (and (ne .desktop "dwl") (not (stat (joinPath .chezmoi.destDir ".local/src/dwl/config.h"))) (not (stat $dwlSaved))) }}
+.local/src/dwl/config.h
+{{- end }}
 .config/dwl/outputs.json
 
 {{- if ne .chezmoi.os "linux" }}
+.local/src/dwl/**
 .config/**
 .local/bin/**
 .librewolf/**

@@ -26,23 +26,39 @@ The Gentoo live ebuild and Arch VCS PKGBUILD use the same ABI-compatible upstrea
 commit and follow public dotfiles `main` for
 `dot_config/dwl/patches/0001-neuroleptic.patch` and
 `dot_config/dwl/protocols/dwl-ipc-unstable-v2.xml`. The patch changes compositor
-features, not personal settings. Native defaults are in `dot_config/dwl/config.def.h`.
-The installer seeds the user's `config.h` from them and the approved machine answers
-only when no header exists; later runs preserve that file.
+features, not personal settings. Shared settings and portable machine defaults are in
+`dot_config/dwl/config.def.h`. The installer seeds the user's `config.h` from this
+machine's saved sections when it has any, otherwise from those defaults and the
+approved answers. It only creates a missing header; later runs preserve that file.
 Git inputs are declared through `git-r3` and makepkg VCS sources; the immutable
 upstream archive retains its checksum. Both inputs come from one dotfiles checkout
 per build, and the installed package records them for comparison.
 No manually maintained dotfiles commit/checksum is required.
 The installer links `~/.local/bin/dwl` to the packaged `/usr/bin/dwl`.
 
-Chezmoi supplies `start-dwl` and `dwl-autostart`; it never replaces the local active
-header. Gentoo's updater hands that header to native savedconfig with backups and
+Chezmoi manages `config.h`, `start-dwl` and `dwl-autostart`, not the upstream source
+tree or build artifacts. The header has two marked sections: `machine settings`
+(renderer, render device, mouse, keyboard layout and options) and `output rules`
+(displays). Normal `sync_chezmoi.sh` keeps everything else in `config.def.h`, shared
+by all machines, and the two sections in `dwl-machines/<profile>.h` for this machine
+only; Chezmoi joins them again. Shared edits therefore reach every machine, while each
+keeps its own displays and input devices. Keep both sections and their markers; the
+sync stops without changing anything when they are missing. The profile is the
+hardware's vendor and model, such as `lenovo-thinkpad-x220`, or `dwlConfigProfile` in
+the data of Chezmoi's config when set. A machine without saved sections starts from
+its own answers, never another machine's. Overlapping edits stop without overwriting
+either version; non-overlapping edits merge. When a sync changes the header, it asks
+for `update_dwl.sh`. Installer apply leaves the header alone, so continue never
+overwrites edits.
+
+Gentoo's updater hands that same active header to native savedconfig with backups and
 conflict checks; Arch's makepkg build consumes a frozen copy of the same header.
 Replaced savedconfigs are kept under `/var/lib/install-system/dwl-backups`, with
 their original paths in the adjacent `.path` files. Its prepared/pending headers
 are recovery receipts, not additional editable settings. Finish an interrupted
 handoff with the same header before preparing a different one.
-Use the existing `sync_chezmoi.sh` to synchronize/publish dotfiles. Then run
+Use the existing `sync_chezmoi.sh` to synchronize/publish dotfiles, including header
+edits, whenever desired; publication is not a prerequisite for a local rebuild. Run
 `update_dwl.sh` if the compiled patch/protocol changed. It resolves the synchronized
 commit automatically, does not publish anything, and skips unchanged build inputs.
 Feature updates still follow published `main`; header-only edits do not need a
@@ -77,7 +93,8 @@ updates. Patch applicability alone does not prove compilation or runtime compati
 
 `machineSettings` holds the installer answers used to seed `config.h` once on
 both distributions; the installer also accepts a JSON file through `--display-config`.
-After installation, edit the native header, not the old answer record.
+After installation, edit the native header, not the old answer record or the saved
+sections in `dwl-machines/`. Normal sync records those edits.
 For example:
 
 ```json

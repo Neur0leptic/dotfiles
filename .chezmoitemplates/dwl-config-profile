@@ -1,0 +1,19 @@
+{{- /* An explicit dwlConfigProfile wins; otherwise the hardware's vendor and model name it. */ -}}
+{{- $profile := get . "dwlConfigProfile" | default "" -}}
+{{- if not $profile -}}
+{{- $dmi := "/sys/class/dmi/id" -}}
+{{- $vendor := "" }}{{ $model := "" -}}
+{{- if stat (joinPath $dmi "sys_vendor") }}{{ $vendor = include (joinPath $dmi "sys_vendor") | trim }}{{ end -}}
+{{- range $field := list "product_version" "product_name" "board_name" -}}
+{{- if and (not $model) (stat (joinPath $dmi $field)) -}}
+{{- $value := include (joinPath $dmi $field) | trim -}}
+{{- if not (regexMatch `(?i)^(|none|n/a|not applicable|not specified|default string|system (product name|version)|to be filled by o\.e\.m\.)$` $value) }}{{ $model = $value }}{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- $profile = regexReplaceAll `[^a-z0-9]+` (printf "%s %s" $vendor $model | lower) "-" | trimAll "-" -}}
+{{- if not $profile }}{{ $profile = .chezmoi.hostname }}{{ end -}}
+{{- end -}}
+{{- if not (regexMatch `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` $profile) -}}
+{{- fail "dwlConfigProfile must be a safe machine name (1-128 characters)" -}}
+{{- end -}}
+{{- $profile -}}

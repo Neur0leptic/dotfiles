@@ -3,6 +3,7 @@
 {{- $desktop := promptChoiceOnce . "desktop" "Desktop profile" (list "hyprland" "dwl" "none") -}}
 {{- $gpuProfile := promptChoiceOnce . "gpuProfile" "GPU profile" (list "mesa" "nvidia" "intel-x220" "modern-amd-intel") -}}
 {{- $machine := promptChoiceOnce . "machine" "Machine profile" (list "generic" "main") -}}
+{{- $dwlConfigProfile := get . "dwlConfigProfile" | default "" -}}
 {{- $machineSettings := promptStringOnce . "machineSettings" "Machine settings JSON (empty for portable defaults)" -}}
 {{- $dwlOutputs := get . "dwlOutputs" | default "" -}}
 {{- if eq $desktop "dwl" -}}
@@ -30,6 +31,9 @@ gpgRecipient = {{ $gpgRecipient | quote }}
 desktop = {{ $desktop | quote }}
 gpuProfile = {{ $gpuProfile | quote }}
 machine = {{ $machine | quote }}
+{{- if $dwlConfigProfile }}
+dwlConfigProfile = {{ $dwlConfigProfile | quote }}
+{{- end }}
 machineSettings = {{ $machineSettings | quote }}
 dwlOutputs = {{ $dwlOutputs | quote }}
 

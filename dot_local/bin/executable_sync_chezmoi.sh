@@ -301,17 +301,139 @@ def previous_contents(source, baseline, wanted, current, template, encrypted):
 def replace_source(source, contents, expected):
     if actual(source) != expected:
         raise ValueError(f'Source changed during sync: {source}')
+    if expected is None and not os.path.exists(os.path.dirname(source)):
+        os.mkdir(os.path.dirname(source), 0o755)
     fd, temporary = tempfile.mkstemp(prefix='.chezmoi-sync-', dir=os.path.dirname(source))
     try:
         with os.fdopen(fd, 'wb') as stream:
-            os.fchmod(stream.fileno(), expected[1])
+            os.fchmod(stream.fileno(), expected[1] if expected else 0o644)
             stream.write(contents)
         if actual(source) != expected:
             raise ValueError(f'Source changed during sync: {source}')
-        os.replace(temporary, source)
+        if expected is None:
+            os.link(temporary, source)  # Never clobber a newly appeared machine header.
+        else:
+            os.replace(temporary, source)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
+
+def last_written(path):
+    raw = run('state', 'get', '--bucket=entryState', '--key=' + path)
+    baseline = json.loads(raw) if raw.strip() else None
+    if baseline:
+        baseline = [baseline['type'], baseline.get('mode', 0) & 0o7777,
+                    baseline.get('contentsSHA256', '')]
+    return baseline
+
+DWL_HEADER = '.local/src/dwl/config.h'
+DWL_SHARED = 'dot_config/dwl/config.def.h'
+DWL_SECTIONS = (b'machine settings', b'output rules')
+
+def dwl_sections(contents, where):
+    spans = []
+    for name in DWL_SECTIONS:
+        begin, end = b'/* ' + name + b': begin */', b'/* ' + name + b': end */'
+        if contents.count(begin) != 1 or contents.count(end) != 1:
+            raise ValueError(f'{where} needs exactly one "{name.decode()}" section; both versions are preserved')
+        first, last = contents.index(begin), contents.index(end) + len(end)
+        if last < first or spans and first < spans[-1][1]:
+            raise ValueError(f'{where} has misplaced DWL sections; both versions are preserved')
+        spans.append((first, last))
+    return spans
+
+def dwl_split(header, shared, where):
+    # The shared file keeps its own portable sections; the machine file gets this header's.
+    (a, b), (c, d) = dwl_sections(header, where)
+    (sa, sb), (sc, sd) = dwl_sections(shared, DWL_SHARED)
+    return (header[:a] + shared[sa:sb] + header[b:c] + shared[sc:sd] + header[d:],
+            header[a:b] + b'\n' + header[c:d] + b'\n')
+
+def dwl_join(shared, machine, where):
+    (sa, sb), (sc, sd) = dwl_sections(shared, DWL_SHARED)
+    (a, b), (c, d) = dwl_sections(machine, where)
+    return shared[:sa] + machine[a:b] + shared[sb:sc] + machine[c:d] + shared[sd:]
+
+def git_source(ref, source):
+    try:
+        return subprocess.check_output(['git', '-C', source_root, 'show',
+                                        f'{ref}:{os.path.relpath(source, source_root)}'],
+                                       stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        return None
+
+def record_dwl_header(path, wanted, disk):
+    # The active header is the only editable input. Its shared part is kept in
+    # config.def.h and its two machine sections in dwl-machines/<profile>.h, so
+    # shared edits reach every machine while displays, keyboard, mouse and renderer
+    # stay with the machine they belong to.
+    profile = os.fsdecode(run('execute-template', input=b'{{ includeTemplate "dwl-config-profile" . }}'))
+    if not profile or len(profile) > 128 or not profile[0].isascii() or not profile[0].isalnum() or any(
+            c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-' for c in profile):
+        raise ValueError('Unsafe DWL configuration profile')
+    shared_source = os.path.join(source_root, DWL_SHARED)
+    machine_source = os.path.join(source_root, 'dwl-machines', profile + '.h')
+    states, guards, contents = {}, {}, {}
+    for source, optional in ((shared_source, False), (machine_source, True)):
+        source_parents = parents(source)
+        for parent, state in source_parents.items():
+            if os.path.commonpath([source_root, parent]) == source_root:
+                if state is None and optional and parent == os.path.dirname(source):
+                    continue
+                if not state or state[0] != 'dir' or state[1] & 0o022 or os.stat(parent).st_uid != os.getuid():
+                    raise ValueError(f'Unsafe DWL source directory: {parent}')
+        state = actual(source)
+        if state is None and not optional:
+            raise ValueError(f'Missing DWL source: {source}')
+        if state and (state[0] != 'file' or os.stat(source).st_nlink != 1 or
+                      state[1] & 0o022 or os.stat(source).st_uid != os.getuid()):
+            raise ValueError(f'Unsafe DWL source: {source}')
+        states[source], guards[source] = state, source_parents
+        if state:
+            with open(source, 'rb') as stream:
+                contents[source] = stream.read()
+    if wanted[0] != 'file' or disk and (disk[0] != 'file' or disk[1] != wanted[1] or
+                                      os.stat(path).st_nlink != 1 or os.stat(path).st_uid != os.getuid()):
+        raise ValueError(f'Unsafe DWL input type/permissions: {path}')
+    baseline = last_written(path)
+    if disk is None and baseline is not None:
+        raise ValueError(f'{path}: deletion needs a decision; the saved header is preserved')
+    current = run('cat', '--', path)
+    if disk is None or disk == wanted or disk == baseline:
+        # Nothing was edited. A machine without saved sections keeps its answers' sections.
+        if states[machine_source]:
+            return None
+        expected = current
+    else:
+        with open(path, 'rb') as stream:
+            edited = stream.read()
+        if baseline is None and states[machine_source]:
+            raise ValueError(f'{path}: unrecorded input differs from {machine_source}; both versions are preserved')
+        base = current if baseline in (None, wanted) else None
+        refs = ['HEAD']
+        saved_ref = os.environ.get('CHEZMOI_SYNC_BASELINE_REF', '')
+        if len(saved_ref) in (40, 64) and all(c in '0123456789abcdef' for c in saved_ref):
+            refs.insert(0, saved_ref)
+        for ref in refs if base is None else ():
+            shared, machine = git_source(ref, shared_source), git_source(ref, machine_source)
+            if shared is not None and machine is not None:
+                try:
+                    previous = dwl_join(shared, machine, machine_source)
+                except ValueError:
+                    continue
+                if digest(previous) == baseline[2]:
+                    base = previous
+                    break
+        if base is None:
+            raise ValueError(f'{path}: previous header cannot be recovered; both versions are preserved')
+        expected = merge_contents(current, base, edited, path)
+    shared, machine = dwl_split(expected, contents[shared_source], path)
+    if dwl_join(shared, machine, path) != expected:
+        raise ValueError(f'{path}: header cannot be split into shared and machine parts')
+    writes = [(source, states[source], new, guards[source])
+              for source, new in ((shared_source, shared), (machine_source, machine))
+              if contents.get(source) != new]
+    return (path, writes, expected) if writes else None
 
 try:
     context = json.loads(run('data'))['chezmoi']
@@ -335,23 +457,27 @@ try:
         targets[path] = wanted
 
     if phase == 'record':
-        observed, ancestors, record = {}, {}, []
+        observed, ancestors, record, dwl_changes = {}, {}, [], []
         conflicts = []
         for path, wanted in targets.items():
             ancestors.update(parents(path))
             disk = actual(path)
             observed[path] = disk
+            if path == os.path.join(destination, DWL_HEADER) and os.fsdecode(
+                    run('source-path', '--', path)).rstrip('\n') == os.path.join(source_root, 'dot_local/src/dwl/config.h.tmpl'):
+                try:
+                    change = record_dwl_header(path, wanted, disk)
+                    if change is not None:
+                        dwl_changes.append(change)
+                except (ValueError, subprocess.CalledProcessError) as error:
+                    conflicts.append(str(error))
+                continue
             if disk == wanted:
                 continue
             if disk and disk[0] != wanted[0] and 'dir' in (disk[0], wanted[0]):
                 conflicts.append(f'{path}: directory type change needs manual reconciliation')
                 continue
-            raw = run('state', 'get', '--bucket=entryState', '--key=' + path)
-            baseline = json.loads(raw) if raw.strip() else None
-            if baseline:
-                kind = baseline['type']
-                baseline = [kind, baseline.get('mode', 0) & 0o7777,
-                            baseline.get('contentsSHA256', '')]
+            baseline = last_written(path)
             if disk == baseline:
                 continue
             source = os.fsdecode(run('source-path', '--', path)).rstrip('\n')
@@ -409,22 +535,59 @@ try:
                 if digest(run('cat', '--', path)) != observed[path][2]:
                     raise ValueError(f'Re-add did not preserve disk contents: {path}')
             else:
-                with open(source, 'rb') as stream:
-                    original = stream.read()
+                original = None
+                if source_state is not None:
+                    with open(source, 'rb') as stream:
+                        original = stream.read()
                 replace_source(source, candidate, source_state)
+                written = actual(source)
                 try:
                     if run('cat', '--', path) != expected:
                         raise ValueError(f'Merged template did not preserve edits: {path}')
                 except (ValueError, subprocess.CalledProcessError):
-                    replace_source(source, original, actual(source))
+                    if actual(source) != written:
+                        raise ValueError(f'Source changed during sync: {source}')
+                    if original is None:
+                        os.unlink(source)
+                    else:
+                        replace_source(source, original, written)
                     raise
+        for path, writes, expected in dwl_changes:
+            current_parents = parents(path)
+            if actual(path) != observed[path] or current_parents != {p: ancestors[p] for p in current_parents}:
+                raise ValueError(f'Destination changed during sync: {path}')
+            for source, state, contents, source_parents in writes:
+                if actual(source) != state:
+                    raise ValueError(f'Source changed during sync: {source}')
+                if parents(source) != source_parents:
+                    raise ValueError(f'Source parent changed during sync: {source}')
+            done = []
+            try:
+                for source, state, contents, source_parents in writes:
+                    original = None
+                    if state is not None:
+                        with open(source, 'rb') as stream:
+                            original = stream.read()
+                    replace_source(source, contents, state)
+                    done.append((source, original, actual(source)))
+                if run('cat', '--', path) != expected:
+                    raise ValueError(f'Saved DWL parts do not reproduce the header: {path}')
+            except (ValueError, subprocess.CalledProcessError):
+                for source, original, written in reversed(done):
+                    if actual(source) != written:
+                        raise ValueError(f'Source changed during sync: {source}')
+                    if original is None:
+                        os.unlink(source)
+                    else:
+                        replace_source(source, original, written)
+                raise
     elif phase == 'apply':
         apply_umask = json.loads(run('dump-config', '--format=json'))['umask']
         if not isinstance(apply_umask, int) or not 0 <= apply_umask <= 0o777:
             raise ValueError('Invalid configured chezmoi umask')
         with open(snapshot) as stream:
             saved = json.load(stream)
-        pending, expected_parents = [], dict(saved['parents'])
+        pending, expected_parents, notices = [], dict(saved['parents']), []
         for path, wanted in targets.items():
             current_parents = parents(path)
             for parent, value in current_parents.items():
@@ -457,6 +620,10 @@ try:
                 raise ValueError(f'Applied target does not match its rendered contents/permissions: {path}')
             if targets[path][0] == 'dir':
                 expected_parents[path] = actual(path)
+            if path == os.path.join(destination, DWL_HEADER) and saved['targets'].get(path) != targets[path]:
+                notices.append(f'{path} changed; run update_dwl.sh to rebuild DWL with it.')
+        for notice in notices:
+            print(notice, file=sys.stderr)
     else:
         raise ValueError('Unknown sync phase')
 except (ValueError, OSError, KeyError, subprocess.CalledProcessError) as error:
