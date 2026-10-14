@@ -38,9 +38,9 @@ hl.bind(M .. " + W", hl.dsp.exec_cmd(BR))
 --  ⇧ W           → alt browser (helium)
 hl.bind(M .. " + SHIFT + W", hl.dsp.exec_cmd(ABR))
 --  A           → claude-code terminal
-hl.bind(M .. " + A", hl.dsp.exec_cmd("footclient -a opencode-float --window-size-chars=110x45 claude"))
+hl.bind(M .. " + A", hl.dsp.exec_cmd("footclient -a opencode-float claude"))
 --  ⇧ A           → opencode terminal
-hl.bind(M .. " + SHIFT + A", hl.dsp.exec_cmd("footclient -a opencode-float --window-size-chars=110x45 opencode"))
+hl.bind(M .. " + SHIFT + A", hl.dsp.exec_cmd("footclient -a opencode-float opencode"))
 {{ if .features.mail -}}
 --  E             → mail (aerc)
 hl.bind(M .. " + E", hl.dsp.exec_cmd("footclient -a fullscreen aerc"))
@@ -64,24 +64,24 @@ hl.bind(
 	)
 )
 --  N             → VimWiki
-hl.bind(M .. " + N", hl.dsp.exec_cmd("footclient -a vim-wiki-float --window-size-chars=85x45 nvim -c VimwikiIndex"))
+hl.bind(M .. " + N", hl.dsp.exec_cmd("footclient -a vim-wiki-float nvim -c VimwikiIndex"))
 hl.bind(M .. " + SHIFT + N", hl.dsp.exec_cmd("footclient -a fullscreen ~/.local/bin/weather.sh"))
 --  Ctrl T        → translator
 hl.bind(
 	M .. " + CTRL + T",
-	hl.dsp.exec_cmd("footclient -a translator --window-size-chars=90x30 ~/.local/bin/translate.sh")
+	hl.dsp.exec_cmd("footclient -a translator ~/.local/bin/translate.sh")
 )
 -- Shift T  → fast translate (translate-shell)
 hl.bind(
 	M .. " + SHIFT + T",
-	hl.dsp.exec_cmd("footclient -a translator --window-size-chars=90x30 ~/.local/bin/trans-fast")
+	hl.dsp.exec_cmd("footclient -a translator ~/.local/bin/trans-fast")
 )
 --  Ctrl Shift T  → screen OCR (tesseract)
 hl.bind(M .. " + CTRL + SHIFT + T", hl.dsp.exec_cmd("~/.local/bin/tesseract.sh"))
 --  T             → toggle float
 hl.bind(M .. " + T", hl.dsp.window.float({ action = "toggle" }))
 --  Ctrl V        → clipse clipboard
-hl.bind(M .. " + CTRL + V", hl.dsp.exec_cmd("footclient -a clipse --window-size-chars=62x32 clipse"))
+hl.bind(M .. " + CTRL + V", hl.dsp.exec_cmd("footclient -a clipse clipse"))
 --  Ctrl Y        → ytopen (YouTube link from clipboard)
 hl.bind(M .. " + CTRL + Y", hl.dsp.exec_cmd("~/.local/bin/ytopen.sh"))
 --  Ctrl W         → wikipedia (wiki-tui)
@@ -89,7 +89,7 @@ hl.bind(M .. " + CTRL + W", hl.dsp.exec_cmd("~/.local/bin/wikipedia.sh"))
 --  O             → wopen (clipboard → URL or SearXNG)
 hl.bind(M .. " + O", hl.dsp.exec_cmd("~/.local/bin/wopen.sh"))
 --  ⇧ C           → calcurse
-hl.bind(M .. " + SHIFT + C", hl.dsp.exec_cmd("footclient -a floating --window-size-chars=75x28 calcurse"))
+hl.bind(M .. " + SHIFT + C", hl.dsp.exec_cmd("footclient -a floating calcurse"))
 
 -- Screenshots
 hl.bind("PRINT", hl.dsp.exec_cmd("~/.local/bin/hypr_shot.sh region"))
@@ -104,10 +104,10 @@ hl.bind(M .. " + SHIFT + F8", hl.dsp.exec_cmd("~/.local/bin/webapp_install.sh"))
 hl.bind(M .. " + F1", hl.dsp.exec_cmd("dictionary.sh"))
 hl.bind(M .. " + F2", hl.dsp.exec_cmd("addtorrent.sh"))
 hl.bind(M .. " + B", hl.dsp.exec_cmd("~/.local/bin/waybar_toggle.sh"))
-hl.bind(M .. " + I", hl.dsp.exec_cmd("footclient -a floating --window-size-chars=80x28 impala"))
-hl.bind(M .. " + M", hl.dsp.exec_cmd("footclient -a floating --window-size-chars=80x28 wiremix"))
-hl.bind(M .. " + SHIFT + M", hl.dsp.exec_cmd("footclient -a floating --window-size-chars=80x28 cliamp"))
-hl.bind(M .. " + P", hl.dsp.exec_cmd("footclient -a floating --window-size-chars=70x25 bluetui"))
+hl.bind(M .. " + I", hl.dsp.exec_cmd("footclient -a floating impala"))
+hl.bind(M .. " + M", hl.dsp.exec_cmd("footclient -a floating wiremix"))
+hl.bind(M .. " + SHIFT + M", hl.dsp.exec_cmd("footclient -a floating cliamp"))
+hl.bind(M .. " + P", hl.dsp.exec_cmd("footclient -a floating bluetui"))
 hl.bind(M .. " + S", hl.dsp.exec_cmd("footclient -a fullscreen btop"))
 hl.bind(M .. " + SHIFT + S", hl.dsp.exec_cmd("footclient -a fullscreen htop"))
 hl.bind(M .. " + SHIFT + L", hl.dsp.exec_cmd("localsend"))

@@ -63,370 +63,22 @@ index d9f90bb..3a22130 100644
  static inline void
  client_get_clip(Client *c, struct wlr_box *clip)
  {
-diff --git a/config.def.h b/config.def.h
-index 8a6eda0..639a40c 100644
---- a/config.def.h
-+++ b/config.def.h
-@@ -1,65 +1,80 @@
- /* Taken from https://github.com/djpohly/dwl/issues/466 */
--#define COLOR(hex)    { ((hex >> 24) & 0xFF) / 255.0f, \
--                        ((hex >> 16) & 0xFF) / 255.0f, \
--                        ((hex >> 8) & 0xFF) / 255.0f, \
--                        (hex & 0xFF) / 255.0f }
-+#define COLOR(hex) { ((hex >> 24) & 0xff) / 255.0f, \
-+	((hex >> 16) & 0xff) / 255.0f, ((hex >> 8) & 0xff) / 255.0f, \
-+	(hex & 0xff) / 255.0f }
-+
- /* appearance */
--static const int sloppyfocus               = 1;  /* focus follows mouse */
--static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
--static const unsigned int borderpx         = 1;  /* border pixel of windows */
--static const float rootcolor[]             = COLOR(0x222222ff);
--static const float bordercolor[]           = COLOR(0x444444ff);
--static const float focuscolor[]            = COLOR(0x005577ff);
--static const float urgentcolor[]           = COLOR(0xff0000ff);
--/* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
--static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
--
--/* tagging - TAGCOUNT must be no greater than 31 */
--#define TAGCOUNT (9)
-+static const int sloppyfocus = 1;
-+static const int bypass_surface_visibility = 0;
-+static const int smartborders = 1;
-+static const int respect_monitor_reserved_area = 0;
-+static const int cursor_timeout = 3;
-+static const unsigned int borderpx = 2;
-+static const float rootcolor[] = COLOR(0x000000ff);
-+static const float bordercolor[] = COLOR(0x000000ff);
-+static const float focuscolor[] = COLOR(0x99d8feff);
-+static const float urgentcolor[] = COLOR(0xff6c6bff);
-+static const float fullscreen_bg[] = COLOR(0x000000ff);
-+
-+/* tagging */
-+#define TAGCOUNT (10)
- 
- /* logging */
- static int log_level = WLR_ERROR;
- 
-+/* x/y: -2 keeps the client position, -1 centers it. w/h: -1 keeps its size. */
- static const Rule rules[] = {
--	/* app_id             title       tags mask     isfloating   monitor */
--	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
--	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
--    /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
-+	/* app_id                 title  tags  float  fullscreen  monitor  x     y     w      h */
-+	{ "fullscreen",           NULL,  0,    0,     1,          -1,      -2,   -2,   -1,    -1 },
-+	{ "floating",             NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
-+	{ "vim-wiki-float",       NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
-+	{ "opencode-float",       NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
-+	{ "torrent-float",        NULL,  0,    1,     0,          -1,      -1,   -1,   1000,  600 },
-+	{ "translator",           NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
-+	{ "clipse",               NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
-+	{ "anki",                 NULL,  0,    1,     0,          -1,      -1,   -1,   700,   600 },
-+	{ "localsend",            NULL,  0,    1,     0,          -1,      -1,   -1,   400,   700 },
-+	{ "youtube-info",         NULL,  0,    1,     0,          -1,      -1,   -1,   900,   900 },
-+	{ "roflix-info",          NULL,  0,    1,     0,          -1,      -1,   -1,   1000,  850 },
-+	{ "org.roflix.Info",      NULL,  0,    1,     0,          -1,      -1,   -1,   1000,  850 },
-+	{ "audio-player",         NULL,  0,    1,     0,          -1,      -1,   -1,   800,   500 },
-+	{ "kprofi",               NULL,  0,    1,     0,          -1,      -1,   -1,   850,   600 },
-+	{ "term-notification-",   NULL,  0,    1,     0,          -1,      1650, 5,    -1,    -1 },
- };
- 
--/* layout(s) */
- static const Layout layouts[] = {
--	/* symbol     arrange function */
--	{ "[]=",      tile },
--	{ "><>",      NULL },    /* no layout function means floating behavior */
--	{ "[M]",      monocle },
-+	{ "[]=", tile },
-+	{ "><>", NULL },
-+	{ "[M]", monocle },
-+};
-+
-+static struct wlr_output_image_description bt2020_sdr = {
-+	.primaries = WLR_COLOR_NAMED_PRIMARIES_BT2020,
-+	.transfer_function = WLR_COLOR_TRANSFER_FUNCTION_SRGB,
-+	.mastering_luminance = { .min = 0.0, .max = 800.0 },
-+	.max_cll = 800.0,
-+	.max_fall = 400.0,
- };
- 
--/* monitors */
--/* (x=-1, y=-1) is reserved as an "autoconfigure" monitor position indicator
-- * WARNING: negative values other than (-1, -1) cause problems with Xwayland clients due to
-- * https://gitlab.freedesktop.org/xorg/xserver/-/issues/899 */
- static const MonitorRule monrules[] = {
--   /* name        mfact  nmaster scale layout       rotate/reflect                x    y
--    * example of a HiDPI laptop monitor:
--    { "eDP-1",    0.5f,  1,      2,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 }, */
--	{ NULL,       0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
--	/* default monitor rule: can be changed but cannot be eliminated; at least one monitor rule must exist */
-+	{
-+		.name = NULL, .mfact = 0.55f, .nmaster = 1, .scale = 1.0f,
-+		.lt = &layouts[0], .rr = WL_OUTPUT_TRANSFORM_NORMAL, .x = -1, .y = -1,
-+		.width = 0, .height = 0, .refresh = 0,
-+		.image_desc = NULL, .render_format = DRM_FORMAT_XRGB8888,
-+	},
- };
- 
--/* keyboard */
- static const struct xkb_rule_names xkb_rules = {
--	/* can specify fields: rules, model, layout, variant, options */
--	/* example:
--	.options = "ctrl:nocaps",
--	*/
--	.options = NULL,
-+	.layout = NULL, /* XKB_DEFAULT_LAYOUT from the machine settings */
-+	.options = NULL, /* XKB_DEFAULT_OPTIONS from the machine settings */
- };
-+static const int numlock = 1;
-+static const int capslock = 0;
-+static const int repeat_rate = 105;
-+static const int repeat_delay = 180;
- 
--static const int repeat_rate = 25;
--static const int repeat_delay = 600;
--
--/* Trackpad */
-+/* libinput */
- static const int tap_to_click = 1;
- static const int tap_and_drag = 1;
- static const int drag_lock = 1;
-@@ -67,106 +82,133 @@ static const int natural_scrolling = 0;
- static const int disable_while_typing = 1;
- static const int left_handed = 0;
- static const int middle_button_emulation = 0;
--/* You can choose between:
--LIBINPUT_CONFIG_SCROLL_NO_SCROLL
--LIBINPUT_CONFIG_SCROLL_2FG
--LIBINPUT_CONFIG_SCROLL_EDGE
--LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN
--*/
- static const enum libinput_config_scroll_method scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
--
--/* You can choose between:
--LIBINPUT_CONFIG_CLICK_METHOD_NONE
--LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS
--LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER
--*/
- static const enum libinput_config_click_method click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
--
--/* You can choose between:
--LIBINPUT_CONFIG_SEND_EVENTS_ENABLED
--LIBINPUT_CONFIG_SEND_EVENTS_DISABLED
--LIBINPUT_CONFIG_SEND_EVENTS_DISABLED_ON_EXTERNAL_MOUSE
--*/
- static const uint32_t send_events_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
--
--/* You can choose between:
--LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT
--LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE
--*/
- static const enum libinput_config_accel_profile accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
- static const double accel_speed = 0.0;
--
--/* You can choose between:
--LIBINPUT_CONFIG_TAP_MAP_LRM -- 1/2/3 finger tap maps to left/right/middle
--LIBINPUT_CONFIG_TAP_MAP_LMR -- 1/2/3 finger tap maps to left/middle/right
--*/
- static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
- 
--/* If you want to use the windows key for MODKEY, use WLR_MODIFIER_LOGO */
--#define MODKEY WLR_MODIFIER_ALT
--
--#define TAGKEYS(KEY,SKEY,TAG) \
--	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
--	{ MODKEY|WLR_MODIFIER_CTRL,  KEY,            toggleview,      {.ui = 1 << TAG} }, \
--	{ MODKEY|WLR_MODIFIER_SHIFT, SKEY,           tag,             {.ui = 1 << TAG} }, \
--	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY,toggletag, {.ui = 1 << TAG} }
--
--/* helper for spawning shell commands in the pre dwm-5.0 fashion */
--#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
--
--/* commands */
--static const char *termcmd[] = { "foot", NULL };
--static const char *menucmd[] = { "wmenu-run", NULL };
-+#define MODKEY WLR_MODIFIER_LOGO
-+#define SHCMD(cmd) { .v = (const char *[]) { "/bin/sh", "-c", cmd, NULL } }
-+#define TAGKEYS(KEY, TAG) \
-+	{ MODKEY, KEY, view, {.ui = 1u << TAG} }, \
-+	{ MODKEY|WLR_MODIFIER_SHIFT, KEY, tag, {.ui = 1u << TAG} }, \
-+	{ MODKEY|WLR_MODIFIER_CTRL, KEY, toggleview, {.ui = 1u << TAG} }, \
-+	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, KEY, toggletag, {.ui = 1u << TAG} }
-+
-+static const char *termcmd[] = { "footclient", NULL };
-+static const char *alttermcmd[] = { "kitty", NULL };
-+static const char *filecmd[] = { "footclient", "yazi", NULL };
-+static const char *browsercmd[] = { "librewolf", NULL };
-+static const char *altbrowsercmd[] = { "/bin/sh", "-c", "if command -v helium-browser >/dev/null 2>&1; then exec helium-browser; else exec helium; fi", NULL };
-+static const char *kb_notify_cmd[] = { "kb_notify.sh", NULL };
- 
- static const Key keys[] = {
--	/* Note that Shift changes certain key codes: 2 -> at, etc. */
--	/* modifier                  key                  function          argument */
--	{ MODKEY,                    XKB_KEY_p,           spawn,            {.v = menucmd} },
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,      spawn,            {.v = termcmd} },
--	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
--	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
--	{ MODKEY,                    XKB_KEY_i,           incnmaster,       {.i = +1} },
--	{ MODKEY,                    XKB_KEY_d,           incnmaster,       {.i = -1} },
--	{ MODKEY,                    XKB_KEY_h,           setmfact,         {.f = -0.05f} },
--	{ MODKEY,                    XKB_KEY_l,           setmfact,         {.f = +0.05f} },
--	{ MODKEY,                    XKB_KEY_Return,      zoom,             {0} },
--	{ MODKEY,                    XKB_KEY_Tab,         view,             {0} },
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c,           killclient,       {0} },
--	{ MODKEY,                    XKB_KEY_t,           setlayout,        {.v = &layouts[0]} },
--	{ MODKEY,                    XKB_KEY_f,           setlayout,        {.v = &layouts[1]} },
--	{ MODKEY,                    XKB_KEY_m,           setlayout,        {.v = &layouts[2]} },
--	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} },
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,       togglefloating,   {0} },
--	{ MODKEY,                    XKB_KEY_e,           togglefullscreen, {0} },
--	{ MODKEY,                    XKB_KEY_0,           view,             {.ui = ~0} },
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright,  tag,              {.ui = ~0} },
--	{ MODKEY,                    XKB_KEY_comma,       focusmon,         {.i = WLR_DIRECTION_LEFT} },
--	{ MODKEY,                    XKB_KEY_period,      focusmon,         {.i = WLR_DIRECTION_RIGHT} },
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_less,        tagmon,           {.i = WLR_DIRECTION_LEFT} },
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_greater,     tagmon,           {.i = WLR_DIRECTION_RIGHT} },
--	TAGKEYS(          XKB_KEY_1, XKB_KEY_exclam,                        0),
--	TAGKEYS(          XKB_KEY_2, XKB_KEY_at,                            1),
--	TAGKEYS(          XKB_KEY_3, XKB_KEY_numbersign,                    2),
--	TAGKEYS(          XKB_KEY_4, XKB_KEY_dollar,                        3),
--	TAGKEYS(          XKB_KEY_5, XKB_KEY_percent,                       4),
--	TAGKEYS(          XKB_KEY_6, XKB_KEY_asciicircum,                   5),
--	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                     6),
--	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                      7),
--	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                     8),
--	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_q,           quit,             {0} },
--
--	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
--	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
--	/* Ctrl-Alt-Fx is used to switch to another VT, if you don't know what a VT is
--	 * do not remove them.
--	 */
--#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
-+	{ MODKEY, XKB_KEY_Return, spawn, {.v = termcmd} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return, spawn, {.v = alttermcmd} },
-+	{ MODKEY, XKB_KEY_q, killclient, {0} },
-+	{ MODKEY, XKB_KEY_Escape, spawn, SHCMD("$HOME/.local/bin/powermenu.sh") },
-+	{ MODKEY, XKB_KEY_Delete, spawninfo, SHCMD("$HOME/.local/bin/panic_kill.sh") },
-+	{ MODKEY, XKB_KEY_f, togglefullscreen, {0} },
-+	{ MODKEY, XKB_KEY_BackSpace, quit, {0} },
-+
-+	{ MODKEY, XKB_KEY_r, spawn, {.v = filecmd} },
-+	{ MODKEY, XKB_KEY_d, spawn, SHCMD("rofi -show drun -theme-str 'window { width: 47ch; } configuration { show-icons: true; }'") },
-+	{ MODKEY, XKB_KEY_space, spawn, SHCMD("$HOME/.local/bin/.script_launcher.sh") },
-+	{ MODKEY, XKB_KEY_F6, spawn, SHCMD("$HOME/.local/bin/recorder.sh") },
-+	{ MODKEY, XKB_KEY_w, spawn, {.v = browsercmd} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w, spawn, {.v = altbrowsercmd} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_a, spawn, SHCMD("footclient -a opencode-float --window-size-chars=110x45 opencode") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/helium_launch_webapp.sh 'https://youtube.com' youtube") },
-+	{ MODKEY, XKB_KEY_c, spawn, SHCMD("footclient nvim \"$HOME/.local/src/dwl/config.def.h\"") },
-+	{ MODKEY, XKB_KEY_n, spawn, SHCMD("footclient -a vim-wiki-float --window-size-chars=85x45 nvim -c VimwikiIndex") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_n, spawn, SHCMD("footclient -a fullscreen $HOME/.local/bin/weather.sh") },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_t, spawn, SHCMD("footclient -a translator --window-size-chars=90x30 $HOME/.local/bin/translate.sh") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t, spawn, SHCMD("footclient -a translator --window-size-chars=90x30 $HOME/.local/bin/trans-fast") },
-+	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_t, spawn, SHCMD("$HOME/.local/bin/tesseract.sh") },
-+	{ MODKEY, XKB_KEY_t, togglefloating, {0} },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_v, spawn, SHCMD("footclient -a clipse --window-size-chars=62x32 clipse") },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/ytopen.sh") },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_w, spawn, SHCMD("$HOME/.local/bin/wikipedia.sh") },
-+	{ MODKEY, XKB_KEY_o, focusbrowser, SHCMD("$HOME/.local/bin/wopen.sh") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c, spawn, SHCMD("footclient -a floating --window-size-chars=75x28 calcurse") },
-+
-+	{ 0, XKB_KEY_Print, spawn, SHCMD("$HOME/.local/bin/hypr_shot.sh region") },
-+	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_Print, spawn, SHCMD("$HOME/.local/bin/hypr_shot.sh full") },
-+	{ WLR_MODIFIER_CTRL, XKB_KEY_Print, spawninfo, SHCMD("$HOME/.local/bin/hypr_shot.sh window") },
-+	{ WLR_MODIFIER_SHIFT, XKB_KEY_Print, spawn, SHCMD("$HOME/.local/bin/hypr_shot.sh output") },
-+
-+	{ MODKEY, XKB_KEY_grave, spawn, SHCMD("$HOME/.local/bin/browser_bookmarks.sh") },
-+	{ 0, XKB_KEY_F1, spawn, SHCMD("$HOME/.local/bin/ybrowser.sh") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_F8, spawn, SHCMD("$HOME/.local/bin/webapp_install.sh") },
-+	{ MODKEY, XKB_KEY_F1, spawn, SHCMD("dictionary.sh") },
-+	{ MODKEY, XKB_KEY_F2, spawn, SHCMD("addtorrent.sh") },
-+	{ MODKEY, XKB_KEY_b, spawn, SHCMD("$HOME/.local/bin/waybar_toggle.sh") },
-+	{ MODKEY, XKB_KEY_i, spawn, SHCMD("if command -v impala >/dev/null; then footclient -a floating --window-size-chars=80x28 impala; else $HOME/.local/bin/iwctl.sh; fi") },
-+	{ MODKEY, XKB_KEY_m, spawn, SHCMD("footclient -a floating --window-size-chars=80x28 wiremix") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_m, spawn, SHCMD("command -v cliamp >/dev/null && exec footclient -a floating --window-size-chars=80x28 cliamp") },
-+	{ MODKEY, XKB_KEY_p, spawn, SHCMD("footclient -a floating --window-size-chars=70x25 bluetui") },
-+	{ MODKEY, XKB_KEY_s, spawn, SHCMD("footclient -a fullscreen btop") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_s, spawn, SHCMD("footclient -a fullscreen htop") },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_l, spawn, SHCMD("localsend") },
-+
-+	{ MODKEY, XKB_KEY_j, focusstack, {.i = -1} },
-+	{ MODKEY, XKB_KEY_k, focusstack, {.i = +1} },
-+	{ WLR_MODIFIER_ALT, XKB_KEY_Tab, focusstack, {.i = +1} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_k, movestack, {.i = +1} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_j, movestack, {.i = -1} },
-+
-+	TAGKEYS(XKB_KEY_1, 0),
-+	TAGKEYS(XKB_KEY_2, 1),
-+	TAGKEYS(XKB_KEY_3, 2),
-+	TAGKEYS(XKB_KEY_4, 3),
-+	TAGKEYS(XKB_KEY_5, 4),
-+	TAGKEYS(XKB_KEY_6, 5),
-+	TAGKEYS(XKB_KEY_7, 6),
-+	TAGKEYS(XKB_KEY_8, 7),
-+	TAGKEYS(XKB_KEY_9, 8),
-+	TAGKEYS(XKB_KEY_0, 9),
-+
-+	{ MODKEY, XKB_KEY_l, resizeactive, {.i = +1} },
-+	{ MODKEY, XKB_KEY_h, resizeactive, {.i = -1} },
-+	{ MODKEY, XKB_KEY_Right, resizeactive, {.i = +1} },
-+	{ MODKEY, XKB_KEY_Left, resizeactive, {.i = -1} },
-+	{ MODKEY, XKB_KEY_Up, resizeactive, {.i = -2} },
-+	{ MODKEY, XKB_KEY_Down, resizeactive, {.i = +2} },
-+
-+	{ 0, XKB_KEY_XF86AudioLowerVolume, spawn, SHCMD("wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05- && $HOME/.local/bin/volume.sh") },
-+	{ 0, XKB_KEY_XF86AudioRaiseVolume, spawn, SHCMD("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 0.05+ && $HOME/.local/bin/volume.sh") },
-+	{ 0, XKB_KEY_XF86AudioMute, spawn, SHCMD("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && $HOME/.local/bin/volume.sh") },
-+	{ 0, XKB_KEY_XF86AudioMicMute, spawn, SHCMD("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && $HOME/.local/bin/volume.sh") },
-+	{ 0, XKB_KEY_XF86MonBrightnessUp, spawn, SHCMD("brightnessctl -e4 -n2 set 5%+ && $HOME/.local/bin/brightness.sh") },
-+	{ 0, XKB_KEY_XF86MonBrightnessDown, spawn, SHCMD("brightnessctl -e4 -n2 set 5%- && $HOME/.local/bin/brightness.sh") },
-+	{ LOCKED, XKB_KEY_XF86AudioNext, spawn, SHCMD("playerctl next") },
-+	{ LOCKED, XKB_KEY_XF86AudioPause, spawn, SHCMD("playerctl play-pause") },
-+	{ LOCKED, XKB_KEY_XF86AudioPlay, spawn, SHCMD("playerctl play-pause") },
-+	{ LOCKED, XKB_KEY_XF86AudioPrev, spawn, SHCMD("playerctl previous") },
-+
-+	{ MODKEY, XKB_KEY_e, spawn, SHCMD("footclient -a fullscreen aerc") },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_k, spawn, SHCMD("$HOME/.local/bin/kprofi.sh") },
-+	{ MODKEY, XKB_KEY_a, spawn, SHCMD("$HOME/.local/bin/hermes-launch.sh") },
-+
-+	/* dwl-specific master-stack and output controls */
-+	{ MODKEY, XKB_KEY_z, zoom, {0} },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_Up, incnmaster, {.i = +1} },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_Down, incnmaster, {.i = -1} },
-+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_space, setlayout, {0} },
-+	{ MODKEY, XKB_KEY_comma, focusmon, {.i = WLR_DIRECTION_LEFT} },
-+	{ MODKEY, XKB_KEY_period, focusmon, {.i = WLR_DIRECTION_RIGHT} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_comma, tagmon, {.i = WLR_DIRECTION_LEFT} },
-+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_period, tagmon, {.i = WLR_DIRECTION_RIGHT} },
-+
-+	{ LOCKED|WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT, XKB_KEY_Terminate_Server, quit, {0} },
-+#define CHVT(n) { LOCKED|WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT, XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = n} }
- 	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
- 	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
- };
- 
- static const Button buttons[] = {
--	{ MODKEY, BTN_LEFT,   moveresize,     {.ui = CurMove} },
--	{ MODKEY, BTN_MIDDLE, togglefloating, {0} },
--	{ MODKEY, BTN_RIGHT,  moveresize,     {.ui = CurResize} },
-+	{ MODKEY, BTN_LEFT, moveresize, {.ui = CurMove} },
-+	{ MODKEY, BTN_RIGHT, moveresize, {.ui = CurResize} },
- };
 diff --git a/dwl.c b/dwl.c
-index 8101ffa..930d228 100644
+index 8101ffa..b83defd 100644
 --- a/dwl.c
 +++ b/dwl.c
-@@ -2,6 +2,7 @@
+@@ -1,7 +1,10 @@
+ /*
   * See LICENSE file for copyright and license details.
   */
++#include <dirent.h>
++#include <errno.h>
  #include <getopt.h>
 +#include <drm_fourcc.h>
  #include <libinput.h>
  #include <linux/input-event-codes.h>
  #include <math.h>
-@@ -14,9 +15,12 @@
+@@ -14,9 +17,12 @@
  #include <wayland-server-core.h>
  #include <wlr/backend.h>
  #include <wlr/backend/libinput.h>
@@ -439,7 +91,7 @@ index 8101ffa..930d228 100644
  #include <wlr/types/wlr_compositor.h>
  #include <wlr/types/wlr_cursor.h>
  #include <wlr/types/wlr_cursor_shape_v1.h>
-@@ -72,16 +76,18 @@
+@@ -72,16 +78,18 @@
  #endif
  
  #include "xdg-shell-protocol.h"
@@ -459,7 +111,7 @@ index 8101ffa..930d228 100644
  #define LISTEN(E, L, H)         wl_signal_add((E), ((L)->notify = (H), (L)))
  #define LISTEN_STATIC(E, H)     do { struct wl_listener *_l = ecalloc(1, sizeof(*_l)); _l->notify = (H); wl_signal_add((E), _l); } while (0)
  
-@@ -142,9 +148,16 @@ typedef struct {
+@@ -142,9 +150,16 @@ typedef struct {
  	unsigned int bw;
  	uint32_t tags;
  	int isfloating, isurgent, isfullscreen;
@@ -476,7 +128,7 @@ index 8101ffa..930d228 100644
  typedef struct {
  	uint32_t mod;
  	xkb_keysym_t keysym;
-@@ -157,6 +170,7 @@ typedef struct {
+@@ -157,6 +172,7 @@ typedef struct {
  
  	int nsyms;
  	const xkb_keysym_t *keysyms; /* invalid if nsyms == 0 */
@@ -484,7 +136,7 @@ index 8101ffa..930d228 100644
  	uint32_t mods; /* invalid if nsyms == 0 */
  	struct wl_event_source *key_repeat_source;
  
-@@ -189,6 +203,7 @@ typedef struct {
+@@ -189,6 +205,7 @@ typedef struct {
  
  struct Monitor {
  	struct wl_list link;
@@ -492,17 +144,28 @@ index 8101ffa..930d228 100644
  	struct wlr_output *wlr_output;
  	struct wlr_scene_output *scene_output;
  	struct wlr_scene_rect *fullscreen_bg; /* See createmon() for info */
-@@ -219,6 +234,9 @@ typedef struct {
+@@ -204,6 +221,7 @@ struct Monitor {
+ 	unsigned int seltags;
+ 	unsigned int sellt;
+ 	uint32_t tagset[2];
++	uint32_t configured_tags;
+ 	float mfact;
+ 	int gamma_lut_changed;
+ 	int nmaster;
+@@ -219,6 +237,12 @@ typedef struct {
  	const Layout *lt;
  	enum wl_output_transform rr;
  	int x, y;
 +	int width, height, refresh;
 +	struct wlr_output_image_description *image_desc;
 +	uint32_t render_format;
++	const char *edid;
++	uint32_t tags;
++	int disabled;
  } MonitorRule;
  
  typedef struct {
-@@ -231,7 +249,9 @@ typedef struct {
+@@ -231,7 +255,9 @@ typedef struct {
  	const char *title;
  	uint32_t tags;
  	int isfloating;
@@ -512,18 +175,18 @@ index 8101ffa..930d228 100644
  } Rule;
  
  typedef struct {
-@@ -261,6 +281,10 @@ static void closemon(Monitor *m);
+@@ -261,6 +287,10 @@ static void closemon(Monitor *m);
  static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
  static void commitnotify(struct wl_listener *listener, void *data);
  static void commitpopup(struct wl_listener *listener, void *data);
 +static void configureoutputstate(struct wlr_output_state *state,
 +		struct wlr_output *output, const MonitorRule *rule);
 +static uint32_t initialoutputtag(const char *name);
-+static int outputiswide(const char *name);
++static int outputmatches(const char *name, const char *expected, int connected);
  static void createdecoration(struct wl_listener *listener, void *data);
  static void createidleinhibitor(struct wl_listener *listener, void *data);
  static void createkeyboard(struct wlr_keyboard *keyboard);
-@@ -286,16 +310,37 @@ static void destroypointerconstraint(struct wl_listener *listener, void *data);
+@@ -286,16 +316,37 @@ static void destroypointerconstraint(struct wl_listener *listener, void *data);
  static void destroysessionlock(struct wl_listener *listener, void *data);
  static void destroykeyboardgroup(struct wl_listener *listener, void *data);
  static Monitor *dirtomon(enum wlr_direction dir);
@@ -562,7 +225,7 @@ index 8101ffa..930d228 100644
  static void keypress(struct wl_listener *listener, void *data);
  static void keypressmod(struct wl_listener *listener, void *data);
  static int keyrepeat(void *data);
-@@ -304,11 +349,14 @@ static void locksession(struct wl_listener *listener, void *data);
+@@ -304,11 +355,14 @@ static void locksession(struct wl_listener *listener, void *data);
  static void mapnotify(struct wl_listener *listener, void *data);
  static void maximizenotify(struct wl_listener *listener, void *data);
  static void monocle(Monitor *m);
@@ -577,7 +240,7 @@ index 8101ffa..930d228 100644
  static void outputmgrapply(struct wl_listener *listener, void *data);
  static void outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test);
  static void outputmgrtest(struct wl_listener *listener, void *data);
-@@ -321,7 +369,9 @@ static void rendermon(struct wl_listener *listener, void *data);
+@@ -321,7 +375,9 @@ static void rendermon(struct wl_listener *listener, void *data);
  static void requestdecorationmode(struct wl_listener *listener, void *data);
  static void requeststartdrag(struct wl_listener *listener, void *data);
  static void requestmonstate(struct wl_listener *listener, void *data);
@@ -588,7 +251,7 @@ index 8101ffa..930d228 100644
  static void run(char *startup_cmd);
  static void setcursor(struct wl_listener *listener, void *data);
  static void setcursorshape(struct wl_listener *listener, void *data);
-@@ -333,7 +383,9 @@ static void setmon(Client *c, Monitor *m, uint32_t newtags);
+@@ -333,7 +389,9 @@ static void setmon(Client *c, Monitor *m, uint32_t newtags);
  static void setpsel(struct wl_listener *listener, void *data);
  static void setsel(struct wl_listener *listener, void *data);
  static void setup(void);
@@ -598,7 +261,7 @@ index 8101ffa..930d228 100644
  static void startdrag(struct wl_listener *listener, void *data);
  static void tag(const Arg *arg);
  static void tagmon(const Arg *arg);
-@@ -349,6 +401,7 @@ static void updatemons(struct wl_listener *listener, void *data);
+@@ -349,6 +407,7 @@ static void updatemons(struct wl_listener *listener, void *data);
  static void updatetitle(struct wl_listener *listener, void *data);
  static void urgent(struct wl_listener *listener, void *data);
  static void view(const Arg *arg);
@@ -606,7 +269,7 @@ index 8101ffa..930d228 100644
  static void virtualkeyboard(struct wl_listener *listener, void *data);
  static void virtualpointer(struct wl_listener *listener, void *data);
  static Monitor *xytomon(double x, double y);
-@@ -359,6 +412,7 @@ static void zoom(const Arg *arg);
+@@ -359,6 +418,7 @@ static void zoom(const Arg *arg);
  /* variables */
  static pid_t child_pid = -1;
  static int locked;
@@ -614,7 +277,7 @@ index 8101ffa..930d228 100644
  static void *exclusive_focus;
  static struct wl_display *dpy;
  static struct wl_event_loop *event_loop;
-@@ -386,6 +440,7 @@ static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
+@@ -386,6 +446,7 @@ static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
  static struct wlr_virtual_pointer_manager_v1 *virtual_pointer_mgr;
  static struct wlr_cursor_shape_manager_v1 *cursor_shape_mgr;
  static struct wlr_output_power_manager_v1 *power_mgr;
@@ -622,7 +285,7 @@ index 8101ffa..930d228 100644
  
  static struct wlr_pointer_constraints_v1 *pointer_constraints;
  static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
-@@ -393,6 +448,11 @@ static struct wlr_pointer_constraint_v1 *active_constraint;
+@@ -393,6 +454,11 @@ static struct wlr_pointer_constraint_v1 *active_constraint;
  
  static struct wlr_cursor *cursor;
  static struct wlr_xcursor_manager *cursor_mgr;
@@ -634,7 +297,7 @@ index 8101ffa..930d228 100644
  
  static struct wlr_scene_rect *root_bg;
  static struct wlr_session_lock_manager_v1 *session_lock_mgr;
-@@ -410,6 +470,17 @@ static struct wlr_box sgeom;
+@@ -410,6 +476,17 @@ static struct wlr_box sgeom;
  static struct wl_list mons;
  static Monitor *selmon;
  
@@ -652,7 +315,31 @@ index 8101ffa..930d228 100644
  /* global event handlers */
  static struct wl_listener cursor_axis = {.notify = axisnotify};
  static struct wl_listener cursor_button = {.notify = buttonpress};
-@@ -483,18 +554,28 @@ applyrules(Client *c)
+@@ -456,6 +533,10 @@ static struct wlr_xwayland *xwayland;
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+ 
++#if !defined(DWL_CONFIG_VERSION) || DWL_CONFIG_VERSION != 1
++#error "Review ~/.local/src/dwl/config.h for the native DWL configuration before rebuilding"
++#endif
++
+ /* attempt to encapsulate suck into one file */
+ #include "client.h"
+ 
+@@ -466,6 +547,12 @@ applybounds(Client *c, struct wlr_box *bbox)
+ 	/* set minimum possible */
+ 	c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
+ 	c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
++	if (bbox->width > 0 && bbox->height > 0) {
++		c->geom.width = MAX(1 + 2 * (int)c->bw, MIN(c->geom.width, bbox->width));
++		c->geom.height = MAX(1 + 2 * (int)c->bw, MIN(c->geom.height, bbox->height));
++		c->geom.x = MAX(bbox->x, MIN(c->geom.x, bbox->x + bbox->width - c->geom.width));
++		c->geom.y = MAX(bbox->y, MIN(c->geom.y, bbox->y + bbox->height - c->geom.height));
++	}
+ 
+ 	if (c->geom.x >= bbox->x + bbox->width)
+ 		c->geom.x = bbox->x + bbox->width - c->geom.width;
+@@ -483,18 +570,28 @@ applyrules(Client *c)
  	/* rule matching */
  	const char *appid, *title;
  	uint32_t newtags = 0;
@@ -683,7 +370,7 @@ index 8101ffa..930d228 100644
  			i = 0;
  			wl_list_for_each(m, &mons, link) {
  				if (r->monitor == i++)
-@@ -504,7 +585,31 @@ applyrules(Client *c)
+@@ -504,7 +601,31 @@ applyrules(Client *c)
  	}
  
  	c->isfloating |= client_is_float_type(c);
@@ -708,14 +395,14 @@ index 8101ffa..930d228 100644
 +		else if (ry >= 0.0f)
 +			geo.y = b.y + (int)roundf(ry <= 1.0f
 +					? (b.height - geo.height) * ry : ry);
-+		resize(c, geo, 1, 1);
++		resize(c, geo, 0, 1);
 +	}
 +	if (rule_fullscreen)
 +		setfullscreen(c, 1);
  }
  
  void
-@@ -525,7 +630,8 @@ arrange(Monitor *m)
+@@ -525,7 +646,8 @@ arrange(Monitor *m)
  	wlr_scene_node_set_enabled(&m->fullscreen_bg->node,
  			(c = focustop(m)) && c->isfullscreen);
  
@@ -725,7 +412,19 @@ index 8101ffa..930d228 100644
  
  	/* We move all clients (except fullscreen and unmanaged) to LyrTile while
  	 * in floating layout to avoid "real" floating clients be always on top */
-@@ -613,9 +719,23 @@ axisnotify(struct wl_listener *listener, void *data)
+@@ -543,6 +665,11 @@ arrange(Monitor *m)
+ 
+ 	if (m->lt[m->sellt]->arrange)
+ 		m->lt[m->sellt]->arrange(m);
++	/* Keep a manual size that still fits; only clamp after the usable area changes. */
++	wl_list_for_each(c, &clients, link)
++		if (c->mon == m && !c->isfullscreen
++				&& (c->isfloating || !m->lt[m->sellt]->arrange))
++			resize(c, c->geom, 0, 1);
+ 	motionnotify(0, NULL, 0, 0, 0, 0);
+ 	checkidleinhibitor(NULL);
+ }
+@@ -613,9 +740,23 @@ axisnotify(struct wl_listener *listener, void *data)
  	/* This event is forwarded by the cursor when a pointer emits an axis event,
  	 * for example when you move the scroll wheel. */
  	struct wlr_pointer_axis_event *event = data;
@@ -751,7 +450,7 @@ index 8101ffa..930d228 100644
  	/* Notify the client with pointer focus of the axis event. */
  	wlr_seat_pointer_notify_axis(seat,
  			event->time_msec, event->orientation, event->delta,
-@@ -632,6 +752,7 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -632,6 +773,7 @@ buttonpress(struct wl_listener *listener, void *data)
  	const Button *b;
  
  	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
@@ -759,7 +458,7 @@ index 8101ffa..930d228 100644
  
  	switch (event->state) {
  	case WL_POINTER_BUTTON_STATE_PRESSED:
-@@ -700,6 +821,32 @@ checkidleinhibitor(struct wlr_surface *exclude)
+@@ -700,6 +842,32 @@ checkidleinhibitor(struct wlr_surface *exclude)
  	wlr_idle_notifier_v1_set_inhibited(idle_notifier, inhibited);
  }
  
@@ -770,7 +469,7 @@ index 8101ffa..930d228 100644
 +	struct wlr_output_mode *mode, *selected = NULL;
 +
 +	wlr_output_state_init(state);
-+	wlr_output_state_set_enabled(state, 1);
++	wlr_output_state_set_enabled(state, !rule->disabled);
 +	wlr_output_state_set_scale(state, rule->scale);
 +	wlr_output_state_set_transform(state, rule->rr);
 +
@@ -792,7 +491,7 @@ index 8101ffa..930d228 100644
  void
  cleanup(void)
  {
-@@ -731,9 +878,13 @@ void
+@@ -731,9 +899,13 @@ void
  cleanupmon(struct wl_listener *listener, void *data)
  {
  	Monitor *m = wl_container_of(listener, m, destroy);
@@ -806,7 +505,7 @@ index 8101ffa..930d228 100644
  	/* m->layers[i] are intentionally not unlinked */
  	for (i = 0; i < LENGTH(m->layers); i++) {
  		wl_list_for_each_safe(l, tmp, &m->layers[i], link)
-@@ -798,22 +949,15 @@ closemon(Monitor *m)
+@@ -798,22 +970,15 @@ closemon(Monitor *m)
  	/* update selmon if needed and
  	 * move closed monitor's clients to the focused one */
  	Client *c;
@@ -832,7 +531,7 @@ index 8101ffa..930d228 100644
  		if (c->mon == m)
  			setmon(c, selmon, c->tags);
  	}
-@@ -882,7 +1026,12 @@ commitnotify(struct wl_listener *listener, void *data)
+@@ -882,7 +1047,12 @@ commitnotify(struct wl_listener *listener, void *data)
  		return;
  	}
  
@@ -846,7 +545,7 @@ index 8101ffa..930d228 100644
  
  	/* mark a pending resize as completed */
  	if (c->resize && c->resize <= c->surface.xdg->current.configure_serial)
-@@ -946,6 +1095,7 @@ createkeyboard(struct wlr_keyboard *keyboard)
+@@ -946,6 +1116,7 @@ createkeyboard(struct wlr_keyboard *keyboard)
  {
  	/* Set the keymap to match the group keymap */
  	wlr_keyboard_set_keymap(keyboard, kb_group->wlr_group->keyboard.keymap);
@@ -854,7 +553,7 @@ index 8101ffa..930d228 100644
  
  	/* Add the new keyboard to the group */
  	wlr_keyboard_group_add_keyboard(kb_group->wlr_group, keyboard);
-@@ -968,6 +1118,19 @@ createkeyboardgroup(void)
+@@ -968,6 +1139,19 @@ createkeyboardgroup(void)
  		die("failed to compile keymap");
  
  	wlr_keyboard_set_keymap(&group->wlr_group->keyboard, keymap);
@@ -874,7 +573,7 @@ index 8101ffa..930d228 100644
  	xkb_keymap_unref(keymap);
  	xkb_context_unref(context);
  
-@@ -985,6 +1148,7 @@ createkeyboardgroup(void)
+@@ -985,6 +1169,7 @@ createkeyboardgroup(void)
  	 * all of them. Set this combined wlr_keyboard as the seat keyboard.
  	 */
  	wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
@@ -882,7 +581,7 @@ index 8101ffa..930d228 100644
  	return group;
  }
  
-@@ -1045,7 +1209,11 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1045,7 +1230,11 @@ createmon(struct wl_listener *listener, void *data)
  	/* This event is raised by the backend when a new output (aka a display or
  	 * monitor) becomes available. */
  	struct wlr_output *wlr_output = data;
@@ -895,7 +594,7 @@ index 8101ffa..930d228 100644
  	size_t i;
  	struct wlr_output_state state;
  	Monitor *m;
-@@ -1055,13 +1223,13 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1055,43 +1244,98 @@ createmon(struct wl_listener *listener, void *data)
  
  	m = wlr_output->data = ecalloc(1, sizeof(*m));
  	m->wlr_output = wlr_output;
@@ -907,11 +606,13 @@ index 8101ffa..930d228 100644
 -	wlr_output_state_init(&state);
  	/* Initialize monitor state using configured rules */
 -	m->tagset[0] = m->tagset[1] = 1;
-+	m->tagset[0] = m->tagset[1] = initialoutputtag(wlr_output->name);
  	for (r = monrules; r < END(monrules); r++) {
- 		if (!r->name || strstr(wlr_output->name, r->name)) {
+-		if (!r->name || strstr(wlr_output->name, r->name)) {
++		if (!r->name || (!strcmp(wlr_output->name, r->name)
++				&& outputmatches(r->name, r->edid, 0))) {
  			m->m.x = r->x;
-@@ -1070,28 +1238,69 @@ createmon(struct wl_listener *listener, void *data)
+ 			m->m.y = r->y;
+ 			m->mfact = r->mfact;
  			m->nmaster = r->nmaster;
  			m->lt[0] = r->lt;
  			m->lt[1] = &layouts[LENGTH(layouts) > 1 && r->lt != &layouts[1]];
@@ -930,12 +631,26 @@ index 8101ffa..930d228 100644
 -	 * the user configure it. */
 -	wlr_output_state_set_mode(&state, wlr_output_preferred_mode(wlr_output));
 +	selected_rule = *r;
-+	if (outputiswide(wlr_output->name)) {
-+		selected_rule.image_desc = &bt2020_sdr;
-+		selected_rule.render_format = DRM_FORMAT_XBGR2101010;
++	/* Never disable the only currently available display. */
++	if (selected_rule.disabled) {
++		const MonitorRule *other;
++		Monitor *live;
++		int available = 0;
++		wl_list_for_each(live, &mons, link)
++			available |= live->wlr_output->enabled;
++		for (other = monrules; other < END(monrules); other++)
++			if (other->name && !other->disabled
++					&& strcmp(other->name, wlr_output->name)
++					&& outputmatches(other->name, other->edid, 1))
++				available = 1;
++		if (!available)
++			selected_rule.disabled = 0;
 +	}
 +	r = &selected_rule;
-+	try_wide = color_mode && !strcmp(color_mode, "wide") && r->image_desc
++	m->configured_tags = r->tags & TAGMASK;
++	m->tagset[0] = m->tagset[1] = m->configured_tags
++			? m->configured_tags & -m->configured_tags : 1u;
++	try_wide = (!color_mode || strcmp(color_mode, "srgb")) && r->image_desc && !r->disabled
 +			&& drw->features.output_color_transform
 +			&& (wlr_output->supported_primaries & r->image_desc->primaries)
 +			&& (wlr_output->supported_transfer_functions
@@ -964,14 +679,13 @@ index 8101ffa..930d228 100644
 +				break;
 +		}
 +	}
- 
--	/* Set up event listeners */
++
 +	if (!committed) {
 +		configureoutputstate(&state, wlr_output, r);
 +		wlr_output_state_set_render_format(&state, DRM_FORMAT_XRGB8888);
 +		committed = wlr_output_commit_state(wlr_output, &state);
 +		wlr_output_state_finish(&state);
-+		if (color_mode && !strcmp(color_mode, "wide") && r->image_desc)
++		if ((!color_mode || strcmp(color_mode, "srgb")) && r->image_desc && !r->disabled)
 +			wlr_log(WLR_INFO, "%s: wide-color test failed; using 8-bit sRGB",
 +					wlr_output->name);
 +	}
@@ -981,7 +695,8 @@ index 8101ffa..930d228 100644
 +		free(m);
 +		return;
 +	}
-+
+ 
+-	/* Set up event listeners */
 +	/* Set up event listeners after the initial output commit succeeds. */
  	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
  	LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);
@@ -994,14 +709,12 @@ index 8101ffa..930d228 100644
  	wl_list_insert(&mons, &m->link);
  	printstatus();
  
-@@ -1178,6 +1387,23 @@ createpointer(struct wlr_pointer *pointer)
+@@ -1178,7 +1422,20 @@ createpointer(struct wlr_pointer *pointer)
  
  		if (libinput_device_config_accel_is_available(device)) {
  			libinput_device_config_accel_set_profile(device, accel_profile);
 -			libinput_device_config_accel_set_speed(device, accel_speed);
-+			const char *wanted = getenv("DWL_MOUSE_NAME");
-+			const char *setting = getenv("DWL_MOUSE_SENSITIVITY");
-+			char name[256], *end;
++			char name[256];
 +			double speed = accel_speed;
 +			size_t index;
 +			snprintf(name, sizeof(name), "%s", libinput_device_get_name(device));
@@ -1011,70 +724,111 @@ index 8101ffa..930d228 100644
 +				else if (name[index] >= 'A' && name[index] <= 'Z')
 +					name[index] += 'a' - 'A';
 +			}
-+			if (wanted && setting && !strcmp(wanted, name)) {
-+				double selected = strtod(setting, &end);
-+				if (end != setting && !*end && isfinite(selected) && selected >= -1 && selected <= 1)
-+					speed = selected;
-+			}
++			if (DWL_MOUSE_NAME[0] && !strcmp(DWL_MOUSE_NAME, name)
++					&& isfinite((double)DWL_MOUSE_SPEED) && DWL_MOUSE_SPEED >= -1 && DWL_MOUSE_SPEED <= 1)
++				speed = DWL_MOUSE_SPEED;
 +			libinput_device_config_accel_set_speed(device, speed);
  		}
  	}
-@@ -1403,6 +1629,267 @@ dirtomon(enum wlr_direction dir)
+ 
+@@ -1403,6 +1660,309 @@ dirtomon(enum wlr_direction dir)
  	return selmon;
  }
  
 +uint32_t
 +initialoutputtag(const char *name)
 +{
-+	char key[32];
-+	const char *output;
-+	unsigned int tag;
-+	for (tag = 0; tag < TAGCOUNT; tag++) {
-+		snprintf(key, sizeof(key), "DWL_TAG_OUTPUT_%u", tag + 1);
-+		output = getenv(key);
-+		if (output && !strcmp(output, name))
-+			return 1u << tag;
-+	}
++	Monitor *m;
++	wl_list_for_each(m, &mons, link)
++		if (!strcmp(m->wlr_output->name, name) && m->configured_tags)
++			return m->configured_tags & -m->configured_tags;
 +	return 1u;
 +}
 +
 +int
-+outputiswide(const char *name)
++outputmatches(const char *name, const char *expected, int connected)
 +{
-+	const char *list = getenv("DWL_WIDE_OUTPUTS"), *end;
-+	if (!list)
++	DIR *directory;
++	struct dirent *entry;
++	char path[512], hash[128], suffix[256];
++	int found = 0;
++	size_t length, suffix_length;
++	if (!connected && (!expected || !expected[0]))
++		return 1;
++	if (!name || (expected && expected[0] && strlen(expected) != 64)
++			|| snprintf(suffix, sizeof(suffix), "-%s", name) >= (int)sizeof(suffix)
++			|| !(directory = opendir("/sys/class/drm")))
 +		return 0;
-+	while (*list) {
-+		end = strchr(list, ',');
-+		if (!end)
-+			end = list + strlen(list);
-+		if ((size_t)(end - list) == strlen(name) && !strncmp(list, name, end - list))
-+			return 1;
-+		list = *end ? end + 1 : end;
++	suffix_length = strlen(suffix);
++	while (!found && (entry = readdir(directory))) {
++		FILE *stream;
++		int fds[2], status = 0;
++		pid_t child, waited;
++		sigset_t blocked, previous;
++		length = strlen(entry->d_name);
++		if (strncmp(entry->d_name, "card", 4) || length <= suffix_length
++				|| strcmp(entry->d_name + length - suffix_length, suffix))
++			continue;
++		if (connected) {
++			snprintf(path, sizeof(path), "/sys/class/drm/%s/status", entry->d_name);
++			if (!(stream = fopen(path, "r")))
++				continue;
++			found = fgets(hash, sizeof(hash), stream) && !strcmp(hash, "connected\n");
++			fclose(stream);
++			if (!found)
++				continue;
++			if (!expected || !expected[0])
++				break;
++			found = 0;
++		}
++		snprintf(path, sizeof(path), "/sys/class/drm/%s/edid", entry->d_name);
++		if (pipe(fds))
++			continue;
++		sigemptyset(&blocked);
++		sigaddset(&blocked, SIGCHLD);
++		sigprocmask(SIG_BLOCK, &blocked, &previous);
++		child = fork();
++		if (child == 0) {
++			close(fds[0]);
++			if (dup2(fds[1], STDOUT_FILENO) == -1)
++				_exit(127);
++			close(fds[1]);
++			sigprocmask(SIG_SETMASK, &previous, NULL);
++			execlp("sha256sum", "sha256sum", "--", path, (char *)NULL);
++			_exit(127);
++		}
++		close(fds[1]);
++		hash[0] = '\0';
++		if (child > 0 && (stream = fdopen(fds[0], "r"))) {
++			if (!fgets(hash, sizeof(hash), stream))
++				hash[0] = '\0';
++			fclose(stream);
++		} else {
++			close(fds[0]);
++		}
++		if (child > 0) {
++			do waited = waitpid(child, &status, 0); while (waited < 0 && errno == EINTR);
++			found = waited == child && WIFEXITED(status) && WEXITSTATUS(status) == 0
++					&& strlen(hash) >= 65 && hash[64] == ' '
++					&& !strncmp(hash, expected, 64);
++		}
++		sigprocmask(SIG_SETMASK, &previous, NULL);
 +	}
-+	return 0;
++	closedir(directory);
++	return found;
 +}
 +
 +Monitor *
 +monitorfortag(uint32_t tags, int fallback)
 +{
 +	Monitor *m, *first = NULL;
-+	const char *name = NULL;
-+	char key[32];
-+	int tag = 0;
-+
-+	if (tags) {
-+		while (!(tags & (1u << tag)) && tag < TAGCOUNT)
-+			tag++;
-+		snprintf(key, sizeof(key), "DWL_TAG_OUTPUT_%d", tag + 1);
-+		name = getenv(key);
-+	}
++	uint32_t first_tag = tags & -tags;
 +	wl_list_for_each(m, &mons, link) {
 +		if (!m->wlr_output->enabled)
 +			continue;
 +		if (!first)
 +			first = m;
-+		if (name && !strcmp(m->wlr_output->name, name))
++		if (first_tag & m->configured_tags)
 +			return m;
 +	}
 +	if (!fallback)
@@ -1287,7 +1041,7 @@ index 8101ffa..930d228 100644
  void
  focusclient(Client *c, int lift)
  {
-@@ -1477,6 +1964,21 @@ focusclient(Client *c, int lift)
+@@ -1477,6 +2037,21 @@ focusclient(Client *c, int lift)
  	client_activate_surface(client_surface(c), 1);
  }
  
@@ -1309,7 +1063,7 @@ index 8101ffa..930d228 100644
  void
  focusmon(const Arg *arg)
  {
-@@ -1570,6 +2072,30 @@ handlesig(int signo)
+@@ -1570,6 +2145,30 @@ handlesig(int signo)
  		quit(NULL);
  }
  
@@ -1340,7 +1094,7 @@ index 8101ffa..930d228 100644
  void
  incnmaster(const Arg *arg)
  {
-@@ -1610,7 +2136,7 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -1610,7 +2209,7 @@ inputdevice(struct wl_listener *listener, void *data)
  }
  
  int
@@ -1349,7 +1103,7 @@ index 8101ffa..930d228 100644
  {
  	/*
  	 * Here we handle compositor keybindings. This is when the compositor is
-@@ -1618,9 +2144,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1618,9 +2217,27 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	 * processing.
  	 */
  	const Key *k;
@@ -1379,7 +1133,7 @@ index 8101ffa..930d228 100644
  				&& k->func) {
  			k->func(&k->arg);
  			return 1;
-@@ -1651,15 +2195,16 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1651,15 +2268,16 @@ keypress(struct wl_listener *listener, void *data)
  
  	/* On _press_ if there is no active screen locker,
  	 * attempt to process a compositor keybinding. */
@@ -1398,7 +1152,7 @@ index 8101ffa..930d228 100644
  		wl_event_source_timer_update(group->key_repeat_source,
  				group->wlr_group->keyboard.repeat_info.delay);
  	} else {
-@@ -1687,6 +2232,7 @@ keypressmod(struct wl_listener *listener, void *data)
+@@ -1687,6 +2305,7 @@ keypressmod(struct wl_listener *listener, void *data)
  	/* Send modifiers to the client. */
  	wlr_seat_keyboard_notify_modifiers(seat,
  			&group->wlr_group->keyboard.modifiers);
@@ -1406,7 +1160,7 @@ index 8101ffa..930d228 100644
  }
  
  int
-@@ -1701,7 +2247,7 @@ keyrepeat(void *data)
+@@ -1701,7 +2320,7 @@ keyrepeat(void *data)
  			1000 / group->wlr_group->keyboard.repeat_info.rate);
  
  	for (i = 0; i < group->nsyms; i++)
@@ -1415,7 +1169,7 @@ index 8101ffa..930d228 100644
  
  	return 0;
  }
-@@ -1833,7 +2379,7 @@ monocle(Monitor *m)
+@@ -1833,7 +2452,7 @@ monocle(Monitor *m)
  	wl_list_for_each(c, &clients, link) {
  		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
  			continue;
@@ -1424,7 +1178,7 @@ index 8101ffa..930d228 100644
  		n++;
  	}
  	if (n)
-@@ -1842,6 +2388,34 @@ monocle(Monitor *m)
+@@ -1842,6 +2461,34 @@ monocle(Monitor *m)
  		wlr_scene_node_raise_to_top(&c->scene->node);
  }
  
@@ -1459,7 +1213,7 @@ index 8101ffa..930d228 100644
  void
  motionabsolute(struct wl_listener *listener, void *data)
  {
-@@ -1911,6 +2485,7 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
+@@ -1911,6 +2558,7 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
  
  		wlr_cursor_move(cursor, device, dx, dy);
  		wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
@@ -1467,7 +1221,7 @@ index 8101ffa..930d228 100644
  
  		/* Update selmon (even while dragging a window) */
  		if (sloppyfocus)
-@@ -1924,18 +2499,18 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
+@@ -1924,18 +2572,18 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
  	if (cursor_mode == CurMove) {
  		/* Move the grabbed client to the new position. */
  		resize(grabc, (struct wlr_box){.x = (int)round(cursor->x) - grabcx, .y = (int)round(cursor->y) - grabcy,
@@ -1489,7 +1243,7 @@ index 8101ffa..930d228 100644
  		wlr_cursor_set_xcursor(cursor, cursor_mgr, "default");
  
  	pointerfocus(c, surface, sx, sy, time);
-@@ -1984,6 +2559,33 @@ moveresize(const Arg *arg)
+@@ -1984,6 +2632,33 @@ moveresize(const Arg *arg)
  	}
  }
  
@@ -1523,13 +1277,13 @@ index 8101ffa..930d228 100644
  void
  outputmgrapply(struct wl_listener *listener, void *data)
  {
-@@ -2093,38 +2695,9 @@ void
+@@ -2093,38 +2768,9 @@ void
  printstatus(void)
  {
  	Monitor *m = NULL;
 -	Client *c;
 -	uint32_t occ, urg, sel;
- 
+-
 -	wl_list_for_each(m, &mons, link) {
 -		occ = urg = 0;
 -		wl_list_for_each(c, &clients, link) {
@@ -1552,7 +1306,7 @@ index 8101ffa..930d228 100644
 -			printf("%s floating \n", m->wlr_output->name);
 -			sel = 0;
 -		}
--
+ 
 -		printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
 -		printf("%s tags %"PRIu32" %"PRIu32" %"PRIu32" %"PRIu32"\n",
 -			m->wlr_output->name, occ, m->tagset[m->seltags], sel, urg);
@@ -1564,7 +1318,7 @@ index 8101ffa..930d228 100644
  }
  
  void
-@@ -2207,7 +2780,7 @@ requestmonstate(struct wl_listener *listener, void *data)
+@@ -2207,7 +2853,7 @@ requestmonstate(struct wl_listener *listener, void *data)
  }
  
  void
@@ -1573,15 +1327,23 @@ index 8101ffa..930d228 100644
  {
  	struct wlr_box *bbox;
  	struct wlr_box clip;
-@@ -2219,6 +2792,7 @@ resize(Client *c, struct wlr_box geo, int interact)
+@@ -2215,11 +2861,13 @@ resize(Client *c, struct wlr_box geo, int interact)
+ 	if (!c->mon || !client_surface(c)->mapped)
+ 		return;
  
- 	client_set_bounds(c, geo.width, geo.height);
+-	bbox = interact ? &sgeom : &c->mon->w;
++	bbox = c->isfullscreen ? &c->mon->m : interact ? &sgeom
++			: c->isfloating && !respect_monitor_reserved_area ? &c->mon->m : &c->mon->w;
+ 
+-	client_set_bounds(c, geo.width, geo.height);
  	c->geom = geo;
 +	c->bw = draw_borders ? borderpx : 0;
  	applybounds(c, bbox);
++	client_set_bounds(c, c->geom.width, c->geom.height);
  
  	/* Update scene-graph, including borders */
-@@ -2239,6 +2813,30 @@ resize(Client *c, struct wlr_box geo, int interact)
+ 	wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
+@@ -2239,6 +2887,30 @@ resize(Client *c, struct wlr_box geo, int interact)
  	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
  }
  
@@ -1606,13 +1368,13 @@ index 8101ffa..930d228 100644
 +		geo.width += 20 * arg->i;
 +	else if (arg->i == 2 || arg->i == -2)
 +		geo.height += 10 * arg->i;
-+	resize(c, geo, 1, 1);
++	resize(c, geo, 0, 1);
 +}
 +
  void
  run(char *startup_cmd)
  {
-@@ -2292,6 +2890,7 @@ run(char *startup_cmd)
+@@ -2292,6 +2964,7 @@ run(char *startup_cmd)
  	 * monitor when displayed here */
  	wlr_cursor_warp_closest(cursor, NULL, cursor->x, cursor->y);
  	wlr_cursor_set_xcursor(cursor, cursor_mgr, "default");
@@ -1620,7 +1382,7 @@ index 8101ffa..930d228 100644
  
  	/* Run the Wayland event loop. This does not return until you exit the
  	 * compositor. Starting the backend rigged up all of the necessary event
-@@ -2315,9 +2914,12 @@ setcursor(struct wl_listener *listener, void *data)
+@@ -2315,9 +2988,12 @@ setcursor(struct wl_listener *listener, void *data)
  	 * use the provided surface as the cursor image. It will set the
  	 * hardware cursor on the output that it's currently on and continue to
  	 * do so as the cursor moves between outputs. */
@@ -1636,7 +1398,7 @@ index 8101ffa..930d228 100644
  }
  
  void
-@@ -2329,9 +2931,12 @@ setcursorshape(struct wl_listener *listener, void *data)
+@@ -2329,9 +3005,12 @@ setcursorshape(struct wl_listener *listener, void *data)
  	/* This can be sent by any client, so we check to make sure this one
  	 * actually has pointer focus first. If so, we can tell the cursor to
  	 * use the provided cursor shape. */
@@ -1652,7 +1414,7 @@ index 8101ffa..930d228 100644
  }
  
  void
-@@ -2345,6 +2950,8 @@ setfloating(Client *c, int floating)
+@@ -2345,6 +3024,8 @@ setfloating(Client *c, int floating)
  	wlr_scene_node_reparent(&c->scene->node, layers[c->isfullscreen ||
  			(p && p->isfullscreen) ? LyrFS
  			: c->isfloating ? LyrFloat : LyrTile]);
@@ -1661,7 +1423,7 @@ index 8101ffa..930d228 100644
  	arrange(c->mon);
  	printstatus();
  }
-@@ -2362,11 +2969,11 @@ setfullscreen(Client *c, int fullscreen)
+@@ -2362,11 +3043,11 @@ setfullscreen(Client *c, int fullscreen)
  
  	if (fullscreen) {
  		c->prev = c->geom;
@@ -1675,7 +1437,7 @@ index 8101ffa..930d228 100644
  	}
  	arrange(c->mon);
  	printstatus();
-@@ -2381,7 +2988,14 @@ setlayout(const Arg *arg)
+@@ -2381,7 +3062,14 @@ setlayout(const Arg *arg)
  		selmon->sellt ^= 1;
  	if (arg && arg->v)
  		selmon->lt[selmon->sellt] = (Layout *)arg->v;
@@ -1691,7 +1453,7 @@ index 8101ffa..930d228 100644
  	arrange(selmon);
  	printstatus();
  }
-@@ -2406,8 +3020,15 @@ setmon(Client *c, Monitor *m, uint32_t newtags)
+@@ -2406,8 +3094,15 @@ setmon(Client *c, Monitor *m, uint32_t newtags)
  {
  	Monitor *oldmon = c->mon;
  
@@ -1708,7 +1470,7 @@ index 8101ffa..930d228 100644
  	c->mon = m;
  	c->prev = c->geom;
  
-@@ -2416,7 +3037,7 @@ setmon(Client *c, Monitor *m, uint32_t newtags)
+@@ -2416,7 +3111,7 @@ setmon(Client *c, Monitor *m, uint32_t newtags)
  		arrange(oldmon);
  	if (m) {
  		/* Make sure window actually overlaps with the monitor */
@@ -1717,7 +1479,7 @@ index 8101ffa..930d228 100644
  		c->tags = newtags ? newtags : m->tagset[m->seltags]; /* assign tags of target monitor */
  		setfullscreen(c, c->isfullscreen); /* This will call arrange(c->mon) */
  		setfloating(c, c->isfloating);
-@@ -2446,15 +3067,55 @@ setsel(struct wl_listener *listener, void *data)
+@@ -2446,17 +3141,65 @@ setsel(struct wl_listener *listener, void *data)
  	wlr_seat_set_selection(seat, event->source, event->serial);
  }
  
@@ -1763,6 +1525,7 @@ index 8101ffa..930d228 100644
  {
 -	int drm_fd, i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
 +	int drm_fd, i, sig[] = {SIGCHLD, SIGINT, SIGTERM};
++	char cursor_size[16];
  	struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
 +	struct sigaction ignore = {.sa_handler = SIG_IGN};
  	sigemptyset(&sa.sa_mask);
@@ -1773,8 +1536,17 @@ index 8101ffa..930d228 100644
 +	sigaction(SIGPIPE, &ignore, NULL);
  
  	wlr_log_init(log_level, NULL);
++	if (DWL_RENDERER[0])
++		setenv("WLR_RENDERER", DWL_RENDERER, 0);
++	if (DWL_RENDER_DEVICE[0])
++		setenv("WLR_RENDER_DRM_DEVICE", DWL_RENDER_DEVICE, 0);
++	setenv("XCURSOR_THEME", DWL_CURSOR_THEME, 1);
++	snprintf(cursor_size, sizeof(cursor_size), "%u", (unsigned int)DWL_CURSOR_SIZE);
++	setenv("XCURSOR_SIZE", cursor_size, 1);
  
-@@ -2509,6 +3170,7 @@ setup(void)
+ 	/* The Wayland display is managed by libwayland. It handles accepting
+ 	 * clients from the Unix socket, managing Wayland globals, and so on. */
+@@ -2509,6 +3252,7 @@ setup(void)
  	 * screen */
  	if (!(alloc = wlr_allocator_autocreate(backend, drw)))
  		die("couldn't create allocator");
@@ -1782,7 +1554,17 @@ index 8101ffa..930d228 100644
  
  	/* This creates some hands-off wlroots interfaces. The compositor is
  	 * necessary for clients to allocate surfaces and the data device manager
-@@ -2624,6 +3286,7 @@ setup(void)
+@@ -2603,8 +3347,7 @@ setup(void)
+ 	 * Xcursor themes to source cursor images from and makes sure that cursor
+ 	 * images are available at all scale factors on the screen (necessary for
+ 	 * HiDPI support). Scaled cursors will be loaded with each output. */
+-	cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
+-	setenv("XCURSOR_SIZE", "24", 1);
++	cursor_mgr = wlr_xcursor_manager_create(DWL_CURSOR_THEME, DWL_CURSOR_SIZE);
+ 
+ 	/*
+ 	 * wlr_cursor *only* displays an image on screen. It does not move around
+@@ -2624,6 +3367,7 @@ setup(void)
  
  	cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
  	wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &request_set_cursor_shape);
@@ -1790,7 +1572,7 @@ index 8101ffa..930d228 100644
  
  	/*
  	 * Configures a seat, which is a single "seat" at which a user sits and
-@@ -2652,6 +3315,8 @@ setup(void)
+@@ -2652,6 +3396,8 @@ setup(void)
  	output_mgr = wlr_output_manager_v1_create(dpy);
  	wl_signal_add(&output_mgr->events.apply, &output_mgr_apply);
  	wl_signal_add(&output_mgr->events.test, &output_mgr_test);
@@ -1799,7 +1581,7 @@ index 8101ffa..930d228 100644
  
  	/* Make sure XWayland clients don't connect to the parent X server,
  	 * e.g when running in the x11 backend or the wayland backend and the
-@@ -2684,6 +3349,44 @@ spawn(const Arg *arg)
+@@ -2684,6 +3430,44 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -1844,7 +1626,7 @@ index 8101ffa..930d228 100644
  void
  startdrag(struct wl_listener *listener, void *data)
  {
-@@ -2699,12 +3402,11 @@ void
+@@ -2699,12 +3483,11 @@ void
  tag(const Arg *arg)
  {
  	Client *sel = focustop(selmon);
@@ -1860,7 +1642,7 @@ index 8101ffa..930d228 100644
  	printstatus();
  }
  
-@@ -2719,7 +3421,7 @@ tagmon(const Arg *arg)
+@@ -2719,7 +3502,7 @@ tagmon(const Arg *arg)
  void
  tile(Monitor *m)
  {
@@ -1869,7 +1651,7 @@ index 8101ffa..930d228 100644
  	int i, n = 0;
  	Client *c;
  
-@@ -2728,6 +3430,8 @@ tile(Monitor *m)
+@@ -2728,6 +3511,8 @@ tile(Monitor *m)
  			n++;
  	if (n == 0)
  		return;
@@ -1878,7 +1660,7 @@ index 8101ffa..930d228 100644
  
  	if (n > m->nmaster)
  		mw = m->nmaster ? (int)roundf(m->w.width * m->mfact) : 0;
-@@ -2739,11 +3443,11 @@ tile(Monitor *m)
+@@ -2739,11 +3524,11 @@ tile(Monitor *m)
  			continue;
  		if (i < m->nmaster) {
  			resize(c, (struct wlr_box){.x = m->w.x, .y = m->w.y + my, .width = mw,
@@ -1892,7 +1674,7 @@ index 8101ffa..930d228 100644
  			ty += c->geom.height;
  		}
  		i++;
-@@ -2770,28 +3474,13 @@ togglefullscreen(const Arg *arg)
+@@ -2770,28 +3555,13 @@ togglefullscreen(const Arg *arg)
  void
  toggletag(const Arg *arg)
  {
@@ -1923,7 +1705,7 @@ index 8101ffa..930d228 100644
  }
  
  void
-@@ -2912,7 +3601,7 @@ updatemons(struct wl_listener *listener, void *data)
+@@ -2912,7 +3682,7 @@ updatemons(struct wl_listener *listener, void *data)
  		arrange(m);
  		/* make sure fullscreen clients have the right size */
  		if ((c = focustop(m)) && c->isfullscreen)
@@ -1932,7 +1714,7 @@ index 8101ffa..930d228 100644
  
  		/* Try to re-set the gamma LUT when updating monitors,
  		 * it's only really needed when enabling a disabled output, but meh. */
-@@ -2931,6 +3620,7 @@ updatemons(struct wl_listener *listener, void *data)
+@@ -2931,6 +3701,7 @@ updatemons(struct wl_listener *listener, void *data)
  			if (!c->mon && client_surface(c)->mapped)
  				setmon(c, selmon, c->tags);
  		}
@@ -1940,7 +1722,7 @@ index 8101ffa..930d228 100644
  		focusclient(focustop(selmon), 1);
  		if (selmon->lock_surface) {
  			client_notify_enter(selmon->lock_surface->surface,
-@@ -2976,11 +3666,21 @@ urgent(struct wl_listener *listener, void *data)
+@@ -2976,11 +3747,21 @@ urgent(struct wl_listener *listener, void *data)
  void
  view(const Arg *arg)
  {
@@ -1966,7 +1748,7 @@ index 8101ffa..930d228 100644
  	focusclient(focustop(selmon), 1);
  	arrange(selmon);
  	printstatus();
-@@ -3009,6 +3709,7 @@ virtualpointer(struct wl_listener *listener, void *data)
+@@ -3009,6 +3790,7 @@ virtualpointer(struct wl_listener *listener, void *data)
  	wlr_cursor_attach_input_device(cursor, device);
  	if (event->suggested_output)
  		wlr_cursor_map_input_to_output(cursor, device, event->suggested_output);
@@ -1974,7 +1756,7 @@ index 8101ffa..930d228 100644
  }
  
  Monitor *
-@@ -3121,7 +3822,7 @@ configurex11(struct wl_listener *listener, void *data)
+@@ -3121,7 +3903,7 @@ configurex11(struct wl_listener *listener, void *data)
  	if ((c->isfloating && c != grabc) || !c->mon->lt[c->mon->sellt]->arrange) {
  		resize(c, (struct wlr_box){.x = event->x - c->bw,
  				.y = event->y - c->bw, .width = event->width + c->bw * 2,

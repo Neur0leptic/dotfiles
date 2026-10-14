@@ -1,20 +1,11 @@
 #!/bin/sh
-
 set -eu
 
-{{- $settings := includeTemplate "machine-settings" . | fromJson }}
-{{ if eq $settings.renderer "gles2" -}}
-safe=1
-{{ else -}}
 safe=0
-{{ end -}}
 case "${1:-}" in
     "") ;;
     --safe) safe=1 ;;
-    *)
-        printf 'usage: start-dwl [--safe]\n' >&2
-        exit 2
-        ;;
+    *) printf 'usage: start-dwl [--safe]\n' >&2; exit 2 ;;
 esac
 
 if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x -u "$(id -u)" Hyprland >/dev/null 2>&1; then
@@ -32,30 +23,20 @@ fi
 
 dwl="$HOME/.local/bin/dwl"
 autostart="$HOME/.local/bin/dwl-autostart"
-[ -x "$dwl" ] || {
-    printf 'dwl is not installed; run update_dwl.sh first.\n' >&2
+[ -x "$dwl" ] && [ -x "$autostart" ] || {
+    printf 'DWL or its autostart script is missing.\n' >&2
     exit 1
 }
-[ -x "$autostart" ] || {
-    printf 'missing autostart script: %s\n' "$autostart" >&2
-    exit 1
-}
-
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 [ -d "$XDG_RUNTIME_DIR" ] || {
     printf 'XDG_RUNTIME_DIR does not exist: %s\n' "$XDG_RUNTIME_DIR" >&2
     exit 1
 }
-
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 fi
 
-export XDG_CURRENT_DESKTOP=dwl
-export XDG_SESSION_DESKTOP=dwl
-export XDG_SESSION_TYPE=wayland
-export DWL_SESSION=1
-# wlroots selects the render device; an exported WLR_RENDER_DRM_DEVICE can override it.
+export XDG_CURRENT_DESKTOP=dwl XDG_SESSION_DESKTOP=dwl XDG_SESSION_TYPE=wayland DWL_SESSION=1
 export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
 export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt6ct}"
@@ -67,67 +48,22 @@ export MOZ_DBUS_REMOTE="${MOZ_DBUS_REMOTE:-1}"
 export BROWSER="${BROWSER:-librewolf}"
 export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}"
 
+# All normal compositor preferences come from the compiled config.h.
 if [ "$safe" -eq 1 ]; then
-    export WLR_RENDERER=gles2
-    export DWL_COLOR_MODE=srgb
-else
-{{ if eq $settings.renderer "vulkan" -}}
-    export WLR_RENDERER=vulkan
-{{ end -}}
-    export DWL_COLOR_MODE=wide
+    export WLR_RENDERER=gles2 DWL_COLOR_MODE=srgb
 fi
-export XKB_DEFAULT_LAYOUT={{ $settings.keyboardLayout | squote }}
-export XKB_DEFAULT_OPTIONS={{ $settings.keyboardOptions | squote }}
-{{ if $settings.renderDevice -}}
-export WLR_RENDER_DRM_DEVICE={{ $settings.renderDevice | squote }}
-{{ end -}}
-{{ if $settings.mouse -}}
-export DWL_MOUSE_NAME={{ $settings.mouse | squote }}
-export DWL_MOUSE_SENSITIVITY={{ $settings.sensitivity | toString | squote }}
-{{ end -}}
-# Explicit tag/output and color preferences; no connector name is assumed by DWL.
-output_matches() {
-    [ -n "$2" ] || return 0
-    for edid in /sys/class/drm/card*-"$1"/edid; do
-        [ -r "$edid" ] || continue
-        actual=$(sha256sum "$edid")
-        [ "${actual%% *}" != "$2" ] || return 0
-    done
-    return 1
-}
-for tag in 1 2 3 4 5 6 7 8 9 10; do unset "DWL_TAG_OUTPUT_$tag"; done
-DWL_WIDE_OUTPUTS=""
-{{ range $output := $settings.outputs -}}
-{{ if ne $output.enabled false -}}
-if output_matches {{ $output.name | squote }} {{ $output.edid | default "" | squote }}; then
-    :
-{{ range $tag := $output.tags -}}
-    export DWL_TAG_OUTPUT_{{ $tag }}={{ $output.name | squote }}
-{{ end -}}
-{{ if eq ($output.color | default "srgb") "wide" -}}
-    DWL_WIDE_OUTPUTS="${DWL_WIDE_OUTPUTS}"{{ printf "%s," $output.name | squote }}
-{{ end -}}
-fi
-{{ end -}}
-{{ end -}}
-export DWL_WIDE_OUTPUTS
 
 session_bus_available() {
-    [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] \
-        && command -v dbus-send >/dev/null 2>&1 \
-        && dbus-send --session --print-reply \
-            --dest=org.freedesktop.DBus /org/freedesktop/DBus \
-            org.freedesktop.DBus.GetId >/dev/null 2>&1
+    [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-send >/dev/null 2>&1 &&
+        dbus-send --session --print-reply --dest=org.freedesktop.DBus \
+        /org/freedesktop/DBus org.freedesktop.DBus.GetId >/dev/null 2>&1
 }
-
 if session_bus_available; then
     exec "$dwl" -s "$autostart"
 fi
-
 command -v dbus-run-session >/dev/null 2>&1 || {
     printf 'no usable session bus and dbus-run-session is unavailable\n' >&2
     exit 1
 }
-
 unset DBUS_SESSION_BUS_ADDRESS
 exec dbus-run-session -- "$dwl" -s "$autostart"

@@ -4,6 +4,10 @@ docs/**
 # Repository metadata is never installed into $HOME.
 .gitignore
 
+# DWL's active native header is local user input, seeded only once by the installer.
+.local/src/dwl/**
+.config/dwl/outputs.json
+
 {{- if ne .chezmoi.os "linux" }}
 .config/**
 .local/bin/**
@@ -26,6 +30,8 @@ docs/**
 .config/hypr/**
 .config/swayidle/**
 .config/waybar/**
+.config/mako/**
+.config/nvim/lua/plugins/colorscheme.lua
 .config/foot/**
 .config/librewolf/**
 .config/helium-browser-theme.json

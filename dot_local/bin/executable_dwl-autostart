@@ -24,11 +24,7 @@ session_env="$HOME/.local/bin/wayland-session-env"
 }
 "$session_env"
 
-# This helper is installed with the canonical DWL output configuration.
-output_setup="$HOME/.local/bin/dwl-outputs"
-if [ -x "$output_setup" ]; then
-    "$output_setup" || printf 'DWL output preferences failed; keeping the compositor layout.\n' >&2
-fi
+# Output, input and tag preferences are already compiled from the user's config.h.
 
 # Gentoo's launcher runs PipeWire and WirePlumber inside this session's D-Bus;
 # 'restart' clears an earlier session's leftovers. systemd hosts lack it.

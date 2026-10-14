@@ -53,7 +53,7 @@
         "format-ethernet": "󰈀",
         "format-disconnected": "󰤭",
         "tooltip-format": "{ifname}: {ipaddr}",
-	"on-click": "if command -v impala >/dev/null; then footclient -a floating --window-size-chars=80x28 impala; else ~/.local/bin/iwctl.sh; fi"
+	"on-click": "if command -v impala >/dev/null; then footclient -a floating impala; else ~/.local/bin/iwctl.sh; fi"
     },
     "wireplumber": {
 	"format": "{icon} {volume}%",
@@ -61,7 +61,7 @@
 	"format-icons": ["󰕿", "󰖀", "󰕾"],
 	"on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
 	"on-click-right": "pavucontrol",
-	"on-click-middle": "footclient -a floating --window-size-chars=80x28 wiremix",
+	"on-click-middle": "footclient -a floating wiremix",
 	"on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+",
 	"on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-",
 	"scroll-step": 5,
@@ -81,17 +81,18 @@
         "tooltip-format": "<tt>{calendar}</tt>"
     },
     "bluetooth": {
-	"format": " {status}",
-	"format-disabled": "󰂲",
-	"format-off": "󰂲",
+	"format": "",
+	"format-no-controller": "",
+	"format-disabled": "",
+	"format-off": "",
 	"format-on": "",
 	"format-connected": "󰂱 {device_alias}",
 	"format-connected-battery": "󰂱 {device_alias}",
-	"tooltip-format": "{controller_alias}\t{controller_address}\n\n{num_connections} bağlı",
+	"tooltip-format": "{controller_alias}\t{controller_address}\n\n{num_connections} connected",
 	"tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
 	"tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
 	"tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
-	"on-click": "footclient -a floating --window-size-chars=70x25 bluetui",
+	"on-click": "footclient -a floating bluetui",
 	"max-length": 35
     },
     "tray": {
