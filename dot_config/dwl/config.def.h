@@ -140,7 +140,7 @@ static const Key keys[] = {
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_a, spawn, SHCMD("footclient -a opencode-float --window-size-chars=110x45 opencode") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/helium_launch_webapp.sh 'https://youtube.com' youtube") },
 	{ MODKEY, XKB_KEY_c, spawn, SHCMD("footclient nvim \"$HOME/.local/src/dwl/config.h\"") },
-	{ MODKEY, XKB_KEY_n, spawn, SHCMD("footclient -a vim-wiki-float --window-size-chars=85x45 nvim -c VimwikiIndex") },
+	{ MODKEY, XKB_KEY_n, spawn, SHCMD("footclient -a vim-wiki-float --window-size-chars=65x45 nvim -c VimwikiIndex") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_n, spawn, SHCMD("footclient -a fullscreen $HOME/.local/bin/weather.sh") },
 	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_t, spawn, SHCMD("footclient -a translator --window-size-chars=90x30 $HOME/.local/bin/translate.sh") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t, spawn, SHCMD("footclient -a translator --window-size-chars=90x30 $HOME/.local/bin/trans-fast") },
