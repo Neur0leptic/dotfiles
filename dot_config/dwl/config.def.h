@@ -35,16 +35,18 @@ static const float fullscreen_bg[] = COLOR(0x000000ff);
 /* logging */
 static int log_level = WLR_ERROR;
 
-/* x/y: -2 keeps position, -1 centers. w/h: -1 keeps size, (0,1] uses the usable area. */
+/* x/y: -2 keeps position, -1 centers. w/h: -1 keeps size, (0,1] uses the usable area.
+ * A kept size never exceeds DWL_FLOATING_FIT of the usable area, so space remains around it. */
+#define DWL_FLOATING_FIT 0.90f
 static const Rule rules[] = {
 	/* app_id                 title  tags  float  fullscreen  monitor  x     y     w      h */
 	{ "fullscreen",           NULL,  0,    0,     1,          -1,      -2,   -2,   -1,    -1 },
-	{ "floating",             NULL,  0,    1,     0,          -1,      -1,   -1,   0.65f, 0.70f },
-	{ "vim-wiki-float",       NULL,  0,    1,     0,          -1,      -1,   -1,   0.80f, 0.85f },
-	{ "opencode-float",       NULL,  0,    1,     0,          -1,      -1,   -1,   0.85f, 0.85f },
+	{ "floating",             NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
+	{ "vim-wiki-float",       NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
+	{ "opencode-float",       NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
 	{ "torrent-float",        NULL,  0,    1,     0,          -1,      -1,   -1,   1000,  600 },
-	{ "translator",           NULL,  0,    1,     0,          -1,      -1,   -1,   0.65f, 0.65f },
-	{ "clipse",               NULL,  0,    1,     0,          -1,      -1,   -1,   0.55f, 0.70f },
+	{ "translator",           NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
+	{ "clipse",               NULL,  0,    1,     0,          -1,      -1,   -1,   -1,    -1 },
 	{ "anki",                 NULL,  0,    1,     0,          -1,      -1,   -1,   700,   600 },
 	{ "localsend",            NULL,  0,    1,     0,          -1,      -1,   -1,   400,   700 },
 	{ "youtube-info",         NULL,  0,    1,     0,          -1,      -1,   -1,   900,   900 },
@@ -135,20 +137,20 @@ static const Key keys[] = {
 	{ MODKEY, XKB_KEY_F6, spawn, SHCMD("$HOME/.local/bin/recorder.sh") },
 	{ MODKEY, XKB_KEY_w, spawn, {.v = browsercmd} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w, spawn, {.v = altbrowsercmd} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_a, spawn, SHCMD("footclient -a opencode-float opencode") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_a, spawn, SHCMD("footclient -a opencode-float --window-size-chars=110x45 opencode") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/helium_launch_webapp.sh 'https://youtube.com' youtube") },
 	{ MODKEY, XKB_KEY_c, spawn, SHCMD("footclient nvim \"$HOME/.local/src/dwl/config.h\"") },
-	{ MODKEY, XKB_KEY_n, spawn, SHCMD("footclient -a vim-wiki-float nvim -c VimwikiIndex") },
+	{ MODKEY, XKB_KEY_n, spawn, SHCMD("footclient -a vim-wiki-float --window-size-chars=85x45 nvim -c VimwikiIndex") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_n, spawn, SHCMD("footclient -a fullscreen $HOME/.local/bin/weather.sh") },
-	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_t, spawn, SHCMD("footclient -a translator $HOME/.local/bin/translate.sh") },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t, spawn, SHCMD("footclient -a translator $HOME/.local/bin/trans-fast") },
+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_t, spawn, SHCMD("footclient -a translator --window-size-chars=90x30 $HOME/.local/bin/translate.sh") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_t, spawn, SHCMD("footclient -a translator --window-size-chars=90x30 $HOME/.local/bin/trans-fast") },
 	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_t, spawn, SHCMD("$HOME/.local/bin/tesseract.sh") },
 	{ MODKEY, XKB_KEY_t, togglefloating, {0} },
-	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_v, spawn, SHCMD("footclient -a clipse clipse") },
+	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_v, spawn, SHCMD("footclient -a clipse --window-size-chars=62x32 clipse") },
 	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/ytopen.sh") },
 	{ MODKEY|WLR_MODIFIER_CTRL, XKB_KEY_w, spawn, SHCMD("$HOME/.local/bin/wikipedia.sh") },
 	{ MODKEY, XKB_KEY_o, focusbrowser, SHCMD("$HOME/.local/bin/wopen.sh") },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c, spawn, SHCMD("footclient -a floating calcurse") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c, spawn, SHCMD("footclient -a floating --window-size-chars=75x28 calcurse") },
 
 	{ 0, XKB_KEY_Print, spawn, SHCMD("$HOME/.local/bin/hypr_shot.sh region") },
 	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_Print, spawn, SHCMD("$HOME/.local/bin/hypr_shot.sh full") },
@@ -161,10 +163,10 @@ static const Key keys[] = {
 	{ MODKEY, XKB_KEY_F1, spawn, SHCMD("dictionary.sh") },
 	{ MODKEY, XKB_KEY_F2, spawn, SHCMD("addtorrent.sh") },
 	{ MODKEY, XKB_KEY_b, spawn, SHCMD("$HOME/.local/bin/waybar_toggle.sh") },
-	{ MODKEY, XKB_KEY_i, spawn, SHCMD("if command -v impala >/dev/null; then footclient -a floating impala; else $HOME/.local/bin/iwctl.sh; fi") },
-	{ MODKEY, XKB_KEY_m, spawn, SHCMD("footclient -a floating wiremix") },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_m, spawn, SHCMD("command -v cliamp >/dev/null && exec footclient -a floating cliamp") },
-	{ MODKEY, XKB_KEY_p, spawn, SHCMD("footclient -a floating bluetui") },
+	{ MODKEY, XKB_KEY_i, spawn, SHCMD("if command -v impala >/dev/null; then footclient -a floating --window-size-chars=80x28 impala; else $HOME/.local/bin/iwctl.sh; fi") },
+	{ MODKEY, XKB_KEY_m, spawn, SHCMD("footclient -a floating --window-size-chars=80x28 wiremix") },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_m, spawn, SHCMD("command -v cliamp >/dev/null && exec footclient -a floating --window-size-chars=80x28 cliamp") },
+	{ MODKEY, XKB_KEY_p, spawn, SHCMD("footclient -a floating --window-size-chars=70x25 bluetui") },
 	{ MODKEY, XKB_KEY_s, spawn, SHCMD("footclient -a fullscreen btop") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_s, spawn, SHCMD("footclient -a fullscreen htop") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_l, spawn, SHCMD("localsend") },

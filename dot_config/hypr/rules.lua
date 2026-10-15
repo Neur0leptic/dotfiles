@@ -7,19 +7,22 @@ hl.window_rule({ match = { float = false, workspace = "w[tv1]" }, rounding = 0 }
 -- Fullscreen class
 hl.window_rule({ match = { class = "^(fullscreen)$" }, fullscreen = true })
 
+-- Sizes come from the key bindings; max_size only shrinks windows that do not fit the screen.
+local fit_screen = { "monitor_w*0.9", "monitor_h*0.9" }
+
 -- Floating windows
 hl.window_rule({ match = { class = "^(floating)$" }, float = true })
-hl.window_rule({ match = { class = "^(floating)$" }, size = { "monitor_w*0.65", "monitor_h*0.70" } })
+hl.window_rule({ match = { class = "^(floating)$" }, max_size = fit_screen })
 hl.window_rule({ match = { class = "^(floating)$" }, center = true })
 
 -- Vim wiki
 hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, float = true })
-hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, size = { "monitor_w*0.80", "monitor_h*0.85" } })
+hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, max_size = fit_screen })
 hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, center = true })
 
 -- Opencode
 hl.window_rule({ match = { class = "^(opencode-float)$" }, float = true })
-hl.window_rule({ match = { class = "^(opencode-float)$" }, size = { "monitor_w*0.85", "monitor_h*0.85" } })
+hl.window_rule({ match = { class = "^(opencode-float)$" }, max_size = fit_screen })
 hl.window_rule({ match = { class = "^(opencode-float)$" }, center = true })
 
 -- Torrent
@@ -29,12 +32,12 @@ hl.window_rule({ match = { class = "^(torrent-float)$" }, center = true })
 
 -- Translator
 hl.window_rule({ match = { class = "^(translator)$" }, float = true })
-hl.window_rule({ match = { class = "^(translator)$" }, size = { "monitor_w*0.65", "monitor_h*0.65" } })
+hl.window_rule({ match = { class = "^(translator)$" }, max_size = fit_screen })
 hl.window_rule({ match = { class = "^(translator)$" }, center = true })
 
 -- Clipse
 hl.window_rule({ match = { class = "clipse" }, float = true })
-hl.window_rule({ match = { class = "clipse" }, size = { "monitor_w*0.55", "monitor_h*0.70" } })
+hl.window_rule({ match = { class = "clipse" }, max_size = fit_screen })
 hl.window_rule({ match = { class = "clipse" }, center = true })
 
 -- Anki
