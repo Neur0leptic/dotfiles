@@ -7,24 +7,26 @@ hl.window_rule({ match = { float = false, workspace = "w[tv1]" }, rounding = 0 }
 -- Fullscreen class
 hl.window_rule({ match = { class = "^(fullscreen)$" }, fullscreen = true })
 
--- Sizes come from the key bindings; max_size only shrinks windows that do not fit the screen.
-local fit_screen = { "monitor_w*0.9", "monitor_h*0.9" }
--- The note pad keeps its tall 65x45 shape (about 0.69 wide per unit of height) when shrunk.
-local fit_pad = { "monitor_h*0.62", "monitor_h*0.9" }
+-- Sizes come from the key bindings. A size rule applies once, when the window opens, and shrinks a
+-- window too big for the screen to 90% of it; max_size would also stop the window from being tiled.
+local fit_screen = { "min(window_w,monitor_w*0.9)", "min(window_h,monitor_h*0.9)" }
+-- The note pad shrinks as a whole, keeping its tall shape.
+local pad_scale = "min(1,monitor_w*0.9/window_w,monitor_h*0.9/window_h)"
+local fit_pad = { "window_w*" .. pad_scale, "window_h*" .. pad_scale }
 
 -- Floating windows
 hl.window_rule({ match = { class = "^(floating)$" }, float = true })
-hl.window_rule({ match = { class = "^(floating)$" }, max_size = fit_screen })
+hl.window_rule({ match = { class = "^(floating)$" }, size = fit_screen })
 hl.window_rule({ match = { class = "^(floating)$" }, center = true })
 
 -- Vim wiki
 hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, float = true })
-hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, max_size = fit_pad })
+hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, size = fit_pad })
 hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, center = true })
 
 -- Opencode
 hl.window_rule({ match = { class = "^(opencode-float)$" }, float = true })
-hl.window_rule({ match = { class = "^(opencode-float)$" }, max_size = fit_screen })
+hl.window_rule({ match = { class = "^(opencode-float)$" }, size = fit_screen })
 hl.window_rule({ match = { class = "^(opencode-float)$" }, center = true })
 
 -- Torrent
@@ -34,12 +36,12 @@ hl.window_rule({ match = { class = "^(torrent-float)$" }, center = true })
 
 -- Translator
 hl.window_rule({ match = { class = "^(translator)$" }, float = true })
-hl.window_rule({ match = { class = "^(translator)$" }, max_size = fit_screen })
+hl.window_rule({ match = { class = "^(translator)$" }, size = fit_screen })
 hl.window_rule({ match = { class = "^(translator)$" }, center = true })
 
 -- Clipse
 hl.window_rule({ match = { class = "clipse" }, float = true })
-hl.window_rule({ match = { class = "clipse" }, max_size = fit_screen })
+hl.window_rule({ match = { class = "clipse" }, size = fit_screen })
 hl.window_rule({ match = { class = "clipse" }, center = true })
 
 -- Anki
