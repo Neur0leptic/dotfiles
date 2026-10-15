@@ -44,7 +44,6 @@ log_info() {
 USER="$(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' | head -n "1")"
 
 KERNEL_PATH="/boot/EFI/BOOT/BOOTX64.EFI"
-NEW_KERNEL="/usr/src/linux/arch/x86/boot/bzImage"
 
 MODULES_DIR="/lib/modules"
 CACHE_DIR="/var/cache"
@@ -109,15 +108,23 @@ update_kernel() {
 
         export LLVM="1" LLVM_IAS="1" CFLAGS="-O3 -march=native -pipe"
 
-        cp -fv "${OLD_KERNEL_DIR}/.config" "${KERNEL_DIR}"
+        # Only a fresh source tree inherits the old configuration; never overwrite a prepared one.
+        [ -f "${KERNEL_DIR}/.config" ] || cp -fv "${OLD_KERNEL_DIR}/.config" "${KERNEL_DIR}"
 
         make -C "${KERNEL_DIR}" "olddefconfig" > "/dev/null" 2>&1
         make -C "${KERNEL_DIR}" -j"$(nproc)" > "/dev/null" 2>&1
-        make -C "${KERNEL_DIR}" "modules_install" > "/dev/null" 2>&1
+        if grep -qx 'CONFIG_MODULES=y' "${KERNEL_DIR}/.config"; then
+                make -C "${KERNEL_DIR}" "modules_install" > "/dev/null" 2>&1
+        fi
 
-        cp -fv "${NEW_KERNEL}" "${KERNEL_PATH}"
+        # The firmware boots only BOOTX64.EFI: keep the old image and replace it in one rename,
+        # so a failed build or a full ESP never leaves a half-written kernel behind.
+        [ -s "${KERNEL_DIR}/arch/x86/boot/bzImage" ]
+        cp -fv "${KERNEL_PATH}" "${KERNEL_PATH}.old"
+        cp -f "${KERNEL_DIR}/arch/x86/boot/bzImage" "${KERNEL_PATH}.new"
+        mv -f "${KERNEL_PATH}.new" "${KERNEL_PATH}"
 
-        echo -e "${GREEN}Your new kernel${CYAN} ${NEW_KERNEL} ${GREEN}has been copied to${CYAN} ${KERNEL_PATH}.${NC}"
+        echo -e "${GREEN}Your new kernel${CYAN} ${KERNEL_DIR}/arch/x86/boot/bzImage ${GREEN}has been copied to${CYAN} ${KERNEL_PATH}.${NC}"
 
         rm -rf "${OLD_KERNEL_DIR}"
 
