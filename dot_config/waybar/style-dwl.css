@@ -26,16 +26,6 @@
     border-radius: 6px;
 }
 
-/* Only tags that hold windows, or the focused one, take space. */
-#tags button:not(.occupied):not(.focused):not(.urgent) {
-    min-width: 0;
-    min-height: 0;
-    margin: 0;
-    padding: 0;
-    border: none;
-    font-size: 0;
-}
-
 #tags {
     padding: 0 10px;
     margin: 4px 2px;
