@@ -36,8 +36,10 @@ static const float fullscreen_bg[] = COLOR(0x000000ff);
 static int log_level = WLR_ERROR;
 
 /* x/y: -2 keeps position, -1 centers. w/h: -1 keeps size, (0,1] uses the usable area.
- * A kept size never exceeds DWL_FLOATING_FIT of the usable area, so space remains around it. */
+ * A kept size never exceeds DWL_FLOATING_FIT of the usable area, so space remains around it;
+ * the windows in DWL_KEEP_SHAPE shrink as a whole to keep their shape. */
 #define DWL_FLOATING_FIT 0.90f
+#define DWL_KEEP_SHAPE { "vim-wiki-float", NULL }
 static const Rule rules[] = {
 	/* app_id                 title  tags  float  fullscreen  monitor  x     y     w      h */
 	{ "fullscreen",           NULL,  0,    0,     1,          -1,      -2,   -2,   -1,    -1 },

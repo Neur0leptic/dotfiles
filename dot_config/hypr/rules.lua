@@ -9,6 +9,8 @@ hl.window_rule({ match = { class = "^(fullscreen)$" }, fullscreen = true })
 
 -- Sizes come from the key bindings; max_size only shrinks windows that do not fit the screen.
 local fit_screen = { "monitor_w*0.9", "monitor_h*0.9" }
+-- The note pad keeps its tall 65x45 shape (about 0.69 wide per unit of height) when shrunk.
+local fit_pad = { "monitor_h*0.62", "monitor_h*0.9" }
 
 -- Floating windows
 hl.window_rule({ match = { class = "^(floating)$" }, float = true })
@@ -17,7 +19,7 @@ hl.window_rule({ match = { class = "^(floating)$" }, center = true })
 
 -- Vim wiki
 hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, float = true })
-hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, max_size = fit_screen })
+hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, max_size = fit_pad })
 hl.window_rule({ match = { class = "^(vim-wiki-float)$" }, center = true })
 
 -- Opencode
