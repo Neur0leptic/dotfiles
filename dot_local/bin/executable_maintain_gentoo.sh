@@ -120,7 +120,7 @@ update_kernel() {
         # The firmware boots only BOOTX64.EFI: keep the old image and replace it in one rename,
         # so a failed build or a full ESP never leaves a half-written kernel behind.
         [ -s "${KERNEL_DIR}/arch/x86/boot/bzImage" ]
-        cp -fv "${KERNEL_PATH}" "${KERNEL_PATH}.old"
+        [ ! -f "${KERNEL_PATH}" ] || cp -fv "${KERNEL_PATH}" "${KERNEL_PATH}.old"
         cp -f "${KERNEL_DIR}/arch/x86/boot/bzImage" "${KERNEL_PATH}.new"
         mv -f "${KERNEL_PATH}.new" "${KERNEL_PATH}"
 
