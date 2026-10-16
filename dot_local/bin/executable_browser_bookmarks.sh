@@ -22,7 +22,7 @@ DMENU() {
         [ "$x" -lt 30 ] && x=30
         [ "$x" -gt 150 ] && x=150
 
-        cat "$tmp" | rofi -dmenu -i -show-icons -p "${2}" -theme-str "window { width: ${x}ch; }"
+        cat "$tmp" | rofi -dmenu -i -show-icons -p "${2}" -theme-str "window { width: ${x}ch; } ${3:-}"
         rm -f "$tmp"
 }
 
@@ -216,7 +216,7 @@ open_bookmark() {
 
         case "${URL}" in
                 *"search"* | *"wiki"* | *"packages"*)
-                        QUERY="$(echo "" | DMENU "0" "Search")"
+                        QUERY="$(printf "" | DMENU "0" "Search" 'mainbox { children: [ inputbar ]; }')"
                         URL="${URL}${QUERY}"
                         ;;
         esac
