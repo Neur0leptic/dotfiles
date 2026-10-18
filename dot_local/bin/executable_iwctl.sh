@@ -76,8 +76,9 @@ SU_CMD="$(detect_su)"
 	[ -n "$WG_ACTIVE" ] && {
 		ans=$(printf 'No\nYes' | rofi -dmenu -p "WireGuard active! Disconnect and change WiFi?")
 		[ "$ans" != "Yes" ] && exit 0
-		$SU_CMD wg-quick down "$WG_ACTIVE" 2>/dev/null
-		notify "WireGuard disconnected"
+		# The VPN script's own disconnect also removes its DNS firewall; a bare
+		# wg-quick down left it, and only Mullvad's DNS server stayed reachable.
+		"$HOME/.local/bin/wireguard.sh" disconnect >/dev/null 2>&1 || exit 1
 	}
 }
 
@@ -96,7 +97,9 @@ else
 fi
 
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-	iwctl station "$IFACE" show 2>/dev/null | grep -q 'State.*connected' && {
+	# Exactly "connected": "disconnected" contains the same word.
+	iwctl station "$IFACE" show 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' |
+		awk '$1 == "State" && $2 == "connected" { found = 1 } END { exit !found }' && {
 		notify "Connected to ${SSID}"
 		exit 0
 	}
