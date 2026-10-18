@@ -27,8 +27,8 @@
 {{- end }}
         "format": "{icon} {percent}%",
         "format-icons": ["󰃞", "󰃟", "󰃠"],
-        "on-scroll-up": "brightnessctl set 5%+",
-        "on-scroll-down": "brightnessctl set 5%-",
+        "on-scroll-up": "~/.local/bin/brightness.sh up",
+        "on-scroll-down": "~/.local/bin/brightness.sh down",
         "scroll-step": 5,
         "tooltip-format": "Brightness: {percent}%"
     }

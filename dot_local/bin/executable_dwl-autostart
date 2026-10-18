@@ -24,6 +24,10 @@ session_env="$HOME/.local/bin/wayland-session-env"
 }
 "$session_env"
 
+# systemd restores the last backlight level; without it the panel comes up at full
+# brightness, so the session starts at a fixed level instead.
+[ -d /run/systemd/system ] || "$HOME/.local/bin/brightness.sh" set 30
+
 # Output, input and tag preferences are already compiled from the user's config.h.
 
 # Gentoo's launcher runs PipeWire and WirePlumber inside this session's D-Bus;

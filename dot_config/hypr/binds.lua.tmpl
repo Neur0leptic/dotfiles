@@ -179,8 +179,8 @@ hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ to
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && ~/.local/bin/volume.sh"))
 
 -- Multimedia keys: brightness
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+ && ~/.local/bin/brightness.sh"))
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%- && ~/.local/bin/brightness.sh"))
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("~/.local/bin/brightness.sh up"))
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("~/.local/bin/brightness.sh down"))
 
 -- Media player controls (locked binds — works even when locked)
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
