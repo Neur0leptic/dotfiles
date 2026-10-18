@@ -233,9 +233,17 @@ update_nchat_signal() {
 
         if [ "$CUR_FULL" == "$NEW_FULL" ]; then
                 echo -e "${BLUE}nchat-signal is up to date (${CUR_FULL}). Skipping build.${NC}"
+        elif [ "$(cat "$DIR/failed-version" 2> /dev/null)" == "$NEW_FULL" ]; then
+                echo -e "${YELLOW}nchat ${NEW_FULL} failed to build before; waiting for a newer version (delete ${DIR}/failed-version to retry).${NC}"
         else
                 echo -e "${GREEN}New nchat update found: ${CUR_FULL} -> ${NEW_FULL}. Building...${NC}"
-                makepkg -si --noconfirm
+                if ! makepkg -si --noconfirm; then
+                        # Not retried for the same version; the next attempt starts from a clean tree.
+                        echo "$NEW_FULL" > "$DIR/failed-version"
+                        rm -rf "${DIR:?}/src"
+                        return 1
+                fi
+                rm -f "$DIR/failed-version"
         fi
 }
 
@@ -303,7 +311,8 @@ handle_shutdown() {
 }
 
 main() {
-        local sync_failed=0
+        local status
+        local -a failed=()
 
         declare -A "tasks"
 
@@ -351,7 +360,8 @@ main() {
 
         pkill swayidle 2> /dev/null || true
 
-        trap '[[ -n "${log_pid}" ]] && kill "${log_pid}" 2> "/dev/null"' EXIT SIGINT
+        # The status line process is usually gone already; that is not an error.
+        trap '[[ -z "${log_pid}" ]] || kill "${log_pid}" 2> "/dev/null" || true' EXIT SIGINT
 
         for function in "${task_order[@]}"; do
                 description="${tasks[${function}]}"
@@ -370,21 +380,29 @@ main() {
                 ) &
                 log_pid="${!}"
 
-                if [ "$function" = "sync_chezmoi" ]; then
-                        if "$function"; then
-                                log_info g "$done_message"
-                        else
-                                sync_failed=1
-                                log_info r "Chezmoi sync needs attention; maintenance will continue."
-                        fi
-                else
+                # A task stops at its first error, in its own subshell, and the run goes
+                # on with the next one; the parent's trap is off so the error shows once.
+                trap - ERR
+                set +e
+                (
+                        trap 'handle_error' ERR
+                        set -e
                         "${function}"
+                )
+                status="$?"
+                set -e
+                trap 'handle_error' ERR
+
+                if [ "$status" -eq 0 ]; then
                         log_info g "${done_message}"
+                else
+                        failed+=("${description%.}")
+                        log_info r "${description%.} failed (status ${status}); maintenance continues."
                 fi
 
                 [[ "${TASK_NUMBER}" -eq "${TOTAL_TASKS}" ]] && {
-                        if [ "$sync_failed" -eq 1 ]; then
-                                log_info r "Maintenance tasks finished; Chezmoi sync remains incomplete."
+                        if [ "${#failed[@]}" -gt 0 ]; then
+                                log_info r "Maintenance tasks finished; needs attention: $(printf '%s, ' "${failed[@]}" | sed 's/, $//')."
                         else
                                 log_info g "All tasks completed."
                         fi
