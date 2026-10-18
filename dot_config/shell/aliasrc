@@ -50,6 +50,6 @@ sms() {
     if grep -q "Arch Linux" /etc/os-release 2>/dev/null; then
         maintain_arch.sh "$@"
     else
-        doas maintain_gentoo.sh "$@"
+        maintain_gentoo.sh "$@"
     fi
 }

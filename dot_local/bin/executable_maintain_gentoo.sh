@@ -1,8 +1,10 @@
 #!/bin/bash
+# sms - System, Maintain, Shutdown (Gentoo version)
 
-[ "$(id -u)" -eq "0" ] || {
-        echo "This script must be run as root" >&2
-        exit "1"
+[ "$(id -u)" -eq "0" ] && {
+        echo -e "\e[1;91mThis script must NOT be run as root on Gentoo.\e[0m" >&2
+        echo "Commands that need root run through doas." >&2
+        exit 1
 }
 
 set -Eeo pipefail
@@ -19,7 +21,6 @@ handle_error() {
 }
 
 trap 'handle_error' ERR
-trap 'handle_error' RETURN
 
 log_info() {
         sleep "0.3"
@@ -41,42 +42,132 @@ log_info() {
         { [[ ${1} == "c" ]] && echo -e "\n\n${FULL_LOG}"; } || echo -e "${FULL_LOG}"
 }
 
-USER="$(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' | head -n "1")"
-
 KERNEL_PATH="/boot/EFI/BOOT/BOOTX64.EFI"
 
 MODULES_DIR="/lib/modules"
-CACHE_DIR="/var/cache"
-USER_CACHE_DIR="/home/${USER}/.cache"
-LOG_DIR="/var/log"
+USER_CACHE_DIR="${HOME}/.cache"
 VAR_TMP_DIR="/var/tmp"
 
 FAILED_LOG_DIR="${USER_CACHE_DIR}/failed_builds"
 FAILED_PACKAGES="${USER_CACHE_DIR}/failed_packages.txt"
 
+# LibreWolf takes hours to build and nodejs is only its build dependency, so the world
+# update leaves both for "sms --librewolf".
+LONG_BUILDS=("www-client/librewolf" "net-libs/nodejs")
+WITH_LONG_BUILDS="0"
+FORCED_ACTION=""
+
 renew_env() {
-        env-update && source "/etc/profile"
+        doas env-update && source "/etc/profile"
+}
+
+sync_chezmoi() {
+        "$HOME/.local/bin/sync_chezmoi.sh"
+}
+
+update_chezmoi_extras() {
+        if ! "$HOME/.local/bin/sync_chezmoi.sh" --extras; then
+                echo -e "${YELLOW}Optional chezmoi assets did not complete.${NC}" >&2
+        fi
+}
+
+update_wireguard_scripts() {
+        # Root's copies for the boot service, as the installer made them. They follow the
+        # checkout only while it is unmodified and at its upstream, that is, published.
+        local source_dir="${XDG_DATA_HOME:-$HOME/.local/share}/wireguard"
+        local pair repo_file target
+
+        [ -f "/usr/local/bin/wireguard.sh" ] && [ -d "${source_dir}/.git" ] || {
+                echo -e "${BLUE}No WireGuard scripts to update.${NC}"
+                return 0
+        }
+
+        if ! git -C "${source_dir}" diff --quiet HEAD -- 2> "/dev/null" ||
+                [ "$(git -C "${source_dir}" rev-parse HEAD 2> "/dev/null")" != \
+                        "$(git -C "${source_dir}" rev-parse '@{upstream}' 2> "/dev/null")" ]; then
+                echo -e "${YELLOW}The WireGuard checkout is modified or not at its upstream. Keeping root's copies.${NC}" >&2
+                return 0
+        fi
+
+        for pair in "bin/wireguard.sh:/usr/local/bin/wireguard.sh" \
+                "libexec/wireguard-dns.sh:/usr/local/bin/wireguard-dns.sh" \
+                "init/openrc/wireguard-autoconnect:/etc/init.d/wireguard-autoconnect"; do
+                repo_file="${source_dir}/${pair%%:*}"
+                target="${pair#*:}"
+                [ -f "${repo_file}" ] && [ -f "${target}" ] || continue
+                ! cmp -s "${repo_file}" "${target}" || continue
+                sh -n "${repo_file}" || {
+                        echo -e "${YELLOW}${repo_file} does not parse. Keeping ${target}.${NC}" >&2
+                        continue
+                }
+                doas install -m "0755" "${repo_file}" "${target}"
+                echo -e "${GREEN}Updated ${target}.${NC}"
+        done
 }
 
 sync_repos() {
-        emaint sync -a > "/dev/null" 2>&1
+        doas emaint sync -a > "/dev/null" 2>&1
 }
 
 update_world() {
-        emerge --update "@world" --exclude "firefox" 2>&1 || true
+        local package
+        local -a excluded=()
+
+        if [ "${WITH_LONG_BUILDS}" -eq "0" ]; then
+                for package in "${LONG_BUILDS[@]}"; do
+                        excluded+=("--exclude" "${package}")
+                done
+        fi
+
+        doas emerge --update --newuse "@world" "${excluded[@]}" 2>&1 || true
 }
 
-update_blocklists() {
-        su -l -c "~/.local/bin/update_blocklists.sh" "${USER}" 2>/dev/null || true
+update_librewolf() {
+        if pgrep -x librewolf >/dev/null; then
+                echo -e "${YELLOW}LibreWolf is running. Skipping Arkenfox update and preference cleanup.${NC}"
+                return 0
+        fi
+
+        local profiles_ini="$HOME/.librewolf/profiles.ini"
+        local profile_dir
+        local profile_path
+
+        if [ ! -f "$profiles_ini" ]; then
+                echo -e "${YELLOW}LibreWolf profile not found. Skipping maintenance.${NC}"
+                return 0
+        fi
+
+        profile_dir=$(sed -n '/^\[Install/,/^\[/{/^Default=/{s/^Default=//p;q}}' "$profiles_ini")
+        profile_path="$HOME/.librewolf/$profile_dir"
+
+        if [ -z "$profile_dir" ] || [ ! -x "$profile_path/updater.sh" ]; then
+                echo -e "${YELLOW}Arkenfox updater not found. Skipping maintenance.${NC}"
+                return 0
+        fi
+
+        if [ ! -x "$profile_path/prefsCleaner.sh" ]; then
+                curl -sSfL https://raw.githubusercontent.com/arkenfox/user.js/master/prefsCleaner.sh \
+                        -o "$profile_path/prefsCleaner.sh" || {
+                        echo -e "${YELLOW}Failed to download prefsCleaner.sh. Skipping maintenance.${NC}"
+                        return 0
+                }
+                chmod +x "$profile_path/prefsCleaner.sh"
+        fi
+
+        (
+                cd "$profile_path"
+                ./updater.sh -s -n
+                ./prefsCleaner.sh -s -d
+        )
 }
 
 update_live() {
         return "0"
-        emerge "@live-rebuild" 2>&1 || true
+        doas emerge "@live-rebuild" 2>&1 || true
 }
 
 remove_unneeded() {
-        emerge --depclean > "/dev/null" 2>&1 || true
+        doas emerge --depclean > "/dev/null" 2>&1 || true
 }
 
 create_logs() {
@@ -90,7 +181,9 @@ create_logs() {
 }
 
 update_kernel() {
-        DIR_COUNT="$(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' | wc -l)"
+        # Custom kernels only: a distribution kernel's tree ends in "-dist" and belongs to its
+        # package, which also installs the kernel.
+        DIR_COUNT="$(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' ! -name '*-dist' | wc -l)"
 
         [ "${DIR_COUNT}" -gt "1" ] || {
                 echo -e "${BLUE}There is only one linux directory. The function stops...${NC}"
@@ -98,35 +191,35 @@ update_kernel() {
                 return
         }
 
-        KERNEL_DIR="$(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' | sort -rV | head -n "1")"
+        KERNEL_DIR="$(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' ! -name '*-dist' | sort -rV | head -n "1")"
 
         echo -e "${GREEN}Your new kernel directory:${CYAN} ${KERNEL_DIR} ${NC}"
 
-        OLD_KERNEL_DIR="$(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' | sort -rV | head -n "2" | tail -n "1")"
+        OLD_KERNEL_DIR="$(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' ! -name '*-dist' | sort -rV | head -n "2" | tail -n "1")"
 
         echo -e "${GREEN}Your old kernel directory:${CYAN} ${OLD_KERNEL_DIR} ${NC}"
 
         export LLVM="1" LLVM_IAS="1" CFLAGS="-O3 -march=native -pipe"
 
         # Only a fresh source tree inherits the old configuration; never overwrite a prepared one.
-        [ -f "${KERNEL_DIR}/.config" ] || cp -fv "${OLD_KERNEL_DIR}/.config" "${KERNEL_DIR}"
+        [ -f "${KERNEL_DIR}/.config" ] || doas cp -fv "${OLD_KERNEL_DIR}/.config" "${KERNEL_DIR}"
 
-        make -C "${KERNEL_DIR}" "olddefconfig" > "/dev/null" 2>&1
-        make -C "${KERNEL_DIR}" -j"$(nproc)" > "/dev/null" 2>&1
+        doas make -C "${KERNEL_DIR}" "olddefconfig" > "/dev/null" 2>&1
+        doas make -C "${KERNEL_DIR}" -j"$(nproc)" > "/dev/null" 2>&1
         if grep -qx 'CONFIG_MODULES=y' "${KERNEL_DIR}/.config"; then
-                make -C "${KERNEL_DIR}" "modules_install" > "/dev/null" 2>&1
+                doas make -C "${KERNEL_DIR}" "modules_install" > "/dev/null" 2>&1
         fi
 
         # The firmware boots only BOOTX64.EFI: keep the old image and replace it in one rename,
         # so a failed build or a full ESP never leaves a half-written kernel behind.
         [ -s "${KERNEL_DIR}/arch/x86/boot/bzImage" ]
-        [ ! -f "${KERNEL_PATH}" ] || cp -fv "${KERNEL_PATH}" "${KERNEL_PATH}.old"
-        cp -f "${KERNEL_DIR}/arch/x86/boot/bzImage" "${KERNEL_PATH}.new"
-        mv -f "${KERNEL_PATH}.new" "${KERNEL_PATH}"
+        ! doas test -f "${KERNEL_PATH}" || doas cp -fv "${KERNEL_PATH}" "${KERNEL_PATH}.old"
+        doas cp -f "${KERNEL_DIR}/arch/x86/boot/bzImage" "${KERNEL_PATH}.new"
+        doas mv -f "${KERNEL_PATH}.new" "${KERNEL_PATH}"
 
         echo -e "${GREEN}Your new kernel${CYAN} ${KERNEL_DIR}/arch/x86/boot/bzImage ${GREEN}has been copied to${CYAN} ${KERNEL_PATH}.${NC}"
 
-        rm -rf "${OLD_KERNEL_DIR}"
+        doas rm -rf "${OLD_KERNEL_DIR}"
 
         echo -e "${GREEN}Your old kernel directory${CYAN} ${OLD_KERNEL_DIR} ${GREEN}has been deleted.${NC}"
 }
@@ -140,35 +233,58 @@ update_nvidia() {
                 echo -e "${BLUE}The kernel has not been updated. Skipping Nvidia drivers...${NC}"
                 return
         }
-        emerge "x11-drivers/nvidia-drivers" > "/dev/null" 2>&1
+        doas emerge "x11-drivers/nvidia-drivers" > "/dev/null" 2>&1
 }
 
 copy_failed_logs() {
+        [ -f "${FAILED_PACKAGES}" ] || return 0
+
         while IFS= read -r pkg; do
                 log_path="/var/tmp/portage/${pkg}/temp/build.log"
                 safe_pkg_name="$(echo "${pkg}" | tr '/' '_')"
-                [ -f "${log_path}" ] && cp "${log_path}" "${FAILED_LOG_DIR}/${safe_pkg_name}.log"
+                doas test -f "${log_path}" && doas cp "${log_path}" "${FAILED_LOG_DIR}/${safe_pkg_name}.log"
         done < "${FAILED_PACKAGES}"
 
-        chown -vR "${USER}":"${USER}" "${FAILED_LOG_DIR}"
+        doas chown -vR "$(id -un)":"$(id -gn)" "${FAILED_LOG_DIR}"
 }
 
 clean_old_modules() {
-        find "${MODULES_DIR}" -mindepth "1" -maxdepth "1" -type "d" | sort -V | head -n "-1" | xargs rm -rf
+        # Custom kernels only; a distribution kernel's modules belong to its package.
+        find "${MODULES_DIR}" -mindepth "1" -maxdepth "1" -type "d" ! -name '*-dist' | sort -V | head -n "-1" | xargs -r doas rm -rf
 }
 
 clean_temp_files() {
-        rm -rf "${CACHE_DIR:?}"/* "${LOG_DIR:?}"/* "${VAR_TMP_DIR:?}"/*
+        # Downloaded sources and build leftovers only: the rest of /var/cache holds Portage's
+        # state and WireGuard's relay list, and /var/log the build history.
+        local distdir
+
+        distdir="$(portageq distdir)"
+        doas rm -rf "${distdir:?}"/* "${VAR_TMP_DIR:?}"/*
 }
 
 run_fstrim() {
-        fstrim -Av
+        doas fstrim -Av
+}
+
+check_librewolf_update() {
+        local installed available
+
+        [ "${WITH_LONG_BUILDS}" -eq "0" ] || return 0
+
+        installed="$(portageq match / "www-client/librewolf" 2> "/dev/null" | tail -n "1")" || true
+        available="$(portageq best_visible / "www-client/librewolf" 2> "/dev/null")" || true
+
+        if [ -n "${installed}" ] && [ -n "${available}" ] && [ "${installed}" != "${available}" ]; then
+                echo -e "${YELLOW}${available#www-client/} is available (installed: ${installed#www-client/}). It builds for hours; run ${CYAN}sms --librewolf${YELLOW} when there is time.${NC}"
+        else
+                echo -e "${BLUE}No LibreWolf update is waiting.${NC}"
+        fi
 }
 
 handle_action() {
         case "${1}" in
-                shutdown) openrc-shutdown -p "now" ;;
-                reboot) openrc-shutdown -r "now" ;;
+                shutdown) doas openrc-shutdown -p "now" ;;
+                reboot) doas openrc-shutdown -r "now" ;;
         esac
 }
 
@@ -212,10 +328,39 @@ handle_shutdown() {
 }
 
 main() {
+        local sync_failed=0
+
+        while [ "$#" -gt "0" ]; do
+                case "${1}" in
+                        --librewolf) WITH_LONG_BUILDS="1" ;;
+                        -f)
+                                FORCED_ACTION="shutdown"
+                                [ "${2:-}" != "reboot" ] || {
+                                        FORCED_ACTION="reboot"
+                                        shift
+                                }
+                                ;;
+                        *)
+                                echo "Usage: sms [--librewolf] [-f [reboot]]" >&2
+                                exit 1
+                                ;;
+                esac
+                shift
+        done
+
         declare -A "tasks"
 
         tasks["renew_env"]="Renew the environment.
 		       Environment renewed."
+
+        tasks["sync_chezmoi"]="Synchronize chezmoi dotfiles.
+		       Chezmoi synchronization checked."
+
+        tasks["update_chezmoi_extras"]="Refresh optional chezmoi scripts and external assets.
+				  Optional chezmoi assets checked."
+
+        tasks["update_wireguard_scripts"]="Update root's copies of the WireGuard scripts.
+				     WireGuard scripts checked."
 
         tasks["sync_repos"]="Sync the Gentoo repositories.
 		       Gentoo repositories synced."
@@ -223,8 +368,8 @@ main() {
         tasks["update_world"]="Update the world.
 		         The world updated."
 
-        tasks["update_blocklists"]="Update blocklists and trackers.
-                              Blocklists updated."
+        tasks["update_librewolf"]="Update Arkenfox and clean obsolete preferences.
+			   LibreWolf profile maintained."
 
         tasks["update_live"]="Update live packages.
                         Live packages updated."
@@ -235,7 +380,7 @@ main() {
         tasks["create_logs"]="Create logs for failed packages.
                         Logs for failed packages created."
 
-        tasks["update_kernel"]="Update the kernel.
+        tasks["update_kernel"]="Update the custom kernel.
 		          The kernel is ready."
 
         tasks["update_nvidia"]="Recompile Nvidia drivers.
@@ -247,21 +392,27 @@ main() {
         tasks["clean_old_modules"]="Clean old kernel modules.
 			      Old kernel modules cleaned."
 
-        tasks["clean_temp_files"]="Clean temporary files.
+        tasks["clean_temp_files"]="Clean downloaded sources and temporary files.
                              Temporary files cleaned."
 
         tasks["run_fstrim"]="Trim the filesystem.
                         Filesystem trimmed."
 
-        task_order=("renew_env" "sync_repos" "update_world" "update_blocklists" "update_live" "remove_unneeded"
+        tasks["check_librewolf_update"]="Check for a LibreWolf update to build separately.
+				   LibreWolf update checked."
+
+        task_order=("renew_env" "sync_chezmoi" "update_chezmoi_extras" "update_wireguard_scripts"
+                "sync_repos" "update_world" "update_librewolf" "update_live" "remove_unneeded"
                 "create_logs" "update_kernel" "update_nvidia" "copy_failed_logs"
-                "clean_old_modules" "clean_temp_files"
-                "run_fstrim")
+                "clean_old_modules" "clean_temp_files" "run_fstrim" "check_librewolf_update")
 
         TOTAL_TASKS="${#tasks[@]}"
         TASK_NUMBER="1"
 
-        trap '[[ -n "${log_pid}" ]] && kill "${log_pid}" 2> "/dev/null"' EXIT SIGINT
+        pkill swayidle 2> /dev/null || true
+
+        # The status line process is usually gone already; that is not an error.
+        trap '[[ -z "${log_pid}" ]] || kill "${log_pid}" 2> "/dev/null" || true' EXIT SIGINT
 
         for function in "${task_order[@]}"; do
                 description="${tasks[${function}]}"
@@ -280,11 +431,24 @@ main() {
                 ) &
                 log_pid="${!}"
 
-                "${function}"
-                log_info g "${done_message}"
+                if [ "$function" = "sync_chezmoi" ]; then
+                        if "$function"; then
+                                log_info g "$done_message"
+                        else
+                                sync_failed=1
+                                log_info r "Chezmoi sync needs attention; maintenance will continue."
+                        fi
+                else
+                        "${function}"
+                        log_info g "${done_message}"
+                fi
 
                 [[ "${TASK_NUMBER}" -eq "${TOTAL_TASKS}" ]] && {
-                        log_info g "All tasks completed."
+                        if [ "$sync_failed" -eq 1 ]; then
+                                log_info r "Maintenance tasks finished; Chezmoi sync remains incomplete."
+                        else
+                                log_info g "All tasks completed."
+                        fi
                         kill "${log_pid}" 2> "/dev/null" || true
                         break
                 }
@@ -294,14 +458,13 @@ main() {
                 ((TASK_NUMBER++))
         done
 
-        if [ "${1}" = "-f" ]; then
-                case "${2}" in
-                        reboot) openrc-shutdown -r "now" ;;
-                        *) openrc-shutdown -p "now" ;;
-                esac
+        if [ -n "${FORCED_ACTION}" ]; then
+                handle_action "${FORCED_ACTION}"
         else
                 "handle_shutdown"
         fi
 }
 
-main "${@}"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+        main "$@"
+fi
