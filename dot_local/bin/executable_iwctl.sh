@@ -1,12 +1,6 @@
 #!/bin/sh
 # iwd configures the address itself (EnableNetworkConfiguration in /etc/iwd/main.conf).
 
-detect_su() {
-	command -v doas >/dev/null 2>&1 && { printf 'doas'; return; }
-	command -v sudo >/dev/null 2>&1 && { printf 'sudo'; return; }
-	printf ''
-}
-
 notify() {
 	ICON="${XDG_DATA_HOME:-${HOME}/.local/share}/icons/candy-icons/status/scalable/network-wireless-connected-100.svg"
 	if [ -f "$ICON" ]; then
@@ -68,19 +62,6 @@ SSID="$(iwctl station "$IFACE" get-networks 2>/dev/null |
 [ -z "$SSID" ] && exit 0
 
 [ -n "$CURRENT_SSID" ] && [ "$CURRENT_SSID" = "$SSID" ] && exit 0
-
-SU_CMD="$(detect_su)"
-
-[ -n "$SU_CMD" ] && {
-	WG_ACTIVE="$($SU_CMD wg show interfaces 2>/dev/null)"
-	[ -n "$WG_ACTIVE" ] && {
-		ans=$(printf 'No\nYes' | rofi -dmenu -p "WireGuard active! Disconnect and change WiFi?")
-		[ "$ans" != "Yes" ] && exit 0
-		# The VPN script's own disconnect also removes its DNS firewall; a bare
-		# wg-quick down left it, and only Mullvad's DNS server stayed reachable.
-		"$HOME/.local/bin/wireguard.sh" disconnect >/dev/null 2>&1 || exit 1
-	}
-}
 
 SEC_TYPE="$(get_security "$SSID")"
 
