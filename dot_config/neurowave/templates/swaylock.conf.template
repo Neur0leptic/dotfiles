@@ -5,7 +5,7 @@ font-size=90
 
 clock
 timestr=%H:%M
-datestr=%d %B %Y, %a
+datestr=%d %b %Y, %a
 
 indicator
 indicator-idle-visible

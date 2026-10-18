@@ -35,6 +35,14 @@ session_backend() {
         fi
 }
 
+# Without logind nothing locks the session around sleep, so lock first.
+openrc_suspend() {
+        swaylock -f || { notify_error "The screen could not be locked; not suspending."; return 1; }
+        doas sh -c 'echo mem > /sys/power/state'
+        # The write returns after resume; replace a lock that died during sleep.
+        pgrep -x swaylock >/dev/null || swaylock -f
+}
+
 do_power_action() {
         local action="$1"
 
@@ -42,7 +50,7 @@ do_power_action() {
                 systemd:suspend) systemctl suspend ;;
                 systemd:poweroff) systemctl poweroff ;;
                 systemd:reboot) systemctl reboot ;;
-                openrc:suspend) doas sh -c 'echo mem > /sys/power/state' ;;
+                openrc:suspend) openrc_suspend ;;
                 openrc:poweroff) doas openrc-shutdown -p now ;;
                 openrc:reboot) doas openrc-shutdown -r now ;;
                 *) notify_error "No supported power backend was found." ; return 1 ;;

@@ -217,6 +217,8 @@ open_bookmark() {
         case "${URL}" in
                 *"search"* | *"wiki"* | *"packages"*)
                         QUERY="$(printf "" | DMENU "0" "Search" 'mainbox { children: [ inputbar ]; }')"
+                        # The local SearXNG entry follows search_url.sh: another SearXNG or DuckDuckGo.
+                        [ "${URL}" = "http://127.0.0.1:8888/search?q=" ] && URL="$("${HOME}/.local/bin/search_url.sh")"
                         URL="${URL}${QUERY}"
                         ;;
         esac

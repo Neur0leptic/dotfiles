@@ -1,7 +1,10 @@
-timeout 600 'pgrep -x unimatrix >/dev/null || footclient -a fullscreen unimatrix -c cyan &'
-timeout 1000 'swaylock' resume 'pkill -x unimatrix'
+# unimatrix is matched by its script path: on Arch it runs as python3, and the
+# bracket keeps the pattern from matching the shell that runs the command.
+timeout 600 'pgrep -f "/[u]nimatrix" >/dev/null || footclient -a fullscreen unimatrix -c cyan &'
+timeout 1000 'swaylock' resume 'pkill -f "/[u]nimatrix"'
 timeout 1200 'wlopm --off "*"' resume 'wlopm --on "*"'
-timeout 1800 'pkill -x unimatrix 2>/dev/null; systemctl suspend || doas sh -c "echo mem > /sys/power/state"'
 
-before-sleep 'pkill -USR1 swaylock; sleep 0.3; pkill -9 swaylock'
-after-resume 'wlopm --on "*"; swaylock -f'
+# With systemd, logind suspends and dwl-autostart gives swayidle the hooks that lock the
+# session around sleep. Without it the write to /sys/power/state returns after resume:
+# the idle lock above came first, so turn the screens on and replace a lock that died.
+timeout 1800 'pkill -f "/[u]nimatrix" 2>/dev/null; if [ -d /run/systemd/system ]; then systemctl suspend; else doas sh -c "echo mem > /sys/power/state" && wlopm --on "*"; pgrep -x swaylock >/dev/null || swaylock -f; fi'

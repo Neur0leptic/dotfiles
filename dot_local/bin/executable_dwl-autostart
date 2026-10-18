@@ -33,7 +33,15 @@ start foot --server
 start mako
 start wlsunset -S 06:30 -s 18:30 -d 1800
 start clipse -listen
-start swayidle -w -C "$HOME/.config/swayidle/config-dwl"
+# logind tells swayidle about every suspend: lock before it, and after it turn the screens
+# on and replace a lock that died. swayidle without logind support refuses these hooks.
+if [ -d /run/systemd/system ]; then
+    start swayidle -w -C "$HOME/.config/swayidle/config-dwl" \
+        before-sleep 'pgrep -x swaylock >/dev/null || swaylock -f' \
+        after-resume 'wlopm --on "*"; pgrep -x swaylock >/dev/null || swaylock -f'
+else
+    start swayidle -w -C "$HOME/.config/swayidle/config-dwl"
+fi
 start wayland-pipewire-idle-inhibit --wayland --quiet
 
 # Waybar is started on demand by waybar_toggle.sh (Super+B).

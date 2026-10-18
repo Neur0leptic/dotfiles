@@ -1,7 +1,10 @@
-timeout 600 'pidof kitty || kitty --class fullscreen -e unimatrix -c cyan &'
-timeout 1000 'swaylock' resume 'pkill -f "kitty.*unimatrix"'
+# unimatrix is matched by its script path: on Arch it runs as python3, and the
+# bracket keeps the pattern from matching the shell that runs the command.
+timeout 600 'pgrep -f "/[u]nimatrix" >/dev/null || kitty --class fullscreen -e unimatrix -c cyan &'
+timeout 1000 'swaylock' resume 'pkill -f "/[u]nimatrix"'
 timeout 1200 'hyprctl dispatch "hl.dsp.dpms({ action = \"off\" })" 2>/dev/null' resume 'hyprctl dispatch "hl.dsp.dpms({ action = \"on\" })" 2>/dev/null'
-timeout 1800 'pkill kitty 2>/dev/null; systemctl suspend || doas sh -c "echo mem > /sys/power/state"'
+timeout 1800 'pkill -f "/[u]nimatrix" 2>/dev/null; systemctl suspend || doas sh -c "echo mem > /sys/power/state"'
 
-before-sleep 'pkill -USR1 swaylock; sleep 0.3; pkill -9 swaylock'
-after-resume 'hyprctl dispatch "hl.dsp.dpms({ action = \"on\" })" && swaylock -f'
+# Lock before sleep (swayidle -w keeps logind waiting); after wake, replace a lock that died.
+before-sleep 'pgrep -x swaylock >/dev/null || swaylock -f'
+after-resume 'hyprctl dispatch "hl.dsp.dpms({ action = \"on\" })"; pgrep -x swaylock >/dev/null || swaylock -f'
