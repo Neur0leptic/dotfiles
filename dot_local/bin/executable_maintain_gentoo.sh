@@ -180,6 +180,12 @@ create_logs() {
         } || true
 }
 
+root_make() {
+        # doas resets PATH, and clang's directory (/usr/lib/llvm/SLOT/bin) is only in the
+        # profile's PATH.
+        doas sh -c '. /etc/profile.env && exec make "$@"' make "$@"
+}
+
 update_kernel() {
         # Custom kernels only: a distribution kernel's tree ends in "-dist" and belongs to its
         # package, which also installs the kernel.
@@ -204,10 +210,10 @@ update_kernel() {
         # Only a fresh source tree inherits the old configuration; never overwrite a prepared one.
         [ -f "${KERNEL_DIR}/.config" ] || doas cp -fv "${OLD_KERNEL_DIR}/.config" "${KERNEL_DIR}"
 
-        doas make -C "${KERNEL_DIR}" "olddefconfig" > "/dev/null" 2>&1
-        doas make -C "${KERNEL_DIR}" -j"$(nproc)" > "/dev/null" 2>&1
+        root_make -C "${KERNEL_DIR}" "olddefconfig" > "/dev/null" 2>&1
+        root_make -C "${KERNEL_DIR}" -j"$(nproc)" > "/dev/null" 2>&1
         if grep -qx 'CONFIG_MODULES=y' "${KERNEL_DIR}/.config"; then
-                doas make -C "${KERNEL_DIR}" "modules_install" > "/dev/null" 2>&1
+                root_make -C "${KERNEL_DIR}" "modules_install" > "/dev/null" 2>&1
         fi
 
         # The firmware boots only BOOTX64.EFI: keep the old image and replace it in one rename,
