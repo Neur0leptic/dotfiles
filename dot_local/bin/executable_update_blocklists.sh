@@ -22,10 +22,14 @@ exceptions="
 
 [ -z "$(command -v doas)" ] && prv="sudo" || prv="doas"
 
+# systemd-resolved ignores host names outside the letter-digit-hyphen rule (such as
+# underscores) and logs two warnings for each one whenever it reads /etc/hosts. The
+# filter comes after the exceptions, whose ranges count lines.
 crrction() {
         rg -o '^0[^ ]+ [^ ]+' |
                 rg -vF '0.0.0.0 0.0.0.0' |
-                sed "${exceptions}" > "${tmp_hsts}"
+                sed "${exceptions}" |
+                rg -i '^[^ ]+ ([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]*[a-z0-9])?\.?$' > "${tmp_hsts}"
 }
 
 clnup() {

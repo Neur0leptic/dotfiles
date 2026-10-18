@@ -1,10 +1,5 @@
 #!/bin/sh
-
-NO_DHCP="false"
-[ "${1}" = "-n" ] && {
-	NO_DHCP="true"
-	shift
-}
+# iwd configures the address itself (EnableNetworkConfiguration in /etc/iwd/main.conf).
 
 detect_su() {
 	command -v doas >/dev/null 2>&1 && { printf 'doas'; return; }
@@ -72,13 +67,7 @@ SSID="$(iwctl station "$IFACE" get-networks 2>/dev/null |
 
 [ -z "$SSID" ] && exit 0
 
-[ -n "$CURRENT_SSID" ] && [ "$CURRENT_SSID" = "$SSID" ] && {
-	if [ "$NO_DHCP" = "false" ]; then
-		command -v busybox >/dev/null 2>&1 && [ -f /etc/udhcpc/default.script ] &&
-			busybox udhcpc -b -i "$IFACE" -s /etc/udhcpc/default.script
-	fi
-	exit 0
-}
+[ -n "$CURRENT_SSID" ] && [ "$CURRENT_SSID" = "$SSID" ] && exit 0
 
 SU_CMD="$(detect_su)"
 
@@ -109,13 +98,6 @@ fi
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
 	iwctl station "$IFACE" show 2>/dev/null | grep -q 'State.*connected' && {
 		notify "Connected to ${SSID}"
-		if [ "$NO_DHCP" = "false" ]; then
-			if command -v busybox >/dev/null 2>&1 && [ -f /etc/udhcpc/default.script ]; then
-				busybox udhcpc -b -i "$IFACE" -s /etc/udhcpc/default.script
-			else
-				notify "udhcpc not available, skipping DHCP"
-			fi
-		fi
 		exit 0
 	}
 	sleep 1
