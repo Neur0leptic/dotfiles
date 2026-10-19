@@ -17,7 +17,13 @@ sc() {
 po() {
   s=("/etc/portage/"**/*(D.))
   c="$(print -lnr ${s#/etc/portage/} | fzf)"
-  [[ "${c}" ]] && doas nvim "/etc/portage/${c}"
+  [[ "${c}" ]] || return
+  # doasedit runs the editor as this user and writes only the result as root.
+  if command -v doasedit >/dev/null 2>&1; then
+    doasedit "/etc/portage/${c}"
+  else
+    doas nvim "/etc/portage/${c}"
+  fi
 }
 
 alias \

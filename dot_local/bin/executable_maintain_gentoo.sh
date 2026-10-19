@@ -181,9 +181,11 @@ create_logs() {
 }
 
 root_make() {
-        # doas resets PATH, and clang's directory (/usr/lib/llvm/SLOT/bin) is only in the
-        # profile's PATH.
-        doas sh -c '. /etc/profile.env && exec make "$@"' make "$@"
+        # doas gives root a clean environment, so the kernel build's LLVM, LLVM_IAS and
+        # CFLAGS are passed explicitly; clang's directory (/usr/lib/llvm/SLOT/bin) is only
+        # in the profile's PATH.
+        doas env LLVM="${LLVM}" LLVM_IAS="${LLVM_IAS}" CFLAGS="${CFLAGS}" \
+                sh -c '. /etc/profile.env && exec make "$@"' make "$@"
 }
 
 update_kernel() {
