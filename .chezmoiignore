@@ -6,6 +6,10 @@ docs/**
 dwl-machines
 dwl-machines/**
 
+# lazy.nvim rewrites its plugin lock whenever it updates plugins, so each machine keeps
+# its own; a shared copy made the machines' syncs conflict.
+.config/nvim/lazy-lock.json
+
 # DWL: ~/.local/src/dwl/config.h is the only editable header. Sync keeps its shared
 # part in config.def.h (a source input only) and its machine sections in dwl-machines/.
 # Installer apply preserves the header; normal sync captures it and apply restores it.
