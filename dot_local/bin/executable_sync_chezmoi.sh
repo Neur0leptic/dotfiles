@@ -971,7 +971,8 @@ update_chezmoi_extras() (
 	fi
 
 	chezmoi_cmd=(chezmoi -S "$public_source")
-	if ! current_marker="$(get_chezmoi_marker "$public_source" "${chezmoi_cmd[@]}")" ||
+	# chezmoi data includes the command line, so hash it with the arguments the core sync records.
+	if ! current_marker="$(get_chezmoi_marker "$public_source" env CHEZMOI_SKIP_EXTERNALS=1 "${chezmoi_cmd[@]}" --refresh-externals=never)" ||
 		[ ! -r "$public_head" ] ||
 		! IFS= read -r applied_marker < "$public_head" ||
 		[ "$applied_marker" != "$current_marker" ]; then
