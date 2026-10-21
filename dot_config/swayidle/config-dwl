@@ -2,7 +2,9 @@
 # bracket keeps the pattern from matching the shell that runs the command.
 # A running emerge skips the screensaver, which takes CPU from the build, and the suspend,
 # which would stop it; locking and turning the screens off still happen.
-timeout 600 'pgrep -x emerge >/dev/null && exit 0; pgrep -f "/[u]nimatrix" >/dev/null || footclient -a fullscreen unimatrix -c cyan &'
+# On battery (power supplies present, none online) the screens go off instead of the
+# screensaver.
+timeout 600 'if ls /sys/class/power_supply/*/online >/dev/null 2>&1 && ! grep -qsx 1 /sys/class/power_supply/*/online; then wlopm --off "*"; else pgrep -x emerge >/dev/null && exit 0; pgrep -f "/[u]nimatrix" >/dev/null || footclient -a fullscreen unimatrix -c cyan & fi' resume 'wlopm --on "*"'
 timeout 1000 'swaylock' resume 'pkill -f "/[u]nimatrix"'
 timeout 1200 'wlopm --off "*"' resume 'wlopm --on "*"'
 
