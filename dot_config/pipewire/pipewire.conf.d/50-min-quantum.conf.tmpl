@@ -1,0 +1,7 @@
+{{- if eq .gpuProfile "intel-x220" -}}
+# A browser can leave the sound card running at a 32-sample quantum, which wakes the CPU
+# 1500 times a second (1.85 W on the X220). The floor keeps the idle card at 1024.
+context.properties = {
+    default.clock.min-quantum = 1024
+}
+{{ end -}}
