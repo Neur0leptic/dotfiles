@@ -1,3 +1,5 @@
+{{- /* The X220 lets its idle sound card suspend: holding it open costs it about 0.35 W. */ -}}
+{{- if ne .gpuProfile "intel-x220" -}}
 monitor.alsa.rules = [
   {
     matches = [
@@ -12,3 +14,4 @@ monitor.alsa.rules = [
     }
   }
 ]
+{{ end -}}
