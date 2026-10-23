@@ -139,6 +139,7 @@ static const Key keys[] = {
 	{ MODKEY, XKB_KEY_F6, spawn, SHCMD("$HOME/.local/bin/recorder.sh") },
 	{ MODKEY, XKB_KEY_w, spawn, {.v = browsercmd} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_w, spawn, {.v = altbrowsercmd} },
+	{ MODKEY, XKB_KEY_a, spawn, SHCMD("$HOME/.local/bin/claude_launcher.sh") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_a, spawn, SHCMD("footclient -a opencode-float --window-size-chars=110x45 opencode") },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_y, spawn, SHCMD("$HOME/.local/bin/helium_launch_webapp.sh 'https://youtube.com' youtube") },
 	{ MODKEY, XKB_KEY_c, spawn, SHCMD("footclient nvim \"$HOME/.local/src/dwl/config.h\"") },
