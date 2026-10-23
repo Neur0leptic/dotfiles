@@ -146,10 +146,9 @@ printf '%s\n' "$quota" | jq -r --argjson colour "$colour" '
 	def paint($code; $text): if $colour and $code != "" then "\u001b[\($code)m\($text)\u001b[0m" else $text end;
 	def spaces($n): " " * ([$n, 0] | max);
 	def width: 50;
-	# A line is a list of [colour, text] parts; the frame pads it by its visible length.
+	# A line is a list of [colour, text] parts; a row pads it by its visible length.
 	def visible($parts): $parts | map(.[1]) | add // "" | length;
-	def line($parts): paint("34"; "│  ") + ($parts | map(paint(.[0]; .[1])) | add // "")
-		+ spaces(width - visible($parts)) + paint("34"; "  │");
+	def line($parts): $parts | map(paint(.[0]; .[1])) | add // "";
 	def row($left; $right): line($left + [["", spaces(width - visible($left + $right))]] + $right);
 	def level($left): if $left <= 10 then "31" elif $left <= 25 then "33" else "32" end;
 	def bar($left; $cells): ($left * $cells / 100 * 8 | round) as $eighths
@@ -176,14 +175,12 @@ printf '%s\n' "$quota" | jq -r --argjson colour "$colour" '
 	def plan: .plan // "" | ascii_downcase | (.[:1] | ascii_upcase) + .[1:];
 	def provider: [row([["1;36", .name]]; [["35", plan]])]
 		+ (if .error then [line([["33", .error]])] else [.windows[] | window[]] end);
-	[paint("34"; "╭" + "─" * (width + 4) + "╮"),
-	 row([["1;35", "AI QUOTA"]]; [["2", (.fetched_at | strflocaltime("%H:%M"))]]),
+	[row([["1;35", "AI QUOTA"]]; [["2", (.fetched_at | strflocaltime("%H:%M"))]]),
 	 line([])]
 	+ (if .error then [line([["33", .error]])]
 	   elif (.providers | length) == 0 then [line([["33", "No Claude Code or OpenCode login here."]])]
 	   else [.providers | to_entries[] | (if .key > 0 then [line([])] else [] end) + (.value | provider) | .[]]
 	   end)
-	+ [paint("34"; "╰" + "─" * (width + 4) + "╯")]
 	| .[]
 '
 
