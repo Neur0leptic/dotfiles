@@ -57,6 +57,10 @@ on = [ "g", "b" ]
 run = "cd ~/.local/bin/"
 
 [[mgr.prepend_keymap]]
+on = [ "g", "B" ]
+run = "cd ~/Books"
+
+[[mgr.prepend_keymap]]
 on = [ "g", "l" ]
 run = "cd ~/.local/"
 
@@ -71,6 +75,10 @@ run = "cd --interactive"
 [[mgr.prepend_keymap]]
 on = [ "g", "v" ]
 run = "cd ~/vimwiki"
+
+[[mgr.prepend_keymap]]
+on = [ "g", "V" ]
+run = "cd ~/Videos"
 
 [[mgr.prepend_keymap]]
 on = [ "g", "G" ]
