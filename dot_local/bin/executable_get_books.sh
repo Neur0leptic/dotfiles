@@ -1,213 +1,357 @@
 #!/bin/sh
 
-IPFS_MODE="false"
-[ "${1}" = "-i" ] && {
-	IPFS_MODE="true"
-	shift
+# Ask for a title, author, year and language, search LibGen for PDFs and save
+# the chosen book in ~/Books. A question left empty is not used as a filter.
+# Words given as arguments skip the questions: get_books.sh pride prejudice
+
+LIBGEN_DOMAIN="libgen.li"
+BOOKS_DIR="${HOME}/Books"
+TRIES="3"
+RETRY_DELAY="5"
+
+# Colors follow the rofi theme: prompts yellow, details blue, saved green, errors red.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+	YELLOW="$(printf '\033[33m')" BLUE="$(printf '\033[34m')" GREEN="$(printf '\033[32m')"
+	RED="$(printf '\033[31m')" BOLD="$(printf '\033[1m')" NC="$(printf '\033[0m')"
+else
+	YELLOW="" BLUE="" GREEN="" RED="" BOLD="" NC=""
+fi
+
+SEP="$(printf '\037')"
+
+# Prints the number of matching files ("?" when the page has none), then one
+# line per book: title, authors, publisher, year, language, size and md5,
+# separated by \037.
+PARSE='
+function clean(s) {
+	gsub(/<[^>]*>/, " ", s)
+	gsub(/&nbsp;/, " ", s); gsub(/&quot;/, "\"", s); gsub(/&#0*39;/, "\047", s)
+	gsub(/&lt;/, "<", s); gsub(/&gt;/, ">", s); gsub(/&amp;/, "\\&", s)
+	gsub(/[[:space:]]+/, " ", s); gsub(/^ | $/, "", s)
+	return s
+}
+{ page = page $0 " " }
+END {
+	total = "?"
+	if (match(page, /curtab=f">Files <span class="badge badge-primary">[0-9]+/)) {
+		total = substr(page, RSTART, RLENGTH)
+		sub(/.*>/, "", total)
+	}
+	print total
+	start = index(page, "id=\"tablelibgen\"")
+	if (!start) exit
+	page = substr(page, start)
+	stop = index(page, "</table>")
+	if (stop) page = substr(page, 1, stop - 1)
+	rows = split(page, row, /<\/tr>/)
+	for (r = 1; r <= rows; r++) {
+		if (split(row[r], cell, /<td[^>]*>/) < 10 || !match(row[r], /md5=[0-9a-fA-F]+/)) continue
+		md5 = tolower(substr(row[r], RSTART + 4, RLENGTH - 4))
+		title = ""
+		if (match(cell[2], /href="edition\.php\?id=[0-9]+"[^>]*>/)) {
+			title = substr(cell[2], RSTART + RLENGTH)
+			sub(/<\/a>.*/, "", title)
+		}
+		print clean(title) "\037" clean(cell[3]) "\037" clean(cell[4]) "\037" clean(cell[5]) \
+			"\037" clean(cell[6]) "\037" clean(cell[8]) "\037" md5
+	}
+}'
+
+# Two lines per book: number and title, then authors, publisher, year, language and size.
+SHOW='
+function names(s, sep,    part, n, i, out, seen) {
+	n = split(s, part, /[[:space:]]*;[[:space:]]*/)
+	for (i = 1; i <= n; i++) {
+		sub(/[[:space:],]+$/, "", part[i])
+		if (part[i] == "" || (part[i] in seen)) continue
+		seen[part[i]] = 1
+		out = out (out == "" ? "" : sep) part[i]
+	}
+	return out
+}
+function add(s) {
+	if (s != "") details = details (details == "" ? "" : " · ") s
+}
+BEGIN { FS = "\037" }
+{
+	author = (split($2, part, /[[:space:]]*;[[:space:]]*/) > 2) ? names(part[1], "") " et al." : names($2, "; ")
+	details = ""
+	add(author); add($3); add($4); add(names($5, ", ")); add($6)
+	printf "%s%2d%s  %s%s%s\n", cy, NR, cn, cw, $1, cn
+	if (details != "") printf "    %s%s%s\n", cb, details, cn
+}'
+
+info() {
+	printf '%s%s%s\n' "$BLUE" "$1" "$NC"
 }
 
-PURPLE="$(printf '\033[1;95m')" CYAN="$(printf '\033[1;96m')" WHITE="$(printf '\033[1;97m')"
-GREEN="$(printf '\033[1;92m')" YELLOW="$(printf '\033[1;93m')" NC="$(printf '\033[0m')"
-RED="$(printf '\033[1;91m')" BLUE="$(printf '\033[1;94m')"
-
-ANNA_DOMAIN="annas-archive.gl"
-MAX_RETRIES="15"
-RETRY_DELAY="6"
-IPFS_GATEWAYS="cloudflare-ipfs.com gateway.ipfs.io gateway.pinata.cloud"
+error() {
+	printf '%s%s%s\n' "$RED" "$1" "$NC" >&2
+}
 
 get_useragent() {
-	CACHE_FILE="/tmp/ff_ua"
+	CACHE_FILE="${TMPDIR:-/tmp}/ff_ua"
 	CACHE_MAX_AGE="86400"
 	if [ -f "$CACHE_FILE" ] && [ "$(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)))" -lt "$CACHE_MAX_AGE" ]; then
 		cat "$CACHE_FILE"
 		return
 	fi
-	VER="$(curl -s --connect-timeout 5 'https://product-details.mozilla.org/1.0/firefox_versions.json' | grep -oP '"LATEST_FIREFOX_VERSION"[^,]*' | grep -oP '\d+\.\d+(\.\d+)?' 2>/dev/null)"
-	[ -z "$VER" ] && VER="125.0"
-	UA="Mozilla/5.0 (Windows NT 10.0; rv:${VER%.*}.0) Gecko/20100101 Firefox/${VER}"
+	VER="$(curl -s --connect-timeout 5 --max-time 10 'https://product-details.mozilla.org/1.0/firefox_versions.json' |
+		sed -n 's/.*"LATEST_FIREFOX_VERSION": *"\([0-9]*\)\..*/\1/p' | head -n 1)"
+	[ -z "$VER" ] && VER="144"
+	UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${VER}.0) Gecko/20100101 Firefox/${VER}.0"
 	printf '%s' "$UA" > "$CACHE_FILE"
 	printf '%s' "$UA"
 }
 
+# LibGen language codes; most of its files use these three-letter forms.
+lang_code() {
+	CODE="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+	case "$CODE" in
+	'') ;;
+	en | english) printf 'eng' ;;
+	tr | turkish) printf 'tur' ;;
+	de | deu | german) printf 'ger' ;;
+	fr | fra | french) printf 'fre' ;;
+	es | spanish) printf 'spa' ;;
+	it | italian) printf 'ita' ;;
+	pt | portuguese) printf 'por' ;;
+	ru | russian) printf 'rus' ;;
+	nl | nld | dutch) printf 'dut' ;;
+	ar | arabic) printf 'ara' ;;
+	fa | per | persian) printf 'fas' ;;
+	el | ell | greek) printf 'gre' ;;
+	la | latin) printf 'lat' ;;
+	zh | zho | chinese) printf 'chi' ;;
+	ja | japanese) printf 'jpn' ;;
+	pl | polish) printf 'pol' ;;
+	[a-z][a-z][a-z]) printf '%s' "$CODE" ;;
+	*) return 1 ;;
+	esac
+}
+
+ask() {
+	printf '%s%s%s ' "$YELLOW" "$1" "$NC"
+	read -r ANSWER || {
+		printf '\n'
+		exit 0
+	}
+}
+
+ask_questions() {
+	printf '%sBook search. Press Enter to skip a question.%s\n\n' "$BLUE" "$NC"
+	while :; do
+		ask "Title:"
+		TITLE="$ANSWER"
+		ask "Author:"
+		AUTHOR="$ANSWER"
+		[ -n "${TITLE}${AUTHOR}" ] && break
+		error "Type a title or an author."
+	done
+	while :; do
+		ask "Year:"
+		YEAR="$ANSWER"
+		case "$YEAR" in
+		'' | [0-9][0-9][0-9][0-9]) break ;;
+		esac
+		error "Type a year such as 1999, or press Enter to skip."
+	done
+	while :; do
+		ask "Language (e.g. English or en):"
+		BOOK_LANG="$(lang_code "$ANSWER")" && break
+		error "Unknown language. Type a name such as English or a code such as en."
+	done
+}
+
+# $1: words to search, $2: LibGen columns to search them in
+# Returns 1 when LibGen cannot be reached and 2 when its page cannot be read.
+search() {
+	REQ="$(printf '%s' "$1" | sed 's/["*:+~<>()@-]/ /g') ext:pdf"
+	[ -n "$YEAR" ] && REQ="${REQ} year:${YEAR}"
+	[ -n "$BOOK_LANG" ] && REQ="${REQ} lang:${BOOK_LANG}"
+	curl -fsS --connect-timeout 20 --max-time 60 -A "$USERAGENT" -o "${WORK}/page.html" \
+		-G "https://${LIBGEN_DOMAIN}/index.php" --data-urlencode "req=${REQ}" \
+		--data "${2}&objects%5B%5D=f&topics%5B%5D=l&topics%5B%5D=f&res=25&filesuns=all&gmode=on" || return 1
+	awk "$PARSE" "${WORK}/page.html" > "${WORK}/parsed"
+	TOTAL="$(sed -n 1p "${WORK}/parsed")"
+	sed 1d "${WORK}/parsed" > "${WORK}/books"
+	COUNT="$(wc -l < "${WORK}/books")"
+	# Every LibGen result page shows its file count, even when nothing matches.
+	[ "$TOTAL" = "?" ] && return 2
+	[ "$TOTAL" -gt 0 ] && [ "$COUNT" -eq 0 ] && return 2
+	return 0
+}
+
+show_results() {
+	printf '\n'
+	awk -v cy="$YELLOW" -v cb="$BLUE" -v cw="$BOLD" -v cn="$NC" "$SHOW" "${WORK}/books"
+	[ "$TOTAL" -gt "$COUNT" ] 2>/dev/null &&
+		printf '%sShowing %d of %d. Add more details to narrow the list.%s\n' "$BLUE" "$COUNT" "$TOTAL" "$NC"
+}
+
+# "Author - Title" without characters that cannot be in a file name, cut to
+# 180 bytes so the year and ".pdf" still fit
+book_name() {
+	printf '%s\n%s\n' "$1" "$2" | awk '
+		NR == 1 { author = $0; sub(/[[:space:]]*;.*/, "", author); sub(/[[:space:],]+$/, "", author) }
+		NR == 2 { title = $0 }
+		END {
+			if (title == "") exit
+			name = (author != "" ? author " - " : "") title
+			gsub(/\//, "-", name)
+			gsub(/[[:cntrl:]]/, "", name)
+			gsub(/[[:space:]]+/, " ", name)
+			sub(/^[ .-]+/, "", name)
+			print name
+		}' | cut -b 1-180 | iconv -c -f UTF-8 -t UTF-8 2>/dev/null | sed 's/[ .]*$//'
+}
+
+get_book() {
+	ROW="$(sed -n "${1}p" "${WORK}/books")"
+	OLD_IFS="$IFS"
+	IFS="$SEP"
+	set -f
+	set -- $ROW
+	set +f
+	IFS="$OLD_IFS"
+	B_TITLE="$1" B_AUTHOR="$2" B_YEAR="$4" B_MD5="$7"
+
+	mkdir -p "$BOOKS_DIR" || {
+		error "Could not create ${BOOKS_DIR}."
+		return 1
+	}
+
+	printf '\n%sDownloading:%s %s\n' "$BLUE" "$NC" "$B_TITLE"
+	try=1
+	while :; do
+		# The download link carries a key, so it is fetched again for every try.
+		LINK="$(curl -fsS --connect-timeout 20 --max-time 60 -A "$USERAGENT" "https://${LIBGEN_DOMAIN}/ads.php?md5=${B_MD5}" |
+			sed -n 's/.*href="\(get\.php?md5=[^"]*\)".*/\1/p' | head -n 1 | sed 's/&amp;/\&/g')"
+		[ -n "$LINK" ] &&
+			curl -fL $PROGRESS --connect-timeout 20 --speed-limit 1024 --speed-time 60 -A "$USERAGENT" \
+				-o "${WORK}/book.pdf" "https://${LIBGEN_DOMAIN}/${LINK}" &&
+			pdfinfo "${WORK}/book.pdf" >/dev/null 2>&1 && break
+		rm -f "${WORK}/book.pdf"
+		[ "$try" -ge "$TRIES" ] && {
+			error "Download did not work. Try another number."
+			return 1
+		}
+		try=$((try + 1))
+		error "Download failed. Trying again in ${RETRY_DELAY} seconds (${try} of ${TRIES})..."
+		sleep "$RETRY_DELAY"
+	done
+
+	NAME="$(book_name "$B_AUTHOR" "$B_TITLE")"
+	[ -n "$NAME" ] || NAME="$B_MD5"
+	case "$B_YEAR" in
+	[0-9][0-9][0-9][0-9]) NAME="${NAME} (${B_YEAR})" ;;
+	esac
+	DEST="${BOOKS_DIR}/${NAME}.pdf"
+	i=2
+	while [ -e "$DEST" ]; do
+		DEST="${BOOKS_DIR}/${NAME} (${i}).pdf"
+		i=$((i + 1))
+	done
+	mv "${WORK}/book.pdf" "$DEST" || {
+		error "Could not save the book in ${BOOKS_DIR}."
+		return 1
+	}
+	printf '%sSaved:%s %s\n' "$GREEN" "$NC" "$DEST"
+}
+
+# Returns when a new search is wanted; quits after q or a saved book.
+choose_book() {
+	while :; do
+		printf '\n%sNumber to download, Enter for a new search, q to quit:%s ' "$YELLOW" "$NC"
+		read -r CHOICE || {
+			printf '\n'
+			exit 0
+		}
+		case "$CHOICE" in
+		'')
+			printf '\n'
+			return
+			;;
+		q | Q) exit 0 ;;
+		*[!0-9]*) ;;
+		*)
+			if [ "$CHOICE" -ge 1 ] 2>/dev/null && [ "$CHOICE" -le "$COUNT" ]; then
+				get_book "$CHOICE" && exit 0
+				continue
+			fi
+			;;
+		esac
+		if [ "$COUNT" -eq 1 ]; then
+			error "Type 1 to download this book."
+		else
+			error "Type a number from 1 to ${COUNT}."
+		fi
+	done
+}
+
+case "${1:-}" in
+-*)
+	printf '%s\n' "Usage: get_books.sh [words from the title or author]" >&2
+	exit 1
+	;;
+esac
+
+command -v curl >/dev/null 2>&1 || {
+	error "curl is missing. Install curl first."
+	exit 1
+}
+command -v pdfinfo >/dev/null 2>&1 || {
+	error "pdfinfo is missing. Install poppler first."
+	exit 1
+}
+
 USERAGENT="$(get_useragent)"
 
-FQUERY=""
-for arg; do
-	FQUERY="${FQUERY}${arg}+"
-done
-QUERY="${FQUERY%+}"
+WORK="$(mktemp -d)" || exit 1
+trap 'rm -rf "$WORK"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
-QUERY="$(printf '%s' "$QUERY" | sed 's/ /+/g')"
-
-FILENAME="$(printf '%s' "$QUERY" | tr '+' '_')_$(date +%s)"
-FILENAME="${FILENAME}.pdf"
-
-SEARCH_URL="https://${ANNA_DOMAIN}/search?index=&q=${QUERY}&content=book_nonfiction&content=book_fiction&content=book_unknown&ext=pdf&acc=external_download&src=lgli&src=lgrs&sort=&lang=en&lang=_empty"
-
-TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
-
-RESULTS_FILE="${TMPDIR}/results.html"
-TITLES_FILE="${TMPDIR}/titles"
-AUTHORS_FILE="${TMPDIR}/authors"
-PUBLISHERS_FILE="${TMPDIR}/publishers"
-SIZES_FILE="${TMPDIR}/sizes"
-URLS_FILE="${TMPDIR}/urls"
-
-printf '%s\n' "Searching..." >&2
-
-curl -fSLk -s -A "$USERAGENT" "$SEARCH_URL" -o "$RESULTS_FILE" || {
-	printf '%s\n' "${RED}Failed to fetch search results.${NC}"
-	exit 1
-}
-
-sed '/partial matches/,$d' "$RESULTS_FILE" | grep -oP '<a href="/md5/[a-f0-9]+"[^>]*class="[^"]*line-clamp-\[3\][^>]*>' | grep -oP '/md5/[a-f0-9]+' | head -n 25 > "$URLS_FILE"
-sed '/partial matches/,$d' "$RESULTS_FILE" | grep -oP 'class="[^"]*line-clamp-\[3\][^"]*"[^>]*>\K[^<]+(?=</a>)' | head -n 25 > "$TITLES_FILE"
-sed '/partial matches/,$d' "$RESULTS_FILE" | grep -oP 'mdi--user-edit[^>]*></span>\s*\K[^<]+' | head -n 25 > "$AUTHORS_FILE"
-sed '/partial matches/,$d' "$RESULTS_FILE" | grep -oP 'mdi--company[^>]*></span>\s*\K[^<]+' | head -n 25 > "$PUBLISHERS_FILE"
-sed '/partial matches/,$d' "$RESULTS_FILE" | grep -oP '(?<=· )[\d.]+(?:MB|GB)' | head -n 25 > "$SIZES_FILE"
-
-TOTAL="$(wc -l < "$URLS_FILE")"
-[ "$TOTAL" -eq 0 ] && {
-	printf '%s\n' "${RED}No results found.${NC}"
-	exit 1
-}
-
-i=1
-while [ "$i" -le "$TOTAL" ]; do
-	TITLE="$(sed -n "${i}p" "$TITLES_FILE" | sed "s/&#39;/\'/g; s/&amp;/\&/g")"
-	AUTHOR="$(sed -n "${i}p" "$AUTHORS_FILE" | sed "s/&#39;/\'/g; s/&amp;/\&/g")"
-	PUBLISHER="$(sed -n "${i}p" "$PUBLISHERS_FILE" | sed "s/&#39;/\'/g; s/&amp;/\&/g")"
-	SIZE="$(sed -n "${i}p" "$SIZES_FILE")"
-
-	printf "${PURPLE}%d) ${WHITE}Title: ${CYAN}%s${NC}\n" "$i" "$TITLE"
-	printf "${WHITE}Author: ${YELLOW}%s${NC}\n" "$AUTHOR"
-	[ -n "$PUBLISHER" ] && printf "${WHITE}Publisher: ${GREEN}%s${NC}\n" "$PUBLISHER"
-	[ -n "$SIZE" ] && printf "${WHITE}Size: ${RED}%s${NC}\n\n" "$SIZE" || printf '\n'
-	i=$((i + 1))
-done
-
-printf "Enter your selection: "
-read -r SELECTED_BOOK
-
-CHOSEN_URL="$(sed -n "${SELECTED_BOOK}p" "$URLS_FILE")"
-[ -z "$CHOSEN_URL" ] && {
-	printf '%s\n' "${RED}Invalid selection.${NC}"
-	exit 1
-}
-
-FULL_URL="https://${ANNA_DOMAIN}${CHOSEN_URL}"
-
-printf '\n%s\n\n' "${GREEN}Fetching book page...${NC}"
-
-BOOK_PAGE="$(curl -fk -sSL -A "$USERAGENT" "$FULL_URL")" || {
-	printf '%s\n' "${RED}Failed to fetch book page.${NC}"
-	exit 1
-}
-
-LIBGEN_LI_LINK="$(printf '%s' "$BOOK_PAGE" | grep -oP 'https://libgen\.li/file\.php\?id=[0-9]+' | head -1)"
-LIBGEN_PW_LINK="$(printf '%s' "$BOOK_PAGE" | grep -oP 'https://libgen\.pw/book/[a-f0-9]+' | head -1)"
-LIBGEN_IS_LINK="$(printf '%s' "$BOOK_PAGE" | grep -oP 'https://libgen\.is/book/index\.php\?md5=[A-F0-9]+' | head -1)"
-AA_IPFS_LINK="$(printf '%s' "$BOOK_PAGE" | grep -oP '/ipfs_downloads/md5:[a-f0-9]+' | head -1)"
-
-if [ "$IPFS_MODE" = "true" ]; then
-	DOWNLOAD_LINKS=""
-	if [ -n "$LIBGEN_LI_LINK" ]; then
-		LIBGENLI_PAGE="$(curl -fk -sSL -A "$USERAGENT" "$LIBGEN_LI_LINK")"
-		DOWNLOAD_LINKS="$(printf '%s' "$LIBGENLI_PAGE" | grep -oP 'href="\Khttps://[^"]*(?:cloudflare-ipfs|gateway\.ipfs|gateway\.pinata)[^"]*' | sort -u)"
-	fi
-	if [ -z "$DOWNLOAD_LINKS" ] && [ -n "$AA_IPFS_LINK" ]; then
-		AA_IPFS_URL="https://${ANNA_DOMAIN}${AA_IPFS_LINK}"
-		AA_IPFS_PAGE="$(curl -fk -sSL -A "$USERAGENT" "$AA_IPFS_URL")"
-		DOWNLOAD_LINKS="$(printf '%s' "$AA_IPFS_PAGE" | grep -oP 'href="\Khttps://[^"]*(?:cloudflare-ipfs|gateway\.ipfs|gateway\.pinata)[^"]*' | sort -u)"
-	fi
-
-	if [ -z "$DOWNLOAD_LINKS" ]; then
-		printf '%s\n' "No IPFS links found for this selection."
-		exit 0
-	fi
-
-	for gw in $DOWNLOAD_LINKS; do
-		printf '%s\n' "${GREEN}Trying: ${BLUE}${gw}${NC}"
-		if curl -fSLk -A "$USERAGENT" -o "$FILENAME" "$gw" && pdfinfo "$FILENAME" >/dev/null 2>&1; then
-			printf '\n%s\n' "${GREEN}Download successful.${NC}"
-			printf '%s %s\n' "${WHITE}File:${NC}" "${RED}$(find . -maxdepth 1 -name "${FILENAME}" -type f)${NC}"
-			exit 0
-		fi
-	done
-
-	printf '\n%s\n' "All IPFS gateways failed. Try opening the links manually in a browser."
-	printf '%s\n' "$DOWNLOAD_LINKS"
-	exit 0
+if [ -t 2 ]; then
+	PROGRESS="--progress-bar"
+else
+	PROGRESS="--silent --show-error"
 fi
 
-DOWNLOAD_LINKS=""
-
-# Try libgen.li → IPFS gateways
-[ -n "$LIBGEN_LI_LINK" ] && {
-	LIBGENLI_PAGE="$(curl -fk -sSL -A "$USERAGENT" "$LIBGEN_LI_LINK")"
-	DOWNLOAD_LINKS="$(printf '%s' "$LIBGENLI_PAGE" | grep -oP 'href="\Khttps://[^"]*(?:cloudflare-ipfs|gateway\.ipfs|gateway\.pinata)[^"]*' | sort -u)"
-}
-
-printf '\n%s\n' "${GREEN}Downloading...${NC}"
-
-downloaded="false"
-attempt=1
-
-while [ "$attempt" -le "$MAX_RETRIES" ]; do
-	printf "${GREEN}Attempt ${RED}%d ${GREEN}of ${RED}%d${NC}\n" "$attempt" "$MAX_RETRIES"
-
-	for link in $DOWNLOAD_LINKS; do
-		if curl -fSLk -A "$USERAGENT" -o "$FILENAME" "$link" 2>/dev/null && pdfinfo "$FILENAME" >/dev/null 2>&1; then
-			downloaded="true"
-			break
-		fi
-		rm -f "$FILENAME"
-	done
-
-	[ "$downloaded" = "true" ] && break
-
-	# Fallback: try libgen.pw
-	if [ "$attempt" -eq 3 ] && [ -n "$LIBGEN_PW_LINK" ]; then
-		LIBGENPW_PAGE="$(curl -fk -sSL --connect-timeout 10 -A "$USERAGENT" "$LIBGEN_PW_LINK" 2>/dev/null)"
-		PW_LINKS="$(printf '%s' "$LIBGENPW_PAGE" | grep -oP 'href="\Khttps://[^"]*\.(?:pdf|epub)[^"]*' 2>/dev/null)"
-		for plink in $PW_LINKS; do
-			if curl -fSLk -A "$USERAGENT" -o "$FILENAME" "$plink" 2>/dev/null && pdfinfo "$FILENAME" >/dev/null 2>&1; then
-				downloaded="true"
-				break
-			fi
-			rm -f "$FILENAME"
-		done
-		[ "$downloaded" = "true" ] && break
+WORDS="$*"
+while :; do
+	if [ -n "$WORDS" ]; then
+		TITLE="" AUTHOR="" YEAR="" BOOK_LANG=""
+		QUERY="$WORDS"
+		FIELDS="columns%5B%5D=t&columns%5B%5D=a"
+		WORDS=""
+	else
+		ask_questions
+		QUERY="${TITLE} ${AUTHOR}"
+		FIELDS=""
+		[ -n "$TITLE" ] && FIELDS="columns%5B%5D=t"
+		[ -n "$AUTHOR" ] && FIELDS="${FIELDS:+${FIELDS}&}columns%5B%5D=a"
 	fi
 
-	# Fallback: try libgen.is
-	if [ "$attempt" -eq 6 ] && [ -n "$LIBGEN_IS_LINK" ]; then
-		LIBGENIS_PAGE="$(curl -fk -sSL --connect-timeout 10 -A "$USERAGENT" "$LIBGEN_IS_LINK" 2>/dev/null)"
-		IS_LINKS="$(printf '%s' "$LIBGENIS_PAGE" | grep -oP 'href="\Khttps://[^"]*\.(?:pdf|epub)[^"]*' 2>/dev/null)"
-		for ilink in $IS_LINKS; do
-			if curl -fSLk -A "$USERAGENT" -o "$FILENAME" "$ilink" 2>/dev/null && pdfinfo "$FILENAME" >/dev/null 2>&1; then
-				downloaded="true"
-				break
-			fi
-			rm -f "$FILENAME"
-		done
-		[ "$downloaded" = "true" ] && break
-	fi
-
-	printf "${RED}Download failed, retrying in ${BLUE}%d seconds...${NC}\n" "$RETRY_DELAY"
-	sleep "$RETRY_DELAY"
-	attempt=$((attempt + 1))
+	printf '\n'
+	info "Searching LibGen..."
+	search "$QUERY" "$FIELDS"
+	case "$?" in
+	1)
+		error "Could not reach LibGen. Check your connection and try again."
+		exit 1
+		;;
+	2)
+		error "LibGen sent a page this script cannot read. The site may be down or may have changed."
+		exit 1
+		;;
+	esac
+	[ "$COUNT" -gt 0 ] || {
+		error "No PDF found. Try fewer words, or leave the year and language empty."
+		printf '\n'
+		continue
+	}
+	show_results
+	choose_book
 done
-
-if [ "$downloaded" != "true" ]; then
-	printf '%s\n' "${RED}Download failed after ${MAX_RETRIES} attempts.${NC}"
-	if [ -n "$DOWNLOAD_LINKS" ]; then
-		printf '\n%s\n' "${YELLOW}Try opening these links in a browser:${NC}"
-		printf '%s\n' "$DOWNLOAD_LINKS"
-	fi
-	exit 1
-fi
-
-printf '\n%s\n' "${GREEN}Download successful.${NC}"
-printf '%s %s\n' "${WHITE}File:${NC}" "${RED}$(find . -maxdepth 1 -name "${FILENAME}" -type f)${NC}"
