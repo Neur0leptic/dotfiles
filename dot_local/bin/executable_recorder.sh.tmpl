@@ -17,7 +17,8 @@ audiocodec="--audio-codec=aac"
 framerate="--framerate=60"
 {{ if $vaapi -}}
 {{ $settings := includeTemplate "machine-settings" . | fromJson -}}
-pixelformat="--pixel-format=nv12"
+# No --pixel-format with VA-API: wf-recorder converts to nv12 on the GPU, and a forced
+# format makes its filter chain end on the CPU, which fails.
 device="--device={{ $settings.renderDevice | default "/dev/dri/renderD128" }}"
 {{ else -}}
 pixelformat="--pixel-format=yuv420p"
@@ -61,6 +62,6 @@ choice="$(printf "Start Recording\nExit\n" | rofi -dmenu -p "Screen Recorder" -l
 wf-recorder -f "${outfile}" \
         ${output_arg:+"$output_arg"} \
         "${videocodec}" "${audiodevice}" "${audiocodec}" \
-        "${framerate}" --no-damage "${pixelformat}" ${device:+"$device"} \
+        "${framerate}" --no-damage ${pixelformat:+"$pixelformat"} ${device:+"$device"} \
         "${codecparameter1}" "${codecparameter2}" \
         ${codecparameter3:+"$codecparameter3"} ${codecparameter4:+"$codecparameter4"}

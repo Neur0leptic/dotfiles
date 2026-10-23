@@ -48,6 +48,14 @@
 	"on-click": "footclient -a fullscreen btop"
     },
 
+    "custom/quota": {
+        "exec": "~/.local/bin/waybar_ai_quota.sh",
+        "return-type": "json",
+        "interval": "once",
+        "hide-empty-text": true,
+        "on-click": "footclient -a floating --window-size-chars=58x18 ~/.local/bin/ai_quota.sh --wait"
+    },
+
     "network": {
         "format-wifi": "󰤨 {signalStrength}%",
         "format-ethernet": "󰈀",

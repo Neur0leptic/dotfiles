@@ -1,14 +1,14 @@
-{{- $settings := includeTemplate "machine-settings" . | fromJson -}}
 {
     "modules-right": [
 {{- if .features.wireguard }}
         "custom/vpn",
 {{- end }}
         "custom/custom",
+        "custom/quota",
         "custom/system",
         "bluetooth",
         "network",
-        "backlight",
+        "custom/brightness",
         "wireplumber",
         "battery",
         "clock"
@@ -21,15 +21,13 @@
         "on-click": "~/.local/bin/wireguard.sh"
     },
 {{- end }}
-    "backlight": {
-{{- if $settings.backlight }}
-        "device": {{ $settings.backlight | quote }},
-{{- end }}
-        "format": "{icon} {percent}%",
-        "format-icons": ["󰃞", "󰃟", "󰃠"],
+    "custom/brightness": {
+        "exec": "~/.local/bin/brightness.sh --waybar",
+        "return-type": "json",
+        "interval": "once",
+        "signal": 8,
+        "hide-empty-text": true,
         "on-scroll-up": "~/.local/bin/brightness.sh up",
-        "on-scroll-down": "~/.local/bin/brightness.sh down",
-        "scroll-step": 5,
-        "tooltip-format": "Brightness: {percent}%"
+        "on-scroll-down": "~/.local/bin/brightness.sh down"
     }
 }

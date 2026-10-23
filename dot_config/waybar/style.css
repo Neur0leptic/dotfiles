@@ -159,15 +159,26 @@ window#waybar {
     text-decoration: line-through;
 }
 
-#backlight {
+#custom-brightness {
     color: @c3;
     font-weight: 500;
 }
-#backlight.dim {
+
+#custom-quota {
+    color: @c6;
+    font-weight: 500;
+}
+#custom-quota.warning {
+    color: @c3;
+}
+#custom-quota.critical {
+    color: @c1;
+}
+#custom-quota.error {
     color: @c0;
 }
 
-#workspaces, #custom-updates, #custom-vpn, #window, #mpris, #tray, #custom-custom, #custom-system, #network, #bluetooth, #wireplumber, #backlight, #battery, #clock {
+#workspaces, #custom-updates, #custom-vpn, #window, #mpris, #tray, #custom-custom, #custom-quota, #custom-system, #network, #bluetooth, #wireplumber, #custom-brightness, #battery, #clock {
     padding: 0 10px;
     margin: 4px 2px;
     background: alpha(@c6, 0.1);
