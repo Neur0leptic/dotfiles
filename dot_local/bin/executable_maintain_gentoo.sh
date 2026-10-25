@@ -44,6 +44,11 @@ log_info() {
 
 KERNEL_PATH="/boot/EFI/BOOT/BOOTX64.EFI"
 
+# The running kernel's configuration, one folder per machine, so a reinstall can start from a
+# configuration this machine has booted with.
+KERNEL_CONFIGS_REPO="git@github.com:Neur0leptic/kernel-configs.git"
+KERNEL_CONFIGS_DIR="${HOME}/.local/share/kernel-configs"
+
 MODULES_DIR="/lib/modules"
 USER_CACHE_DIR="${HOME}/.cache"
 VAR_TMP_DIR="/var/tmp"
@@ -186,6 +191,81 @@ root_make() {
         # in the profile's PATH.
         doas env LLVM="${LLVM}" LLVM_IAS="${LLVM_IAS}" CFLAGS="${CFLAGS}" \
                 sh -c '. /etc/profile.env && exec make "$@"' make "$@"
+}
+
+backup_kernel_config() {
+        # Runs before update_kernel, so the configuration of the kernel this machine booted is
+        # on GitHub before a build replaces it. Failures only warn: maintenance must go on.
+        local repo="${KERNEL_CONFIGS_DIR}" running tree build_dir="" field="product_name"
+        local machine package use ahead
+
+        # update_world may already have pointed /usr/src/linux at new sources that are not built
+        # yet, so look for the tree whose last build is the running kernel.
+        running="$(uname -v)"
+        for tree in $(find /usr/src/ -maxdepth "1" -type d -name 'linux-*' ! -name '*-dist'); do
+                [ -f "${tree}/include/generated/utsversion.h" ] || continue
+                if [ "$(sed -n 's/^#define UTS_VERSION "\(.*\)"$/\1/p' "${tree}/include/generated/utsversion.h")" = "${running}" ]; then
+                        build_dir="${tree}"
+                        break
+                fi
+        done
+
+        [ -n "${build_dir}" ] || {
+                echo -e "${BLUE}The running kernel was not built from a source tree in /usr/src. Nothing to back up.${NC}"
+                return 0
+        }
+
+        # A .config changed after that build belongs to a kernel that has not booted yet.
+        [ "${build_dir}/.config" -ot "${build_dir}/include/generated/utsversion.h" ] || {
+                echo -e "${YELLOW}${build_dir}/.config changed after the running kernel was built. The repository keeps the configuration that last booted.${NC}"
+                return 0
+        }
+
+        if [ ! -d "${repo}/.git" ] && ! git clone -q \
+                -c core.sshCommand="ssh -i ${HOME}/.ssh/id_ed25519_github -o IdentitiesOnly=yes" \
+                -c user.name="Neur0leptic" -c user.email="61053005+Neur0leptic@users.noreply.github.com" \
+                "${KERNEL_CONFIGS_REPO}" "${repo}"; then
+                echo -e "${YELLOW}Could not clone ${KERNEL_CONFIGS_REPO}. The next run tries again.${NC}" >&2
+                return 0
+        fi
+
+        # Lenovo keeps the model name ("ThinkPad X220") in product_version.
+        [ "$(cat /sys/class/dmi/id/sys_vendor 2> "/dev/null")" != "LENOVO" ] || field="product_version"
+        machine="$(cat "/sys/class/dmi/id/${field}" 2> "/dev/null")" || true
+        machine="${machine:-${HOSTNAME}}"
+        machine="$(echo "${machine,,}" | tr -cs '[:alnum:]' '-')"
+        machine="${machine#-}"
+        machine="${machine%-}"
+
+        package="$(portageq owners / "${build_dir}" 2> "/dev/null" | head -n "1")" || true
+        [ -z "${package}" ] || use="$(cat "/var/db/pkg/${package}/USE" 2> "/dev/null")" || true
+
+        mkdir -p "${repo}/${machine}" &&
+                cp -f "${build_dir}/.config" "${repo}/${machine}/config" &&
+                printf 'kernel:  %s %s\nsources: %s\n' "$(uname -r)" "${running}" \
+                        "${package:-unknown}${use:+ (USE: ${use})}" > "${repo}/${machine}/info" || {
+                echo -e "${YELLOW}Could not copy the kernel configuration to ${repo}.${NC}" >&2
+                return 0
+        }
+
+        if [ -n "$(git -C "${repo}" status --porcelain -- "${machine}")" ]; then
+                git -C "${repo}" add -- "${machine}" &&
+                        git -C "${repo}" commit -q -m "${machine}: $(uname -r) ${running}" || {
+                        echo -e "${YELLOW}Could not commit the kernel configuration in ${repo}.${NC}" >&2
+                        return 0
+                }
+        fi
+
+        # This also pushes a commit that an earlier run could not push.
+        if ! ahead="$(git -C "${repo}" rev-list --count '@{upstream}..HEAD' 2> "/dev/null")"; then
+                echo -e "${YELLOW}${repo} has no upstream branch; is the GitHub repository empty? Nothing was pushed.${NC}" >&2
+        elif [ "${ahead}" -eq "0" ]; then
+                echo -e "${BLUE}GitHub already has the running kernel's configuration.${NC}"
+        elif git -C "${repo}" pull -q --rebase && git -C "${repo}" push -q; then
+                echo -e "${GREEN}The running kernel's configuration is on GitHub in ${machine}/.${NC}"
+        else
+                echo -e "${YELLOW}Could not push the kernel configuration. The next run tries again.${NC}" >&2
+        fi
 }
 
 update_kernel() {
@@ -388,6 +468,9 @@ main() {
         tasks["create_logs"]="Create logs for failed packages.
                         Logs for failed packages created."
 
+        tasks["backup_kernel_config"]="Back up the running kernel's configuration to GitHub.
+                                 Kernel configuration backup checked."
+
         tasks["update_kernel"]="Update the custom kernel.
 		          The kernel is ready."
 
@@ -411,7 +494,7 @@ main() {
 
         task_order=("renew_env" "sync_chezmoi" "update_chezmoi_extras" "update_wireguard_scripts"
                 "sync_repos" "update_world" "update_librewolf" "update_live" "remove_unneeded"
-                "create_logs" "update_kernel" "update_nvidia" "copy_failed_logs"
+                "create_logs" "backup_kernel_config" "update_kernel" "update_nvidia" "copy_failed_logs"
                 "clean_old_modules" "clean_temp_files" "run_fstrim" "check_librewolf_update")
 
         TOTAL_TASKS="${#tasks[@]}"
