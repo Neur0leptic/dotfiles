@@ -55,7 +55,7 @@ hl.config({
 		background_color = 0xff000000,
 		disable_scale_notification = true,
 		vrr = 0,
-		render_unfocused_fps = 0,
+		render_unfocused_fps = 1,
 		enable_anr_dialog = false,
 		allow_session_lock_restore = true,
 	},

@@ -1,8 +1,7 @@
 # Dotfiles
 
-The author's Linux configuration, managed with [chezmoi](https://www.chezmoi.io/): a
-Wayland desktop with Hyprland or DWL, plus Waybar, foot, Zsh, Neovim, LibreWolf and
-other applications.
+My Linux dotfiles for a Wayland desktop with Hyprland or DWL, managed with
+[chezmoi](https://www.chezmoi.io/). They run on Arch and Gentoo.
 
 ## Installation
 
