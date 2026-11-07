@@ -5,7 +5,7 @@ source "${XDG_CONFIG_HOME:-$HOME/.config}/shell/env.sh"
 
 {{ if eq .desktop "hyprland" -}}
 if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" && "${TTY:-}" == /dev/tty1 ]]; then
-    exec start-hyprland
+    HYPRLAND_NO_RT=1 exec start-hyprland
 fi
 {{ else if eq .desktop "dwl" -}}
 # Zsh sets TTY; XDG_VTNR exists only with logind, not with Gentoo's seatd.
