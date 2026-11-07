@@ -986,6 +986,10 @@ update_chezmoi_extras() (
 		return 0
 	fi
 
+	# Git clones a new external with this process's umask, not the one in the chezmoi
+	# config. A masked clone differs from what chezmoi records, and every later apply
+	# then stops on its overwrite prompt.
+	umask 022
 	if timeout --kill-after=30s 15m env \
 		CHEZMOI_SKIP_NEUROWAVE=1 \
 		GCM_INTERACTIVE=never \

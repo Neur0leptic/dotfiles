@@ -3,10 +3,11 @@
 # A running emerge skips the screensaver, which takes CPU from the build, and the suspend,
 # which would stop it; locking and turning the screens off still happen.
 # On battery (power supplies present, none online) the screens go off instead of the
-# screensaver.
+# screensaver. On mains the screensaver runs for five minutes, then it closes and the
+# screens go off. Either way the session locks at 20 minutes with the screens still off.
 timeout 600 'if ls /sys/class/power_supply/*/online >/dev/null 2>&1 && ! grep -qsx 1 /sys/class/power_supply/*/online; then wlopm --off "*"; else pgrep -x emerge >/dev/null && exit 0; pgrep -f "/[u]nimatrix" >/dev/null || footclient -a fullscreen unimatrix -c cyan & fi' resume 'wlopm --on "*"'
-timeout 1000 'swaylock' resume 'pkill -f "/[u]nimatrix"'
-timeout 1200 'wlopm --off "*"' resume 'wlopm --on "*"'
+timeout 900 'pkill -f "/[u]nimatrix" 2>/dev/null; wlopm --off "*"' resume 'wlopm --on "*"'
+timeout 1200 'pgrep -x swaylock >/dev/null || swaylock -f'
 
 # With systemd, logind suspends and dwl-autostart gives swayidle the hooks that lock the
 # session around sleep. Without it the write to /sys/power/state returns after resume:
