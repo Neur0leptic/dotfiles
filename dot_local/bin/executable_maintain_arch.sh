@@ -244,6 +244,12 @@ update_nchat_signal() {
                         return 1
                 fi
                 rm -f "$DIR/failed-version"
+
+                # Every build leaves a package here and nothing else removes them. Only
+                # the installed one stays; src/ is kept because the next build reuses it.
+                INSTALLED="$(pacman -Q nchat-git | awk '{print $2}')"
+                find "$DIR" -maxdepth "1" -type "f" -name 'nchat-git-*.pkg.tar.zst' \
+                        ! -name "nchat-git-${INSTALLED}-*" -delete
         fi
 }
 
