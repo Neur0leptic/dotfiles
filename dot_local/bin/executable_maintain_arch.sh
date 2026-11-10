@@ -54,6 +54,55 @@ update_system() {
         yay -Syu --devel --noconfirm 2>&1 || true
 }
 
+# Flatpak apps such as GeForce NOW need a Flatpak copy of the NVIDIA driver with
+# exactly the system driver's version; without it they quit or run without the GPU.
+# Flatpak itself fetches only the copy for the loaded driver, which changes at the
+# next boot, so the copy for the newly installed driver is installed here.
+update_flatpak_nvidia() {
+        local library version wanted loaded list kind name branch installation old
+
+        command -v flatpak > /dev/null || return 0
+
+        library="$(readlink -e /usr/lib/libGLX_nvidia.so.0)" || return 0
+        version="${library##*/libGLX_nvidia.so.}"
+        [[ "${version}" =~ ^[0-9]+(\.[0-9]+)+$ ]] || return 0
+        wanted="nvidia-${version//./-}"
+
+        list="$(flatpak list --runtime --columns=application,branch,installation)"
+
+        # Only kinds already installed are updated: GL for all apps, GL32 for 32-bit apps.
+        for kind in GL GL32; do
+                grep -q "^org\.freedesktop\.Platform\.${kind}\.nvidia-" <<< "${list}" || continue
+
+                if grep -q "^org\.freedesktop\.Platform\.${kind}\.${wanted}[[:space:]]" <<< "${list}"; then
+                        continue
+                fi
+
+                echo -e "${BLUE}Installing the Flatpak copy of NVIDIA driver ${version} (${kind}).${NC}"
+                if ! flatpak install --user --noninteractive -y flathub "org.freedesktop.Platform.${kind}.${wanted}//1.4"; then
+                        echo -e "${YELLOW}Could not install the Flatpak copy of NVIDIA driver ${version}; Flathub may not offer it yet. Flatpak apps that use the GPU, such as GeForce NOW, will not start with this driver until it is installed. The next sms run tries again.${NC}" >&2
+                        return 1
+                fi
+        done
+
+        # Old user copies go; the copy for the loaded driver stays until the reboot.
+        loaded="$(cat /sys/module/nvidia/version 2> /dev/null || true)"
+        loaded="nvidia-${loaded//./-}"
+
+        while IFS=$'\t' read -r name branch installation; do
+                [ "${installation}" = "user" ] || continue
+
+                case "${name##*.}" in
+                        "${wanted}" | "${loaded}") continue ;;
+                esac
+
+                old="${name##*.nvidia-}"
+                kind="${name%.nvidia-*}"
+                echo -e "${BLUE}Removing the unused Flatpak copy of NVIDIA driver ${old//-/.} (${kind##*.}).${NC}"
+                flatpak uninstall --user --noninteractive -y "${name}//${branch}"
+        done < <(grep -E '^org\.freedesktop\.Platform\.GL(32)?\.nvidia-' <<< "${list}" || true)
+}
+
 sync_chezmoi() {
         "$HOME/.local/bin/sync_chezmoi.sh"
 }
@@ -337,6 +386,9 @@ main() {
         tasks["update_system"]="Update Arch and AUR packages.
 		       System updated."
 
+        tasks["update_flatpak_nvidia"]="Match the Flatpak NVIDIA driver to the system driver.
+				       Flatpak NVIDIA driver checked."
+
         tasks["update_librewolf"]="Update Arkenfox and clean obsolete preferences.
 			   LibreWolf profile maintained."
 
@@ -358,7 +410,7 @@ main() {
         tasks["run_fstrim"]="Trim the filesystem.
                         Filesystem trimmed."
 
-	task_order=("sync_chezmoi" "sync_wireguard" "update_chezmoi_extras" "update_mirrors" "update_system" "update_librewolf" "update_blocklists" "update_nchat_signal" "remove_orphans"
+	task_order=("sync_chezmoi" "sync_wireguard" "update_chezmoi_extras" "update_mirrors" "update_system" "update_flatpak_nvidia" "update_librewolf" "update_blocklists" "update_nchat_signal" "remove_orphans"
                 "clean_caches" "clean_temp_files" "run_fstrim")
 
         TOTAL_TASKS="${#tasks[@]}"
