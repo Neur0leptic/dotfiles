@@ -59,7 +59,7 @@ update_system() {
 # Flatpak itself fetches only the copy for the loaded driver, which changes at the
 # next boot, so the copy for the newly installed driver is installed here.
 update_flatpak_nvidia() {
-        local library version wanted loaded list kind name branch installation old
+        local library version wanted loaded list kind ref name branch installation old
 
         command -v flatpak > /dev/null || return 0
 
@@ -78,8 +78,19 @@ update_flatpak_nvidia() {
                         continue
                 fi
 
+                ref="org.freedesktop.Platform.${kind}.${wanted}//1.4"
                 echo -e "${BLUE}Installing the Flatpak copy of NVIDIA driver ${version} (${kind}).${NC}"
-                if ! flatpak install --user --noninteractive -y flathub "org.freedesktop.Platform.${kind}.${wanted}//1.4"; then
+
+                # The download is slow through the VPN, so it runs outside the VPN when
+                # wireguard.sh is available; only if that fails does it go through the VPN.
+                if command -v wireguard.sh > /dev/null; then
+                        if wireguard.sh exclude flatpak install --user --noninteractive -y flathub "${ref}"; then
+                                continue
+                        fi
+                        echo -e "${YELLOW}Installing outside the VPN failed; trying through the VPN.${NC}" >&2
+                fi
+
+                if ! flatpak install --user --noninteractive -y flathub "${ref}"; then
                         echo -e "${YELLOW}Could not install the Flatpak copy of NVIDIA driver ${version}; Flathub may not offer it yet. Flatpak apps that use the GPU, such as GeForce NOW, will not start with this driver until it is installed. The next sms run tries again.${NC}" >&2
                         return 1
                 fi
