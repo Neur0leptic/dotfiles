@@ -6,6 +6,8 @@ umask 077
 
 DB="${KPASS_DB:-${HOME}/keepass/passwords.kdbx}"
 PASSFILE="${KPASS_PASSFILE:-${XDG_CONFIG_HOME:-${HOME}/.config}/keepass/pass.gpg}"
+# A plain password file, when present, opens the database without a prompt.
+PLAINFILE="${KPASS_PLAINFILE:-${XDG_CONFIG_HOME:-${HOME}/.config}/keepass/pass}"
 KP_BIN="${XDG_BIN_HOME:-${HOME}/.local/bin}/kp.py"
 
 runtime_dir="${XDG_RUNTIME_DIR:-}"
@@ -39,7 +41,7 @@ fi
 CACHE_FILE="${runtime_dir%/}/kprofi-entries"
 CACHE_TTL=30
 
-[ -f "${PASSFILE}" ] || fail "Missing ${PASSFILE}"
+[ -f "${PLAINFILE}" ] || [ -f "${PASSFILE}" ] || fail "Missing ${PASSFILE}"
 [ -f "${DB}" ] || fail "Missing ${DB}"
 [ -x "${KP_BIN}" ] || fail "Missing ${KP_BIN}"
 
@@ -51,7 +53,11 @@ cache_entries() {
         fi
 }
 
-PASS=$(timeout 0.3 gpg -d -q -- "${PASSFILE}" 2> /dev/null)
+if [ -f "${PLAINFILE}" ]; then
+        PASS=$(< "${PLAINFILE}")
+else
+        PASS=$(timeout 0.3 gpg -d -q -- "${PASSFILE}" 2> /dev/null)
+fi
 if [ -z "${PASS}" ]; then
         pass_tmp=$(mktemp "${runtime_dir%/}/kprofi-pass.XXXXXX") || fail "Could not create password buffer"
         footclient -a kprofi --window-size-chars=40x5 bash -c '
