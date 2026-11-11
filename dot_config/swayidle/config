@@ -2,13 +2,16 @@
 # bracket keeps the pattern from matching the shell that runs the command.
 # Hyprland restarts these timers whenever a window opens, closes or takes focus, so each
 # step counts from the one before it: the screensaver opens 10 minutes after the last input,
-# 5 minutes later the screens go off and the screensaver closes, 5 minutes after that the
-# session locks, and 15 minutes after the screens went off the system suspends.
+# 5 minutes later the session locks and the screensaver closes behind the lock, 5 minutes
+# after that the screens go off, and 15 minutes after the lock the system suspends.
+# Lock while the screens are on: this swaylock (swaylock-effects) waits for a screenshot of
+# every output before it locks, an output that is off never sends one, and swaylock -f then
+# never returns, which keeps swayidle -w waiting.
 # Keyboard and mouse turn the screens on (misc:key_press_enables_dpms and
 # misc:mouse_move_enables_dpms): a dpms on sent from here can arrive while the session is
 # paused for suspend, and the screens then stay black.
-timeout 300 'if pgrep -f "/[u]nimatrix" >/dev/null; then hyprctl dispatch "hl.dsp.dpms({ action = \"off\" })" >/dev/null; pkill -f "/[u]nimatrix"; elif hyprctl monitors | grep -q "dpmsStatus: 0"; then pgrep -x swaylock >/dev/null || swaylock -f; fi'
-timeout 600 'hyprctl monitors | grep -q "dpmsStatus: 0" || pgrep -f "/[u]nimatrix" >/dev/null || kitty --class fullscreen -e unimatrix -c cyan &'
+timeout 300 'if pgrep -f "/[u]nimatrix" >/dev/null; then pgrep -x swaylock >/dev/null || swaylock -f; pkill -f "/[u]nimatrix"; elif pgrep -x swaylock >/dev/null && ! hyprctl monitors | grep -q "dpmsStatus: 0"; then hyprctl dispatch "hl.dsp.dpms({ action = \"off\" })" >/dev/null; fi'
+timeout 600 'pgrep -x swaylock >/dev/null || hyprctl monitors | grep -q "dpmsStatus: 0" || pgrep -f "/[u]nimatrix" >/dev/null || kitty --class fullscreen -e unimatrix -c cyan &'
 timeout 900 'hyprctl monitors | grep -q "dpmsStatus: 0" || exit 0; systemctl suspend || doas sh -c "echo mem > /sys/power/state"'
 
 # Lock before sleep (swayidle -w keeps logind waiting); after wake, replace a lock that died.
