@@ -50,9 +50,9 @@ hl.window_rule({ match = { class = "anki" }, size = "700 600" })
 hl.window_rule({ match = { class = "anki" }, center = true })
 
 -- LocalSend
-hl.window_rule({ match = { class = "localsend" }, float = true })
-hl.window_rule({ match = { class = "localsend" }, size = "400 700" })
-hl.window_rule({ match = { class = "localsend" }, center = true })
+hl.window_rule({ match = { class = "^(org\\.localsend\\.localsend_app)$" }, float = true })
+hl.window_rule({ match = { class = "^(org\\.localsend\\.localsend_app)$" }, size = "400 700" })
+hl.window_rule({ match = { class = "^(org\\.localsend\\.localsend_app)$" }, center = true })
 
 -- YouTube info
 hl.window_rule({ match = { class = "^(youtube-info)$" }, float = true })
