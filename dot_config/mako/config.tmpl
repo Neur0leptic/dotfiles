@@ -56,3 +56,20 @@ default-timeout=3000
 background-color=#7a0000
 text-color=#ffffff
 border-color=#f95556
+
+# Super+Tab: the window just focused, briefly and silently in the middle (window_notify.sh)
+[app-name=Window]
+anchor=center
+width=420
+height=96
+max-icon-size=48
+default-timeout=800
+ignore-timeout=1
+history=0
+on-notify=none
+
+# window_notify.sh sends the window's output as the category; keep it on that output
+{{ range $output := (includeTemplate "machine-settings" . | fromJson).outputs -}}
+[app-name=Window category={{ $output.name }}]
+output={{ $output.name }}
+{{ end -}}

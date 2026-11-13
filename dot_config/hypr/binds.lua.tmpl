@@ -119,6 +119,66 @@ hl.bind("ALT + Tab", function()
 	hl.dispatch(hl.dsp.window.cycle_next())
 	hl.dispatch(hl.dsp.window.bring_to_top())
 end)
+--  Tab           → next window on any workspace (⇧ Tab → back): workspaces in order, tiled
+--                  before floating, then left to right. Skips the scratchpad and windows
+--                  behind a fullscreen window. Runs inside Hyprland; window_notify.sh then
+--                  shows the window briefly in the middle (look and timeout: mako config).
+local function sh_word(s)
+	-- one /bin/sh word: exec_cmd runs a shell, and window titles can contain anything
+	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
+end
+local function cycle_all(step)
+	local list = {}
+	for _, w in ipairs(hl.get_windows()) do
+		local ws = w.workspace
+		if ws and not ws.special and not w.hidden and (not ws.has_fullscreen or ws.fullscreen_window == w) then
+			local at = w.at
+			list[#list + 1] = { w = w, ws = ws.id, fl = w.floating and 1 or 0, x = at.x, y = at.y, id = w.stable_id }
+		end
+	end
+	if #list == 0 then
+		return
+	end
+	table.sort(list, function(a, b)
+		if a.ws ~= b.ws then
+			return a.ws < b.ws
+		elseif a.fl ~= b.fl then
+			return a.fl < b.fl
+		elseif a.x ~= b.x then
+			return a.x < b.x
+		elseif a.y ~= b.y then
+			return a.y < b.y
+		end
+		return a.id < b.id
+	end)
+	local active = hl.get_active_window()
+	local pos
+	for i, e in ipairs(list) do
+		if e.w == active then
+			pos = i
+			break
+		end
+	end
+	local target = pos and (pos - 1 + step) % #list + 1 or (step > 0 and 1 or #list)
+	if target ~= pos then
+		local w = list[target].w
+		hl.dispatch(hl.dsp.focus({ window = w }))
+		hl.exec_cmd(table.concat({
+			"~/.local/bin/window_notify.sh",
+			sh_word(w.workspace.name),
+			sh_word(w.monitor and w.monitor.name or ""),
+			sh_word(w.class),
+			sh_word(w.pid),
+			sh_word(w.title),
+		}, " "))
+	end
+end
+hl.bind(M .. " + Tab", function()
+	cycle_all(1)
+end)
+hl.bind(M .. " + SHIFT + Tab", function()
+	cycle_all(-1)
+end)
 hl.bind(M .. " + SHIFT + K", hl.dsp.window.swap({ next = true }))
 hl.bind(M .. " + SHIFT + J", hl.dsp.window.swap({ prev = true }))
 

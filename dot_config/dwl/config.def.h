@@ -123,6 +123,8 @@ static const char *filecmd[] = { "footclient", "yazi", NULL };
 static const char *browsercmd[] = { "librewolf", NULL };
 static const char *altbrowsercmd[] = { "/bin/sh", "-c", "if command -v helium-browser >/dev/null 2>&1; then exec helium-browser; else exec helium; fi", NULL };
 static const char *kb_notify_cmd[] = { "kb_notify.sh", NULL };
+/* Super+Tab runs it with the focused window's tag, output, app_id, pid and title (NULL: off) */
+static const char *window_notify_cmd = "window_notify.sh";
 
 static const Key keys[] = {
 	{ MODKEY, XKB_KEY_Return, spawn, {.v = termcmd} },
@@ -177,6 +179,8 @@ static const Key keys[] = {
 	{ MODKEY, XKB_KEY_j, focusstack, {.i = -1} },
 	{ MODKEY, XKB_KEY_k, focusstack, {.i = +1} },
 	{ WLR_MODIFIER_ALT, XKB_KEY_Tab, focusstack, {.i = +1} },
+	{ MODKEY, XKB_KEY_Tab, cycleall, {.i = +1} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Tab, cycleall, {.i = -1} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_k, movestack, {.i = +1} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_j, movestack, {.i = -1} },
 
