@@ -96,3 +96,13 @@ run = "cd ~/.local/share/icons/candy-icons"
 on = [ "g", "/" ]
 run = "cd /"
 desc = "Go to root"
+
+[[mgr.prepend_keymap]]
+on   = "<C-p>"
+run  = "shell --orphan -- print_file.sh %s"
+desc = "Print selected files"
+
+[[mgr.prepend_keymap]]
+on   = "<A-p>"
+run  = "shell --orphan -- print_file.sh -d %s"
+desc = "Print selected files on both sides"
