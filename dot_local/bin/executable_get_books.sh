@@ -6,6 +6,7 @@
 
 LIBGEN_DOMAIN="libgen.li"
 BOOKS_DIR="${HOME}/Books"
+# Tries in a row that bring no new data before a download is given up
 TRIES="3"
 RETRY_DELAY="5"
 
@@ -20,8 +21,8 @@ fi
 SEP="$(printf '\037')"
 
 # Prints the number of matching files ("?" when the page has none), then one
-# line per book: title, authors, publisher, year, language, size and md5,
-# separated by \037.
+# line per book: title, authors, publisher, year, language, size, md5 and
+# edition, separated by \037.
 PARSE='
 function clean(s) {
 	gsub(/<[^>]*>/, " ", s)
@@ -48,17 +49,37 @@ END {
 		if (split(row[r], cell, /<td[^>]*>/) < 10 || !match(row[r], /md5=[0-9a-fA-F]+/)) continue
 		md5 = tolower(substr(row[r], RSTART + 4, RLENGTH - 4))
 		title = ""
+		edition = ""
 		if (match(cell[2], /href="edition\.php\?id=[0-9]+"[^>]*>/)) {
 			title = substr(cell[2], RSTART + RLENGTH)
 			sub(/<\/a>.*/, "", title)
+			# The link ends with the edition in italics, often empty: Title <i>2</i>
+			if (match(title, /<i>[^<]*<\/i>[[:space:]]*$/)) {
+				edition = substr(title, RSTART)
+				title = substr(title, 1, RSTART - 1)
+			}
 		}
 		print clean(title) "\037" clean(cell[3]) "\037" clean(cell[4]) "\037" clean(cell[5]) \
-			"\037" clean(cell[6]) "\037" clean(cell[8]) "\037" md5
+			"\037" clean(cell[6]) "\037" clean(cell[8]) "\037" md5 "\037" clean(edition)
 	}
 }'
 
-# Two lines per book: number and title, then authors, publisher, year, language and size.
+# Two lines per book: number and title, then authors, edition, publisher, year,
+# language and size.
 SHOW='
+# 2 becomes "2nd edition", 17th and Eighth get " edition"; longer forms such
+# as "17th Edition" or "1st ed." stay as LibGen has them.
+function edition(s,    n) {
+	if (s ~ /^[0-9]+$/) {
+		if (s + 0 == 0) return ""
+		n = s % 100
+		if (n >= 11 && n <= 13) return s "th edition"
+		n = s % 10
+		return s (n == 1 ? "st" : (n == 2 ? "nd" : (n == 3 ? "rd" : "th"))) " edition"
+	}
+	if (tolower(s) ~ /^([0-9]+|[a-z-]+)(st|nd|rd|th)$/) return s " edition"
+	return s
+}
 function names(s, sep,    part, n, i, out, seen) {
 	n = split(s, part, /[[:space:]]*;[[:space:]]*/)
 	for (i = 1; i <= n; i++) {
@@ -76,7 +97,7 @@ BEGIN { FS = "\037" }
 {
 	author = (split($2, part, /[[:space:]]*;[[:space:]]*/) > 2) ? names(part[1], "") " et al." : names($2, "; ")
 	details = ""
-	add(author); add($3); add($4); add(names($5, ", ")); add($6)
+	add(author); add(edition($8)); add($3); add($4); add(names($5, ", ")); add($6)
 	printf "%s%2d%s  %s%s%s\n", cy, NR, cn, cw, $1, cn
 	if (details != "") printf "    %s%s%s\n", cb, details, cn
 }'
@@ -206,6 +227,19 @@ book_name() {
 		}' | cut -b 1-180 | iconv -c -f UTF-8 -t UTF-8 2>/dev/null | sed 's/[ .]*$//'
 }
 
+# Size in bytes, 0 when the file does not exist
+file_size() {
+	if [ -f "$1" ]; then
+		wc -c < "$1" | tr -d ' '
+	else
+		printf '0'
+	fi
+}
+
+file_md5() {
+	[ -f "$1" ] && md5sum < "$1" | cut -d ' ' -f 1
+}
+
 get_book() {
 	ROW="$(sed -n "${1}p" "${WORK}/books")"
 	OLD_IFS="$IFS"
@@ -222,24 +256,53 @@ get_book() {
 	}
 
 	printf '\n%sDownloading:%s %s\n' "$BLUE" "$NC" "$B_TITLE"
-	try=1
+	BOOK="${WORK}/book.pdf"
+	rm -f "$BOOK"
+	failed=0
 	while :; do
+		before="$(file_size "$BOOK")"
 		# The download link carries a key, so it is fetched again for every try.
 		LINK="$(curl -fsS --connect-timeout 20 --max-time 60 -A "$USERAGENT" "https://${LIBGEN_DOMAIN}/ads.php?md5=${B_MD5}" |
 			sed -n 's/.*href="\(get\.php?md5=[^"]*\)".*/\1/p' | head -n 1 | sed 's/&amp;/\&/g')"
-		[ -n "$LINK" ] &&
-			curl -fL $PROGRESS --connect-timeout 20 --speed-limit 1024 --speed-time 60 -A "$USERAGENT" \
-				-o "${WORK}/book.pdf" "https://${LIBGEN_DOMAIN}/${LINK}" &&
-			pdfinfo "${WORK}/book.pdf" >/dev/null 2>&1 && break
-		rm -f "${WORK}/book.pdf"
-		[ "$try" -ge "$TRIES" ] && {
-			error "Download did not work. Try another number."
+		status=1
+		if [ -n "$LINK" ]; then
+			# -C - continues the part that an earlier try left behind.
+			curl -fL -C - $PROGRESS --connect-timeout 20 --speed-limit 1024 --speed-time 60 -A "$USERAGENT" \
+				-o "$BOOK" "https://${LIBGEN_DOMAIN}/${LINK}"
+			status=$?
+		fi
+		# LibGen names each file by its MD5, so a match means the book is complete.
+		[ "$(file_md5 "$BOOK")" = "$B_MD5" ] && break
+		case "$status" in
+		0)
+			rm -f "$BOOK"
+			error "The downloaded file is damaged. Try another number."
 			return 1
-		}
-		try=$((try + 1))
-		error "Download failed. Trying again in ${RETRY_DELAY} seconds (${try} of ${TRIES})..."
+			;;
+		33)
+			# The server cannot continue a file, so the next try starts again.
+			rm -f "$BOOK"
+			;;
+		esac
+		if [ "$(file_size "$BOOK")" -gt "$before" ]; then
+			failed=0
+			error "Download broke off. Continuing in ${RETRY_DELAY} seconds..."
+		else
+			failed=$((failed + 1))
+			[ "$failed" -ge "$TRIES" ] && {
+				rm -f "$BOOK"
+				error "Download did not work. Try another number."
+				return 1
+			}
+			error "Download failed. Trying again in ${RETRY_DELAY} seconds ($((failed + 1)) of ${TRIES})..."
+		fi
 		sleep "$RETRY_DELAY"
 	done
+	pdfinfo "$BOOK" >/dev/null 2>&1 || {
+		rm -f "$BOOK"
+		error "This file is not a readable PDF. Try another number."
+		return 1
+	}
 
 	NAME="$(book_name "$B_AUTHOR" "$B_TITLE")"
 	[ -n "$NAME" ] || NAME="$B_MD5"
@@ -252,7 +315,7 @@ get_book() {
 		DEST="${BOOKS_DIR}/${NAME} (${i}).pdf"
 		i=$((i + 1))
 	done
-	mv "${WORK}/book.pdf" "$DEST" || {
+	mv "$BOOK" "$DEST" || {
 		error "Could not save the book in ${BOOKS_DIR}."
 		return 1
 	}
