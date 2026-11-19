@@ -104,10 +104,10 @@ desc = "Print selected files"
 
 [[mgr.prepend_keymap]]
 on   = "<A-p>"
-run  = "shell --orphan -- print_file.sh -d %s"
+run  = "shell --orphan -- print_file.sh -s 2 %s"
 desc = "Print selected files on both sides"
 
 [[mgr.prepend_keymap]]
 on   = "<A-n>"
-run  = "shell --interactive --orphan --cursor=18 -- print_file.sh -n 1 %s"
-desc = "Print selected files, edit copies and options first"
+run  = "shell --interactive --orphan --cursor=18 -- print_file.sh -n 1 -s 1 -p all %s"
+desc = "Print selected files, edit copies, sides and pages first"

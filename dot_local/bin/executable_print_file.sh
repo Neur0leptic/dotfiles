@@ -3,22 +3,15 @@
 # The printer (Lexmark CS310dn) renders PDF, PostScript and JPEG itself;
 # this script asks for its highest resolution, 1200 dpi.
 #
-# Usage: print_file.sh [-d] [-n copies] [-p pages] file...
-#   -d          print on both sides (flip on the long edge)
-#   -n copies   number of copies (default 1)
-#   -p pages    pages to print, for example 1-3,7 or 5- (default all)
+# Usage: print_file.sh [-n copies] [-s sides] [-p pages] file...
+#   -n copies   number of copies, 1 to 999 (default 1)
+#   -s sides    1 for one side, 2 for both sides (default 1);
+#               both sides flip on the long edge
+#   -p pages    all, or pages such as 1-3,7 or 5- (default all)
 #
 # Set PRINTER_URI to use another printer address.
 
 printer=${PRINTER_URI:-ipp://192.168.0.122/ipp/print}
-
-usage() {
-	printf '%s\n' 'Usage: print_file.sh [-d] [-n copies] [-p pages] file...' \
-		'  -d          print on both sides' \
-		'  -n copies   number of copies (default 1)' \
-		'  -p pages    pages to print, for example 1-3,7 or 5- (default all)' >&2
-	exit 2
-}
 
 # Messages go to the terminal, or to a notification when there is no
 # terminal (for example when yazi runs the script).
@@ -28,13 +21,21 @@ report() {
 	fi
 }
 
-sides=one-sided
+usage() {
+	report 'Not printed' 'Usage: print_file.sh [-n copies] [-s sides] [-p pages] file...
+  -n copies   1 to 999 (default 1)
+  -s sides    1, or 2 for both sides (default 1)
+  -p pages    all, or pages such as 1-3,7 or 5- (default all)'
+	exit 2
+}
+
 copies=1
-pages=
-while getopts dn:p: opt; do
+sides=1
+pages=all
+while getopts n:s:p: opt; do
 	case $opt in
-	d) sides=two-sided-long-edge ;;
 	n) copies=$OPTARG ;;
+	s) sides=$OPTARG ;;
 	p) pages=$OPTARG ;;
 	*) usage ;;
 	esac
@@ -50,13 +51,23 @@ case $copies in
 	;;
 esac
 
+case $sides in
+1) sides=one-sided ;;
+2) sides=two-sided-long-edge ;;
+*)
+	report 'Not printed' "sides must be 1 or 2, not '$sides'"
+	exit 2
+	;;
+esac
+
 # IPP wants every range as first-last: 7 becomes 7-7, 5- runs to the end.
 bad_pages() {
-	report 'Not printed' "pages must look like 1-3,7 or 5-, not '$pages'"
+	report 'Not printed' "pages must be all or look like 1-3,7 or 5-, not '$pages'"
 	exit 2
 }
 ranges=
 case $pages in
+all) pages= ;;
 *[!0-9,-]*) bad_pages ;;
 esac
 old_ifs=$IFS
