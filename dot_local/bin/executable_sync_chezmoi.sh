@@ -101,13 +101,17 @@ validate_chezmoi_source() {
                         return 1
                 fi
                 case "$rel" in
-                        dot_librewolf/*|private_dot_librewolf/*)
-                                if [[ "$rel" != dot_librewolf/librewolf.overrides.cfg &&
-                                      "$rel" != private_dot_librewolf/librewolf.overrides.cfg ]]; then
-                                        rm -f "$inventory_file"
-                                        echo -e "${YELLOW}Browser runtime data found in public chezmoi source: ${rel}. Refusing automatic staging.${NC}" >&2
-                                        return 1
-                                fi
+                        dot_librewolf/*|private_dot_librewolf/*|dot_config/librewolf/librewolf/*|dot_config/librewolf/private_librewolf/*)
+                                case "$rel" in
+                                        dot_librewolf/librewolf.overrides.cfg|private_dot_librewolf/librewolf.overrides.cfg) ;;
+                                        dot_config/librewolf/librewolf/librewolf.overrides.cfg) ;;
+                                        dot_config/librewolf/private_librewolf/librewolf.overrides.cfg) ;;
+                                        *)
+                                                rm -f "$inventory_file"
+                                                echo -e "${YELLOW}Browser runtime data found in public chezmoi source: ${rel}. Refusing automatic staging.${NC}" >&2
+                                                return 1
+                                                ;;
+                                esac
                                 ;;
                 esac
         done < "$inventory_file"

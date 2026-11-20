@@ -170,7 +170,13 @@ helium_theme() {
 safe_directory "$HOME" || fail "unsafe home directory"
 profile="$(librewolf_profile)"
 if [[ "$mode" == --librewolf-profile ]]; then printf '%s\n' "$profile"; exit 0; fi
-safe_file "$HOME/.librewolf/librewolf.overrides.cfg" || fail "native LibreWolf UI overrides are missing"
+# LibreWolf reads ~/.librewolf's overrides only for a profile path containing ".librewolf".
+if [[ "$profile" == *.librewolf* ]]; then
+    overrides="$HOME/.librewolf/librewolf.overrides.cfg"
+else
+    overrides="$config_home/librewolf/librewolf/librewolf.overrides.cfg"
+fi
+safe_file "$overrides" || fail "native LibreWolf UI overrides are missing"
 for css in userChrome.css userContent.css; do
     attach_css "$config_home/librewolf/chrome/$css" "$profile/chrome/$css"
 done

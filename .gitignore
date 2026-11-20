@@ -26,6 +26,10 @@ dot_librewolf/*
 !dot_librewolf/librewolf.overrides.cfg
 private_dot_librewolf/*
 !private_dot_librewolf/librewolf.overrides.cfg
+dot_config/librewolf/librewolf/*
+!dot_config/librewolf/librewolf/librewolf.overrides.cfg
+dot_config/librewolf/private_librewolf/*
+!dot_config/librewolf/private_librewolf/librewolf.overrides.cfg
 dot_config/network_scan/known_macs
 dot_config/network_scan/private_known_macs
 dot_config/opencode/

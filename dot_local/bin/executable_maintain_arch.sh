@@ -230,7 +230,10 @@ update_librewolf() {
                 return 0
         fi
 
-        local profiles_ini="$HOME/.librewolf/profiles.ini"
+        # LibreWolf keeps an existing ~/.librewolf profile; new profiles go under XDG_CONFIG_HOME.
+        local profile_root="$HOME/.librewolf"
+        [ -f "$profile_root/profiles.ini" ] || profile_root="${XDG_CONFIG_HOME:-$HOME/.config}/librewolf/librewolf"
+        local profiles_ini="$profile_root/profiles.ini"
         local profile_dir
         local profile_path
 
@@ -240,7 +243,7 @@ update_librewolf() {
         fi
 
         profile_dir=$(sed -n '/^\[Install/,/^\[/{/^Default=/{s/^Default=//p;q}}' "$profiles_ini")
-        profile_path="$HOME/.librewolf/$profile_dir"
+        profile_path="$profile_root/$profile_dir"
 
         if [ -z "$profile_dir" ] || [ ! -x "$profile_path/updater.sh" ]; then
                 echo -e "${YELLOW}Arkenfox updater not found. Skipping maintenance.${NC}"

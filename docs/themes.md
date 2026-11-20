@@ -13,7 +13,8 @@ run it. The sync never runs it.
 ## Browsers
 
 - LibreWolf: the CSS theme is in `~/.config/librewolf/chrome/` and the preferences in
-  `~/.librewolf/librewolf.overrides.cfg`. Extensions: uBlock Origin, Vimium, I still
+  `~/.config/librewolf/librewolf/librewolf.overrides.cfg`, next to the profiles.
+  Extensions: uBlock Origin, Vimium, I still
   don't care about cookies, Dark Background and Light Text, and Bypass Paywalls Clean.
 - Helium follows the GTK theme. Extensions: Vimium and I still don't care about
   cookies; Helium downloads them once its services consent and extension proxy are on.

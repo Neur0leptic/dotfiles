@@ -25,7 +25,6 @@ dwl-machines/**
 .local/src/dwl/**
 .config/**
 .local/bin/**
-.librewolf/**
 .local/share/themes/Neurowave/**
 .local/share/Kvantum/Neurowave/**
 {{- end }}
@@ -50,7 +49,6 @@ dwl-machines/**
 .config/librewolf/**
 .config/helium-browser-theme.json
 .config/browser-extensions.json
-.librewolf/**
 .local/share/themes/Neurowave/**
 .local/share/Kvantum/Neurowave/**
 .local/bin/setup_librewolf.sh
