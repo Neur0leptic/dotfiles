@@ -1,10 +1,4 @@
 #!/bin/sh
-# Screen brightness on a perceptual curve (exponent 2) for the keys, Waybar and the login
-# level: 5% steps above 10%, 1% steps from 10% down to 0 (backlight off). Every step
-# changes the panel; on a backlight with few levels it moves on to the next level that
-# does. Without an argument it only shows the current level. --waybar prints the level
-# for Waybar's custom/brightness module, which every change refreshes with a signal, so
-# nothing polls.
 
 usage() {
         echo "Usage: brightness.sh [up|down|set PERCENT|--waybar]" >&2
@@ -17,8 +11,8 @@ case "${1:-}" in
         *) usage ;;
 esac
 
-max="$(brightnessctl m 2>/dev/null)"
-current="$(brightnessctl g 2>/dev/null)"
+max="$(brightnessctl m 2> /dev/null)"
+current="$(brightnessctl g 2> /dev/null)"
 case "$max" in '' | *[!0-9]* | 0) max= ;; esac
 case "$current" in '' | *[!0-9]*) max= ;; esac
 if [ -z "$max" ]; then
@@ -69,7 +63,7 @@ fi
 
 if [ "$new" != "$current" ]; then
         brightnessctl -q set "$new"
-        pkill -RTMIN+8 -x -u "$(id -u)" waybar 2>/dev/null
+        pkill -RTMIN+8 -x -u "$(id -u)" waybar 2> /dev/null
 fi
 [ "${1:-}" = set ] && exit 0
 

@@ -2,17 +2,16 @@
 # Claude and Codex (ChatGPT) subscription quotas, fetched fresh on every run; nothing is
 # cached or kept running. Without arguments it draws them in the terminal, --wait also
 # waits for Enter (for the Waybar click window), and --json prints the data for
-# waybar_ai_quota.sh. The logins come from Claude Code and OpenCode. The X220 has neither,
-# so on Gentoo the data comes from the Omen over SSH, as claude_launcher.sh does.
+# waybar_ai_quota.sh. The logins come from Claude Code and OpenCode.
 
 usage() {
-	printf 'Usage: ai_quota.sh [--json | --wait]\n' >&2
-	exit 2
+        printf 'Usage: ai_quota.sh [--json | --wait]\n' >&2
+        exit 2
 }
 
 case "${1:-}" in
-	'' | --json | --wait) ;;
-	*) usage ;;
+        '' | --json | --wait) ;;
+        *) usage ;;
 esac
 [ "$#" -le 1 ] || usage
 set -f
@@ -21,90 +20,127 @@ nl='
 
 # Prints a provider entry that carries only an error message.
 failure() {
-	jq -cn --arg name "$1" --arg short "$2" --arg error "$3" --arg plan "${4:-}" \
-		'{name: $name, short: $short, plan: $plan, error: $error}'
+        jq -cn --arg name "$1" --arg short "$2" --arg error "$3" --arg plan "${4:-}" \
+                '{name: $name, short: $short, plan: $plan, error: $error}'
 }
 
 # Prints a provider entry for a login whose subscription has ended; Waybar leaves it out.
 ended() {
-	jq -cn --arg name "$1" --arg short "$2" \
-		'{name: $name, short: $short, plan: "", ended: true, error: "No active subscription."}'
+        jq -cn --arg name "$1" --arg short "$2" \
+                '{name: $name, short: $short, plan: "", ended: true, error: "No active subscription."}'
 }
 
 # Succeeds when a login expiry in milliseconds is known and has passed.
 expired() {
-	[ "$1" -gt 0 ] 2>/dev/null && [ "$1" -le "$(($(date +%s) * 1000))" ]
+        [ "$1" -gt 0 ] 2> /dev/null && [ "$1" -le "$(($(date +%s) * 1000))" ]
 }
 
 # Prints the response body, or an error message and fails. The token reaches curl on
 # stdin, never on its command line.
 request() {
-	case "$2" in '' | *[!A-Za-z0-9._~+/=-]*) printf 'The saved login is unreadable.\n'; return 1 ;; esac
-	response=$(printf 'header = "Authorization: Bearer %s"\nheader = "%s"\n' "$2" "$3" |
-		curl -q --config - --proto '=https' --silent --connect-timeout 5 --max-time 15 \
-			-H 'Accept: application/json' -w "\\n%{http_code}" "$1" 2>/dev/null) || {
-		printf 'No connection to the service.\n'
-		return 1
-	}
-	status=${response##*"$nl"}
-	case "$status" in
-		200) printf '%s\n' "${response%"$nl"*}"; return 0 ;;
-		401 | 403) printf 'Login expired. %s\n' "$4" ;;
-		429) printf 'Too many requests. Try again later.\n' ;;
-		*) printf 'The service answered with HTTP %s.\n' "$status" ;;
-	esac
-	return 1
+        case "$2" in '' | *[!A-Za-z0-9._~+/=-]*)
+                printf 'The saved login is unreadable.\n'
+                return 1
+                ;;
+        esac
+        response=$(printf 'header = "Authorization: Bearer %s"\nheader = "%s"\n' "$2" "$3" |
+                curl -q --config - --proto '=https' --silent --connect-timeout 5 --max-time 15 \
+                        -H 'Accept: application/json' -w "\\n%{http_code}" "$1" 2> /dev/null) || {
+                printf 'No connection to the service.\n'
+                return 1
+        }
+        status=${response##*"$nl"}
+        case "$status" in
+                200)
+                        printf '%s\n' "${response%"$nl"*}"
+                        return 0
+                        ;;
+                401 | 403) printf 'Login expired. %s\n' "$4" ;;
+                429) printf 'Too many requests. Try again later.\n' ;;
+                *) printf 'The service answered with HTTP %s.\n' "$status" ;;
+        esac
+        return 1
 }
 
 claude_quota() {
-	file="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.credentials.json"
-	[ -r "$file" ] || return 0 # No Claude Code login here: leave Claude out.
-	set -- $(jq -r '.claudeAiOauth | "\(.accessToken // "") \(.expiresAt // 0) \(.subscriptionType // "")"' \
-		"$file" 2>/dev/null)
-	[ "$#" -ge 2 ] || { failure Claude C 'The Claude Code login is unreadable.'; return; }
-	plan=${3:-}
-	expired "$2" && { failure Claude C 'Login expired. Start Claude Code once.' "$plan"; return; }
-	body=$(request https://api.anthropic.com/api/oauth/profile "$1" 'anthropic-beta: oauth-2025-04-20' \
-		'Start Claude Code once.') || { failure Claude C "$body" "$plan"; return; }
-	# The plan saved with the login is not updated when Claude Code refreshes it, so the
-	# profile tells whether the subscription is still active.
-	case $(printf '%s\n' "$body" | jq -r 'select(.account | type == "object")
+        file="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.credentials.json"
+        [ -r "$file" ] || return 0 # No Claude Code login here: leave Claude out.
+        set -- $(jq -r '.claudeAiOauth | "\(.accessToken // "") \(.expiresAt // 0) \(.subscriptionType // "")"' \
+                "$file" 2> /dev/null)
+        [ "$#" -ge 2 ] || {
+                failure Claude C 'The Claude Code login is unreadable.'
+                return
+        }
+        plan=${3:-}
+        expired "$2" && {
+                failure Claude C 'Login expired. Start Claude Code once.' "$plan"
+                return
+        }
+        body=$(request https://api.anthropic.com/api/oauth/profile "$1" 'anthropic-beta: oauth-2025-04-20' \
+                'Start Claude Code once.') || {
+                failure Claude C "$body" "$plan"
+                return
+        }
+        # The plan saved with the login is not updated when Claude Code refreshes it, so the
+        # profile tells whether the subscription is still active.
+        case $(printf '%s\n' "$body" | jq -r 'select(.account | type == "object")
 		| (.account.has_claude_pro // false) or (.account.has_claude_max // false)
-		  or .organization.subscription_status == "active"' 2>/dev/null) in
-		true) ;;
-		false) ended Claude C; return ;;
-		*) failure Claude C 'Unexpected answer from Anthropic.' "$plan"; return ;;
-	esac
-	body=$(request https://api.anthropic.com/api/oauth/usage "$1" 'anthropic-beta: oauth-2025-04-20' \
-		'Start Claude Code once.') || { failure Claude C "$body" "$plan"; return; }
-	printf '%s\n' "$body" | jq -c --arg plan "$plan" '
+		  or .organization.subscription_status == "active"' 2> /dev/null) in
+                true) ;;
+                false)
+                        ended Claude C
+                        return
+                        ;;
+                *)
+                        failure Claude C 'Unexpected answer from Anthropic.' "$plan"
+                        return
+                        ;;
+        esac
+        body=$(request https://api.anthropic.com/api/oauth/usage "$1" 'anthropic-beta: oauth-2025-04-20' \
+                'Start Claude Code once.') || {
+                failure Claude C "$body" "$plan"
+                return
+        }
+        printf '%s\n' "$body" | jq -c --arg plan "$plan" '
 		def epoch: try (sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601) catch null;
 		def window($label): {label: $label,
 			used: (.utilization | if type == "number" then . else null end),
 			resets_at: (.resets_at | if type == "string" then epoch else null end)};
 		{name: "Claude", short: "C", plan: $plan,
 		 windows: [((.five_hour // {}) | window("5-hour")), ((.seven_day // {}) | window("Weekly"))]}
-	' 2>/dev/null || failure Claude C 'Unexpected answer from Anthropic.' "$plan"
+	' 2> /dev/null || failure Claude C 'Unexpected answer from Anthropic.' "$plan"
 }
 
 codex_quota() {
-	db="${XDG_DATA_HOME:-$HOME/.local/share}/opencode/opencode.db"
-	[ -r "$db" ] && command -v sqlite3 >/dev/null 2>&1 || return 0
-	# Read-only: OpenCode keeps the refreshed ChatGPT login in its database.
-	login=$(sqlite3 -readonly -cmd '.timeout 2000' "$db" "select value from credential
-		where integration_id = 'openai' order by time_updated desc limit 1;" 2>/dev/null) || login=
-	[ -n "$login" ] || return 0 # No ChatGPT login in OpenCode: leave Codex out.
-	set -- $(printf '%s\n' "$login" |
-		jq -r '"\(.access // "") \(.expires // 0) \(.metadata.accountID // "")"' 2>/dev/null)
-	case "${3:-}" in
-		'' | *[!A-Za-z0-9_-]*) failure Codex G 'The OpenCode login is unreadable.'; return ;;
-	esac
-	expired "$2" && { failure Codex G 'Login expired. Use a GPT model in OpenCode once.'; return; }
-	body=$(request https://chatgpt.com/backend-api/wham/usage "$1" "ChatGPT-Account-Id: $3" \
-		'Use a GPT model in OpenCode once.') || { failure Codex G "$body"; return; }
-	[ "$(printf '%s\n' "$body" | jq -r '.plan_type?' 2>/dev/null)" = free ] && { ended Codex G; return; }
-	# A window that has not started yet reports its full length as the time to reset.
-	printf '%s\n' "$body" | jq -c '
+        db="${XDG_DATA_HOME:-$HOME/.local/share}/opencode/opencode.db"
+        [ -r "$db" ] && command -v sqlite3 > /dev/null 2>&1 || return 0
+        # Read-only: OpenCode keeps the refreshed ChatGPT login in its database.
+        login=$(sqlite3 -readonly -cmd '.timeout 2000' "$db" "select value from credential
+		where integration_id = 'openai' order by time_updated desc limit 1;" 2> /dev/null) || login=
+        [ -n "$login" ] || return 0 # No ChatGPT login in OpenCode: leave Codex out.
+        set -- $(printf '%s\n' "$login" |
+                jq -r '"\(.access // "") \(.expires // 0) \(.metadata.accountID // "")"' 2> /dev/null)
+        case "${3:-}" in
+                '' | *[!A-Za-z0-9_-]*)
+                        failure Codex G 'The OpenCode login is unreadable.'
+                        return
+                        ;;
+        esac
+        expired "$2" && {
+                failure Codex G 'Login expired. Use a GPT model in OpenCode once.'
+                return
+        }
+        body=$(request https://chatgpt.com/backend-api/wham/usage "$1" "ChatGPT-Account-Id: $3" \
+                'Use a GPT model in OpenCode once.') || {
+                failure Codex G "$body"
+                return
+        }
+        [ "$(printf '%s\n' "$body" | jq -r '.plan_type?' 2> /dev/null)" = free ] && {
+                ended Codex G
+                return
+        }
+        # A window that has not started yet reports its full length as the time to reset.
+        printf '%s\n' "$body" | jq -c '
 		def window($seconds; $label):
 			[.rate_limit.primary_window, .rate_limit.secondary_window]
 			| map(objects | select(.limit_window_seconds == $seconds)) | .[0] as $w
@@ -114,25 +150,28 @@ codex_quota() {
 			               then null else $w.reset_at end)};
 		{name: "Codex", short: "G", plan: (.plan_type // ""),
 		 windows: [window(18000; "5-hour"), window(604800; "Weekly")]}
-	' 2>/dev/null || failure Codex G 'Unexpected answer from OpenAI.'
+	' 2> /dev/null || failure Codex G 'Unexpected answer from OpenAI.'
 }
 
 data() {
-	if [ -r /etc/os-release ] && . /etc/os-release && [ "${ID:-}" = gentoo ]; then
-		remote=$("$HOME/.local/bin/ssh_connection.sh" .local/bin/ai_quota.sh --json </dev/null 2>/dev/null)
-		if printf '%s\n' "$remote" | jq -e 'type == "object"' >/dev/null 2>&1; then
-			printf '%s\n' "$remote"
-		else
-			jq -cn '{fetched_at: (now | floor), error: "The Omen is not reachable."}'
-		fi
-		return
-	fi
-	{ claude_quota; codex_quota; } | jq -cs '{fetched_at: (now | floor), providers: .}'
+        if [ -r /etc/os-release ] && . /etc/os-release && [ "${ID:-}" = gentoo ]; then
+                remote=$("$HOME/.local/bin/ssh_connection.sh" .local/bin/ai_quota.sh --json < /dev/null 2> /dev/null)
+                if printf '%s\n' "$remote" | jq -e 'type == "object"' > /dev/null 2>&1; then
+                        printf '%s\n' "$remote"
+                else
+                        jq -cn '{fetched_at: (now | floor), error: "The Omen is not reachable."}'
+                fi
+                return
+        fi
+        {
+                claude_quota
+                codex_quota
+        } | jq -cs '{fetched_at: (now | floor), providers: .}'
 }
 
 if [ "${1:-}" = --json ]; then
-	data
-	exit
+        data
+        exit
 fi
 
 colour=false
@@ -185,6 +224,6 @@ printf '%s\n' "$quota" | jq -r --argjson colour "$colour" '
 '
 
 if [ "${1:-}" = --wait ]; then
-	printf '\nPress Enter to close...'
-	read -r _
+        printf '\nPress Enter to close...'
+        read -r _
 fi

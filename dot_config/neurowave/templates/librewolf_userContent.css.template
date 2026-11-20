@@ -129,3 +129,136 @@
     }
   }
 }
+
+/* Vimium's Vomnibar, HUD and help dialog are extension frames inside web pages.
+   Resist Fingerprinting gives those pages, and so these frames, the light scheme,
+   which keeps Vimium's own dark styles off; paint the frames dark here instead. */
+@-moz-document regexp("moz-extension://[^/]+/pages/vomnibar_page\\.html") {
+  #vomnibar {
+    background: #${BASE01} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE0D} !important;
+  }
+
+  #vomnibar-search-area {
+    border-bottom-color: #${BASE02} !important;
+  }
+
+  #vomnibar input {
+    background-color: #${BASE00} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE02} !important;
+    box-shadow: none !important;
+  }
+
+  #vomnibar input::selection {
+    background-color: #${BASE02} !important;
+    color: #${BASE05} !important;
+  }
+
+  #vomnibar li {
+    border-bottom-color: #${BASE03} !important;
+    color: #${BASE05} !important;
+  }
+
+  #vomnibar li.selected {
+    background-color: #${BASE02} !important;
+  }
+
+  #vomnibar li .source {
+    color: color-mix(in srgb, #${BASE05} 70%, #${BASE00}) !important;
+  }
+
+  #vomnibar li .url {
+    color: #${BASE0C} !important;
+  }
+
+  #vomnibar li em,
+  #vomnibar li .title,
+  #vomnibar li .relevancy {
+    color: #${BASE05} !important;
+  }
+
+  #vomnibar li .match {
+    color: #${BASE07} !important;
+  }
+}
+
+@-moz-document regexp("moz-extension://[^/]+/pages/hud_page\\.html(\\?.*)?") {
+  #hud-container {
+    background-color: #${BASE01} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE0D} !important;
+  }
+
+  #search-area {
+    color: #${BASE05} !important;
+  }
+
+  #hud.hud-find {
+    background-color: #${BASE00} !important;
+    border: 1px solid #${BASE02} !important;
+  }
+
+  span#hud-match-count {
+    color: color-mix(in srgb, #${BASE05} 70%, #${BASE00}) !important;
+  }
+
+  ::selection {
+    background: #${BASE02} !important;
+    color: #${BASE05} !important;
+  }
+}
+
+@-moz-document regexp("moz-extension://[^/]+/pages/help_dialog_page\\.html") {
+  #container {
+    background-color: #${BASE01} !important;
+    border-color: #${BASE0D} !important;
+    scrollbar-color: #${BASE02} #${BASE01} !important;
+  }
+
+  #dialog {
+    color: #${BASE05} !important;
+  }
+
+  a,
+  h1 .vim {
+    color: #${BASE0C} !important;
+  }
+
+  a#close {
+    color: color-mix(in srgb, #${BASE05} 70%, #${BASE00}) !important;
+  }
+
+  a#close:hover {
+    color: #${BASE07} !important;
+  }
+
+  h1 {
+    color: #${BASE05} !important;
+  }
+
+  h2 {
+    color: #${BASE0D} !important;
+  }
+
+  .help-description {
+    color: color-mix(in srgb, #${BASE05} 85%, #${BASE00}) !important;
+  }
+
+  div.divider {
+    background-color: #${BASE02} !important;
+  }
+
+  .key {
+    background-color: #${BASE03} !important;
+    color: #${BASE05} !important;
+    border: 1px solid #${BASE02} !important;
+    box-shadow: none !important;
+  }
+
+  ::selection {
+    background: #${BASE02} !important;
+    color: #${BASE05} !important;
+  }
+}

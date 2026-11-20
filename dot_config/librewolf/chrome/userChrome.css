@@ -107,6 +107,15 @@
   --sidebar-background-color: #000000 !important;
 }
 
+/* Grow the collapsed toolbars' hover strip with the screen scale. */
+@media (min-resolution: 1.5dppx) {
+  :root { --uc-toolbar-trigger-height: 15px; }
+}
+
+@media (min-resolution: 2dppx) {
+  :root { --uc-toolbar-trigger-height: 20px; }
+}
+
 #titlebar-spacer { display: none !important; }
 
 :root:not([customizing], [inFullscreen]) #navigator-toolbox {

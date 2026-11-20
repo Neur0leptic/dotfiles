@@ -129,3 +129,136 @@
     }
   }
 }
+
+/* Vimium's Vomnibar, HUD and help dialog are extension frames inside web pages.
+   Resist Fingerprinting gives those pages, and so these frames, the light scheme,
+   which keeps Vimium's own dark styles off; paint the frames dark here instead. */
+@-moz-document regexp("moz-extension://[^/]+/pages/vomnibar_page\\.html") {
+  #vomnibar {
+    background: #0d0d14 !important;
+    color: #e8e8e8 !important;
+    border: 1px solid #99d8fe !important;
+  }
+
+  #vomnibar-search-area {
+    border-bottom-color: #463465 !important;
+  }
+
+  #vomnibar input {
+    background-color: #000000 !important;
+    color: #e8e8e8 !important;
+    border: 1px solid #463465 !important;
+    box-shadow: none !important;
+  }
+
+  #vomnibar input::selection {
+    background-color: #463465 !important;
+    color: #e8e8e8 !important;
+  }
+
+  #vomnibar li {
+    border-bottom-color: #1c272a !important;
+    color: #e8e8e8 !important;
+  }
+
+  #vomnibar li.selected {
+    background-color: #463465 !important;
+  }
+
+  #vomnibar li .source {
+    color: color-mix(in srgb, #e8e8e8 70%, #000000) !important;
+  }
+
+  #vomnibar li .url {
+    color: #3bf0f4 !important;
+  }
+
+  #vomnibar li em,
+  #vomnibar li .title,
+  #vomnibar li .relevancy {
+    color: #e8e8e8 !important;
+  }
+
+  #vomnibar li .match {
+    color: #ffffff !important;
+  }
+}
+
+@-moz-document regexp("moz-extension://[^/]+/pages/hud_page\\.html(\\?.*)?") {
+  #hud-container {
+    background-color: #0d0d14 !important;
+    color: #e8e8e8 !important;
+    border: 1px solid #99d8fe !important;
+  }
+
+  #search-area {
+    color: #e8e8e8 !important;
+  }
+
+  #hud.hud-find {
+    background-color: #000000 !important;
+    border: 1px solid #463465 !important;
+  }
+
+  span#hud-match-count {
+    color: color-mix(in srgb, #e8e8e8 70%, #000000) !important;
+  }
+
+  ::selection {
+    background: #463465 !important;
+    color: #e8e8e8 !important;
+  }
+}
+
+@-moz-document regexp("moz-extension://[^/]+/pages/help_dialog_page\\.html") {
+  #container {
+    background-color: #0d0d14 !important;
+    border-color: #99d8fe !important;
+    scrollbar-color: #463465 #0d0d14 !important;
+  }
+
+  #dialog {
+    color: #e8e8e8 !important;
+  }
+
+  a,
+  h1 .vim {
+    color: #3bf0f4 !important;
+  }
+
+  a#close {
+    color: color-mix(in srgb, #e8e8e8 70%, #000000) !important;
+  }
+
+  a#close:hover {
+    color: #ffffff !important;
+  }
+
+  h1 {
+    color: #e8e8e8 !important;
+  }
+
+  h2 {
+    color: #99d8fe !important;
+  }
+
+  .help-description {
+    color: color-mix(in srgb, #e8e8e8 85%, #000000) !important;
+  }
+
+  div.divider {
+    background-color: #463465 !important;
+  }
+
+  .key {
+    background-color: #1c272a !important;
+    color: #e8e8e8 !important;
+    border: 1px solid #463465 !important;
+    box-shadow: none !important;
+  }
+
+  ::selection {
+    background: #463465 !important;
+    color: #e8e8e8 !important;
+  }
+}
