@@ -64,21 +64,9 @@ enum { CBG, CRING, CINSIDE, CTEXT, CVER, CWRONG, CKEYHL, CDATE, NCONF };
 static Col col[CDATE];
 static const Col amber = { 240, 176, 48 };
 
-/* 0-9 and ':' (index 10) */
-static const char *f57[11][7] = {
-	{ ".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###." },
-	{ "..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###." },
-	{ ".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####" },
-	{ ".###.", "#...#", "....#", "..##.", "....#", "#...#", ".###." },
-	{ "...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#." },
-	{ "#####", "#....", "####.", "....#", "....#", "#...#", ".###." },
-	{ "..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###." },
-	{ "#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..." },
-	{ ".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###." },
-	{ ".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.." },
-	{ ".", ".", "#", ".", "#", ".", "." },
-};
-static const char *f35[11][7] = {
+/* digits 0-9 and ':' (index 10) */
+#define FONTH 5
+static const char *font[11][FONTH] = {
 	{ "###", "#.#", "#.#", "#.#", "###" },
 	{ ".#.", "##.", ".#.", ".#.", "###" },
 	{ "###", "..#", "###", "#..", "###" },
@@ -91,7 +79,6 @@ static const char *f35[11][7] = {
 	{ "###", "#.#", "###", "..#", "###" },
 	{ ".", "#", ".", "#", "." },
 };
-static const struct { const char *(*g)[7]; int h; } fonts[] = { { f57, 7 }, { f35, 5 } };
 
 /* where a cell lies: outside the ring, inside it, within the band, on a circle */
 enum { OUT, IN, BAND, EDGE };
@@ -115,9 +102,10 @@ static uint64_t *tilesig;
 static Col ringA, ringB, pal[P_END];
 static double arc0, arclen, arcx0, arcy0, arcx1, arcy1;
 
-/* big digits: font pixels of dk cells by dk half rows from cell column dc0 and
- * half row dh0, dw cells wide and dh half rows high; up to two rows of text */
-static int dfont, dk, dc0, dh0, dw, dh, *dmap;
+/* big digits, none when dk is 0: font pixels of dk cells by dk half rows from
+ * cell column dc0 and half row dh0, dw cells wide and dh half rows high; up to
+ * two rows of text */
+static int dk, dc0, dh0, dw, dh, *dmap;
 static int nt, trow[2], tcol[2], tlen[2];
 static const char *tstr[2];
 
@@ -331,13 +319,13 @@ glyph(char c)
 }
 
 static int
-textwidth(const char *s, int f, int scale)
+textwidth(const char *s)
 {
 	int w = 0, n = 0;
 
 	for (; *s; s++, n++)
-		w += strlen(fonts[f].g[glyph(*s)][0]);
-	return (w + n - 1) * scale;
+		w += strlen(font[glyph(*s)][0]);
+	return w + n - 1;
 }
 
 static void
@@ -418,10 +406,10 @@ static void
 layout(const char *big, const char *small)
 {
 	double hh = ch / 2.0, gap;
-	int f, k, x, gx, sx, w;
+	int x, gx, sx, w;
 	const char *p;
 
-	dfont = -1;
+	dk = 0;
 	nt = 0;
 	if (plain) {
 		textrow(rows / 2 - 1, big, 0);
@@ -429,12 +417,8 @@ layout(const char *big, const char *small)
 		return;
 	}
 	/* a font pixel is dk cells wide and dk half rows high, about square */
-	for (f = 0; f < 2; f++) {
-		k = (int)fmin(2 * r * 0.78 / cw / textwidth(big, f, 1), 2 * r * 0.40 / hh / fonts[f].h);
-		if (k >= 1 && (dfont < 0 || k * fonts[f].h > dk * fonts[dfont].h))
-			dfont = f, dk = k;
-	}
-	if (dfont < 0) {
+	dk = (int)fmin(2 * r * 0.78 / cw / textwidth(big), 2 * r * 0.40 / hh / FONTH);
+	if (!dk) {
 		textrow((int)(CY / ch) - 1, big, 1);
 		textrow((int)(CY / ch), small, 1);
 		if (!nt) {
@@ -445,13 +429,13 @@ layout(const char *big, const char *small)
 		}
 		return;
 	}
-	dw = textwidth(big, dfont, dk);
-	dh = fonts[dfont].h * dk;
+	dw = textwidth(big) * dk;
+	dh = FONTH * dk;
 	gap = fmax(2, dh / 4.0);
 	dh0 = (int)lround(CY / hh - (dh + gap + 2) / 2);
 	dc0 = (int)lround((cols - dw) / 2.0);
 	for (x = 0, p = big; *p; p++) {
-		w = strlen(fonts[dfont].g[glyph(*p)][0]);
+		w = strlen(font[glyph(*p)][0]);
 		for (gx = 0; gx < w; gx++)
 			for (sx = 0; sx < dk; sx++)
 				dmap[x++] = glyph(*p) << 3 | gx;
@@ -468,9 +452,9 @@ dbit(int x, int hr)
 {
 	int m;
 
-	if (dfont < 0 || x < dc0 || x >= dc0 + dw || hr < dh0 || hr >= dh0 + dh || (m = dmap[x - dc0]) < 0)
+	if (!dk || x < dc0 || x >= dc0 + dw || hr < dh0 || hr >= dh0 + dh || (m = dmap[x - dc0]) < 0)
 		return 0;
-	return fonts[dfont].g[m >> 3][(hr - dh0) / dk][m & 7] == '#';
+	return font[m >> 3][(hr - dh0) / dk][m & 7] == '#';
 }
 
 /* whether cell (y, x) is text: the digits or a text row */
@@ -479,7 +463,7 @@ istext(int y, int x)
 {
 	int k;
 
-	if (dfont >= 0 && x >= dc0 && x < dc0 + dw && 2 * y + 1 >= dh0 && 2 * y < dh0 + dh)
+	if (dk && x >= dc0 && x < dc0 + dw && 2 * y + 1 >= dh0 && 2 * y < dh0 + dh)
 		return 1;
 	for (k = 0; k < nt; k++)
 		if (y == trow[k] && x >= tcol[k] && x < tcol[k] + tlen[k])
@@ -818,7 +802,7 @@ frame(const char *big, const char *small)
 			for (x = 0; x < cols; x++)
 				if (!istext(y, x))
 					emit(y, x, ' ', UNSET, NONE);
-	if (dfont >= 0)
+	if (dk)
 		for (y = dh0 / 2; 2 * y < dh0 + dh; y++)
 			for (x = dc0; x < dc0 + dw; x++) {
 				top = dbit(x, 2 * y);
