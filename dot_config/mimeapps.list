@@ -1,6 +1,7 @@
 [Default Applications]
 application/pdf=org.pwmt.zathura.desktop
 text/plain=text.desktop
+inode/directory=yazi.desktop
 image/png=imv.desktop
 image/jpeg=imv.desktop
 image/webp=imv.desktop

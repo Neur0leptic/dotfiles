@@ -6,7 +6,7 @@ prepend_dirs = [
 	{ name = "Downloads",    text = "", fg = "#${BASE0C}" },
 	{ name = "Music",        text = "󰝚", fg = "#${BASE0C}" },
 	{ name = "Pictures",     text = "󰉏", fg = "#${BASE0C}" },
-	{ name = "screenshot",   text = "󰈐", fg = "#${BASE0C}" },
+	{ name = "Screenshots",   text = "󰈐", fg = "#${BASE0C}" },
 	{ name = "Videos",       text = "󰗃", fg = "#${BASE0C}" },
 	{ name = "Desktop",      text = "", fg = "#${BASE0C}" },
 	{ name = "Templates",    text = "󰉏", fg = "#${BASE0C}" },

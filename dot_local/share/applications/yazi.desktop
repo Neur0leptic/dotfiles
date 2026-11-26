@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Yazi
+Comment=Terminal file manager
+Exec=footclient yazi %f
+TryExec=yazi
+Terminal=false
+Type=Application
+Icon=yazi
+MimeType=inode/directory;
+Categories=System;FileTools;FileManager;
